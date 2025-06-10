@@ -1,0 +1,583 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AI Provider Configuration Schema",
+  "description": "Schema for configuring AI providers in MeetingMind",
+  "type": "object",
+  "properties": {
+    "providers": {
+      "type": "array",
+      "description": "List of configured AI providers",
+      "items": {
+        "$ref": "#/definitions/AIProvider"
+      }
+    }
+  },
+  "required": ["providers"],
+  "definitions": {
+    "AIProvider": {
+      "type": "object",
+      "description": "Configuration for a single AI provider",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this provider configuration",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name for the provider",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "type": {
+          "type": "string",
+          "description": "Provider type - determines which implementation to use",
+          "enum": ["anthropic", "openai", "xai", "local", "azure_openai", "google_palm", "cohere", "huggingface"]
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this provider is currently enabled",
+          "default": true
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Priority order for provider selection (lower numbers = higher priority)",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 50
+        },
+        "config": {
+          "$ref": "#/definitions/ProviderConfig"
+        },
+        "models": {
+          "type": "array",
+          "description": "Available models for this provider",
+          "items": {
+            "$ref": "#/definitions/ModelConfig"
+          },
+          "minItems": 1
+        },
+        "capabilities": {
+          "$ref": "#/definitions/Capabilities"
+        },
+        "pricing": {
+          "$ref": "#/definitions/Pricing"
+        },
+        "health_check": {
+          "$ref": "#/definitions/HealthCheck"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        }
+      },
+      "required": ["id", "name", "type", "config", "models", "capabilities", "pricing"],
+      "additionalProperties": false
+    },
+    "ProviderConfig": {
+      "type": "object",
+      "description": "Provider-specific configuration",
+      "oneOf": [
+        {"$ref": "#/definitions/AnthropicConfig"},
+        {"$ref": "#/definitions/OpenAIConfig"},
+        {"$ref": "#/definitions/XAIConfig"},
+        {"$ref": "#/definitions/LocalConfig"},
+        {"$ref": "#/definitions/AzureOpenAIConfig"},
+        {"$ref": "#/definitions/GooglePaLMConfig"},
+        {"$ref": "#/definitions/CohereConfig"},
+        {"$ref": "#/definitions/HuggingFaceConfig"}
+      ]
+    },
+    "AnthropicConfig": {
+      "type": "object",
+      "description": "Anthropic (Claude) API configuration",
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "Anthropic API key",
+          "minLength": 1
+        },
+        "base_url": {
+          "type": "string",
+          "description": "API base URL",
+          "format": "uri",
+          "default": "https://api.anthropic.com"
+        },
+        "version": {
+          "type": "string",
+          "description": "API version",
+          "default": "2023-06-01"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "description": "Maximum tokens per request",
+          "minimum": 1,
+          "maximum": 200000,
+          "default": 4096
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      },
+      "required": ["api_key"],
+      "additionalProperties": false
+    },
+    "OpenAIConfig": {
+      "type": "object",
+      "description": "OpenAI API configuration",
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "OpenAI API key",
+          "minLength": 1
+        },
+        "organization": {
+          "type": "string",
+          "description": "OpenAI organization ID (optional)"
+        },
+        "base_url": {
+          "type": "string",
+          "description": "API base URL",
+          "format": "uri",
+          "default": "https://api.openai.com/v1"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "description": "Maximum tokens per request",
+          "minimum": 1,
+          "maximum": 128000,
+          "default": 4096
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      },
+      "required": ["api_key"],
+      "additionalProperties": false
+    },
+    "XAIConfig": {
+      "type": "object",
+      "description": "X.AI (Grok) API configuration",
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "X.AI API key",
+          "minLength": 1
+        },
+        "base_url": {
+          "type": "string",
+          "description": "API base URL",
+          "format": "uri",
+          "default": "https://api.x.ai/v1"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "description": "Maximum tokens per request",
+          "minimum": 1,
+          "maximum": 131072,
+          "default": 4096
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      },
+      "required": ["api_key"],
+      "additionalProperties": false
+    },
+    "LocalConfig": {
+      "type": "object",
+      "description": "Local model configuration (Ollama, LM Studio, etc.)",
+      "properties": {
+        "base_url": {
+          "type": "string",
+          "description": "Local server URL",
+          "format": "uri",
+          "default": "http://localhost:11434"
+        },
+        "api_format": {
+          "type": "string",
+          "description": "API format compatibility",
+          "enum": ["ollama", "openai", "llamacpp"],
+          "default": "ollama"
+        },
+        "model_path": {
+          "type": "string",
+          "description": "Path to model files (for direct loading)"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "description": "Maximum tokens per request",
+          "minimum": 1,
+          "maximum": 32768,
+          "default": 2048
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds",
+          "minimum": 1,
+          "maximum": 600,
+          "default": 60
+        },
+        "gpu_layers": {
+          "type": "integer",
+          "description": "Number of layers to run on GPU",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "required": ["base_url"],
+      "additionalProperties": false
+    },
+    "AzureOpenAIConfig": {
+      "type": "object",
+      "description": "Azure OpenAI Service configuration",
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "Azure OpenAI API key",
+          "minLength": 1
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Azure OpenAI endpoint URL",
+          "format": "uri"
+        },
+        "api_version": {
+          "type": "string",
+          "description": "Azure OpenAI API version",
+          "default": "2024-02-01"
+        },
+        "deployment_name": {
+          "type": "string",
+          "description": "Azure deployment name"
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      },
+      "required": ["api_key", "endpoint", "deployment_name"],
+      "additionalProperties": false
+    },
+    "GooglePaLMConfig": {
+      "type": "object",
+      "description": "Google PaLM API configuration",
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "Google PaLM API key",
+          "minLength": 1
+        },
+        "base_url": {
+          "type": "string",
+          "description": "API base URL",
+          "format": "uri",
+          "default": "https://generativelanguage.googleapis.com"
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      },
+      "required": ["api_key"],
+      "additionalProperties": false
+    },
+    "CohereConfig": {
+      "type": "object",
+      "description": "Cohere API configuration",
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "Cohere API key",
+          "minLength": 1
+        },
+        "base_url": {
+          "type": "string",
+          "description": "API base URL",
+          "format": "uri",
+          "default": "https://api.cohere.ai"
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      },
+      "required": ["api_key"],
+      "additionalProperties": false
+    },
+    "HuggingFaceConfig": {
+      "type": "object",
+      "description": "HuggingFace API configuration",
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "HuggingFace API token",
+          "minLength": 1
+        },
+        "base_url": {
+          "type": "string",
+          "description": "API base URL",
+          "format": "uri",
+          "default": "https://api-inference.huggingface.co"
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      },
+      "required": ["api_key"],
+      "additionalProperties": false
+    },
+    "ModelConfig": {
+      "type": "object",
+      "description": "Configuration for a specific model",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Model identifier as used by the API",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable model name",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "description": "Model description and capabilities"
+        },
+        "context_length": {
+          "type": "integer",
+          "description": "Maximum context length in tokens",
+          "minimum": 1
+        },
+        "max_output_tokens": {
+          "type": "integer",
+          "description": "Maximum output tokens",
+          "minimum": 1
+        },
+        "supports_streaming": {
+          "type": "boolean",
+          "description": "Whether the model supports streaming responses",
+          "default": false
+        },
+        "supports_function_calling": {
+          "type": "boolean",
+          "description": "Whether the model supports function calling",
+          "default": false
+        },
+        "supports_vision": {
+          "type": "boolean",
+          "description": "Whether the model supports image inputs",
+          "default": false
+        },
+        "input_cost_per_token": {
+          "type": "number",
+          "description": "Cost per input token in cents",
+          "minimum": 0
+        },
+        "output_cost_per_token": {
+          "type": "number",
+          "description": "Cost per output token in cents",
+          "minimum": 0
+        }
+      },
+      "required": ["id", "name", "context_length"],
+      "additionalProperties": false
+    },
+    "Capabilities": {
+      "type": "object",
+      "description": "Provider capabilities",
+      "properties": {
+        "text_generation": {
+          "type": "boolean",
+          "description": "Supports text generation",
+          "default": true
+        },
+        "chat_completion": {
+          "type": "boolean",
+          "description": "Supports chat-style conversations",
+          "default": true
+        },
+        "streaming": {
+          "type": "boolean",
+          "description": "Supports streaming responses",
+          "default": false
+        },
+        "function_calling": {
+          "type": "boolean",
+          "description": "Supports function/tool calling",
+          "default": false
+        },
+        "vision": {
+          "type": "boolean",
+          "description": "Supports image inputs",
+          "default": false
+        },
+        "embeddings": {
+          "type": "boolean",
+          "description": "Supports text embeddings",
+          "default": false
+        },
+        "fine_tuning": {
+          "type": "boolean",
+          "description": "Supports fine-tuning",
+          "default": false
+        },
+        "batch_processing": {
+          "type": "boolean",
+          "description": "Supports batch API requests",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "Pricing": {
+      "type": "object",
+      "description": "Pricing information",
+      "properties": {
+        "currency": {
+          "type": "string",
+          "description": "Currency code",
+          "default": "USD"
+        },
+        "billing_unit": {
+          "type": "string",
+          "description": "Billing unit",
+          "enum": ["token", "character", "request", "minute"],
+          "default": "token"
+        },
+        "input_cost": {
+          "type": "number",
+          "description": "Cost per input unit in cents",
+          "minimum": 0
+        },
+        "output_cost": {
+          "type": "number",
+          "description": "Cost per output unit in cents",
+          "minimum": 0
+        },
+        "minimum_cost": {
+          "type": "number",
+          "description": "Minimum cost per request in cents",
+          "minimum": 0,
+          "default": 0
+        },
+        "free_tier": {
+          "type": "object",
+          "description": "Free tier information",
+          "properties": {
+            "requests_per_month": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tokens_per_month": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      },
+      "required": ["input_cost", "output_cost"],
+      "additionalProperties": false
+    },
+    "HealthCheck": {
+      "type": "object",
+      "description": "Health check configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether health checks are enabled",
+          "default": true
+        },
+        "interval_seconds": {
+          "type": "integer",
+          "description": "Health check interval in seconds",
+          "minimum": 30,
+          "maximum": 3600,
+          "default": 300
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "description": "Health check timeout in seconds",
+          "minimum": 5,
+          "maximum": 60,
+          "default": 10
+        },
+        "failure_threshold": {
+          "type": "integer",
+          "description": "Number of failures before marking unhealthy",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3
+        },
+        "test_prompt": {
+          "type": "string",
+          "description": "Test prompt for health checks",
+          "default": "Hello"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Configuration creation timestamp"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "User who created this configuration"
+        },
+        "description": {
+          "type": "string",
+          "description": "Additional notes about this provider"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags for categorizing providers",
+          "items": {
+            "type": "string"
+          }
+        },
+        "documentation_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Link to provider documentation"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

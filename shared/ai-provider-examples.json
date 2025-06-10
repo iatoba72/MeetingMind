@@ -1,0 +1,352 @@
+{
+  "providers": [
+    {
+      "id": "anthropic_claude",
+      "name": "Anthropic Claude",
+      "type": "anthropic",
+      "enabled": true,
+      "priority": 10,
+      "config": {
+        "api_key": "${ANTHROPIC_API_KEY}",
+        "base_url": "https://api.anthropic.com",
+        "version": "2023-06-01",
+        "max_tokens": 4096,
+        "timeout": 30
+      },
+      "models": [
+        {
+          "id": "claude-3-5-sonnet-20241022",
+          "name": "Claude 3.5 Sonnet",
+          "description": "Most intelligent model, best for complex reasoning and analysis",
+          "context_length": 200000,
+          "max_output_tokens": 8192,
+          "supports_streaming": true,
+          "supports_function_calling": true,
+          "supports_vision": true,
+          "input_cost_per_token": 0.0003,
+          "output_cost_per_token": 0.0015
+        },
+        {
+          "id": "claude-3-haiku-20240307",
+          "name": "Claude 3 Haiku",
+          "description": "Fastest model, best for simple tasks and high-volume processing",
+          "context_length": 200000,
+          "max_output_tokens": 4096,
+          "supports_streaming": true,
+          "supports_function_calling": true,
+          "supports_vision": true,
+          "input_cost_per_token": 0.000025,
+          "output_cost_per_token": 0.000125
+        }
+      ],
+      "capabilities": {
+        "text_generation": true,
+        "chat_completion": true,
+        "streaming": true,
+        "function_calling": true,
+        "vision": true,
+        "embeddings": false,
+        "fine_tuning": false,
+        "batch_processing": false
+      },
+      "pricing": {
+        "currency": "USD",
+        "billing_unit": "token",
+        "input_cost": 0.0003,
+        "output_cost": 0.0015,
+        "minimum_cost": 0
+      },
+      "health_check": {
+        "enabled": true,
+        "interval_seconds": 300,
+        "timeout_seconds": 10,
+        "failure_threshold": 3,
+        "test_prompt": "Hello"
+      },
+      "metadata": {
+        "description": "Anthropic's Claude models for conversation, analysis, and reasoning",
+        "tags": ["conversational", "reasoning", "vision"],
+        "documentation_url": "https://docs.anthropic.com/claude/reference"
+      }
+    },
+    {
+      "id": "openai_gpt",
+      "name": "OpenAI GPT",
+      "type": "openai",
+      "enabled": true,
+      "priority": 20,
+      "config": {
+        "api_key": "${OPENAI_API_KEY}",
+        "organization": "${OPENAI_ORG_ID}",
+        "base_url": "https://api.openai.com/v1",
+        "max_tokens": 4096,
+        "timeout": 30
+      },
+      "models": [
+        {
+          "id": "gpt-4o",
+          "name": "GPT-4o",
+          "description": "Most advanced multimodal model with vision and audio capabilities",
+          "context_length": 128000,
+          "max_output_tokens": 4096,
+          "supports_streaming": true,
+          "supports_function_calling": true,
+          "supports_vision": true,
+          "input_cost_per_token": 0.0025,
+          "output_cost_per_token": 0.01
+        },
+        {
+          "id": "gpt-4o-mini",
+          "name": "GPT-4o Mini",
+          "description": "Affordable and intelligent small model for fast, lightweight tasks",
+          "context_length": 128000,
+          "max_output_tokens": 16384,
+          "supports_streaming": true,
+          "supports_function_calling": true,
+          "supports_vision": true,
+          "input_cost_per_token": 0.00015,
+          "output_cost_per_token": 0.0006
+        },
+        {
+          "id": "gpt-3.5-turbo",
+          "name": "GPT-3.5 Turbo",
+          "description": "Fast, cost-effective model for simple tasks",
+          "context_length": 16385,
+          "max_output_tokens": 4096,
+          "supports_streaming": true,
+          "supports_function_calling": true,
+          "supports_vision": false,
+          "input_cost_per_token": 0.0005,
+          "output_cost_per_token": 0.0015
+        }
+      ],
+      "capabilities": {
+        "text_generation": true,
+        "chat_completion": true,
+        "streaming": true,
+        "function_calling": true,
+        "vision": true,
+        "embeddings": true,
+        "fine_tuning": true,
+        "batch_processing": true
+      },
+      "pricing": {
+        "currency": "USD",
+        "billing_unit": "token",
+        "input_cost": 0.0025,
+        "output_cost": 0.01,
+        "minimum_cost": 0
+      },
+      "health_check": {
+        "enabled": true,
+        "interval_seconds": 300,
+        "timeout_seconds": 10,
+        "failure_threshold": 3,
+        "test_prompt": "Hello"
+      },
+      "metadata": {
+        "description": "OpenAI's GPT models for various AI tasks",
+        "tags": ["multimodal", "function-calling", "embeddings"],
+        "documentation_url": "https://platform.openai.com/docs"
+      }
+    },
+    {
+      "id": "xai_grok",
+      "name": "X.AI Grok",
+      "type": "xai",
+      "enabled": true,
+      "priority": 30,
+      "config": {
+        "api_key": "${XAI_API_KEY}",
+        "base_url": "https://api.x.ai/v1",
+        "max_tokens": 4096,
+        "timeout": 30
+      },
+      "models": [
+        {
+          "id": "grok-beta",
+          "name": "Grok Beta",
+          "description": "X.AI's conversational AI with real-time information access",
+          "context_length": 131072,
+          "max_output_tokens": 4096,
+          "supports_streaming": true,
+          "supports_function_calling": false,
+          "supports_vision": false,
+          "input_cost_per_token": 0.00005,
+          "output_cost_per_token": 0.00015
+        }
+      ],
+      "capabilities": {
+        "text_generation": true,
+        "chat_completion": true,
+        "streaming": true,
+        "function_calling": false,
+        "vision": false,
+        "embeddings": false,
+        "fine_tuning": false,
+        "batch_processing": false
+      },
+      "pricing": {
+        "currency": "USD",
+        "billing_unit": "token",
+        "input_cost": 0.00005,
+        "output_cost": 0.00015,
+        "minimum_cost": 0,
+        "free_tier": {
+          "requests_per_month": 1000,
+          "tokens_per_month": 100000
+        }
+      },
+      "health_check": {
+        "enabled": true,
+        "interval_seconds": 300,
+        "timeout_seconds": 15,
+        "failure_threshold": 3,
+        "test_prompt": "Hello"
+      },
+      "metadata": {
+        "description": "X.AI's Grok model with real-time capabilities",
+        "tags": ["real-time", "conversational"],
+        "documentation_url": "https://docs.x.ai"
+      }
+    },
+    {
+      "id": "local_ollama",
+      "name": "Local Ollama",
+      "type": "local",
+      "enabled": false,
+      "priority": 90,
+      "config": {
+        "base_url": "http://localhost:11434",
+        "api_format": "ollama",
+        "max_tokens": 2048,
+        "timeout": 60,
+        "gpu_layers": 35
+      },
+      "models": [
+        {
+          "id": "llama3.1:8b",
+          "name": "Llama 3.1 8B",
+          "description": "Meta's Llama 3.1 8B model running locally",
+          "context_length": 131072,
+          "max_output_tokens": 2048,
+          "supports_streaming": true,
+          "supports_function_calling": false,
+          "supports_vision": false,
+          "input_cost_per_token": 0,
+          "output_cost_per_token": 0
+        },
+        {
+          "id": "mistral:7b",
+          "name": "Mistral 7B",
+          "description": "Mistral 7B model running locally",
+          "context_length": 32768,
+          "max_output_tokens": 2048,
+          "supports_streaming": true,
+          "supports_function_calling": false,
+          "supports_vision": false,
+          "input_cost_per_token": 0,
+          "output_cost_per_token": 0
+        },
+        {
+          "id": "codellama:13b",
+          "name": "Code Llama 13B",
+          "description": "Meta's Code Llama 13B for code generation",
+          "context_length": 16384,
+          "max_output_tokens": 2048,
+          "supports_streaming": true,
+          "supports_function_calling": false,
+          "supports_vision": false,
+          "input_cost_per_token": 0,
+          "output_cost_per_token": 0
+        }
+      ],
+      "capabilities": {
+        "text_generation": true,
+        "chat_completion": true,
+        "streaming": true,
+        "function_calling": false,
+        "vision": false,
+        "embeddings": true,
+        "fine_tuning": false,
+        "batch_processing": false
+      },
+      "pricing": {
+        "currency": "USD",
+        "billing_unit": "token",
+        "input_cost": 0,
+        "output_cost": 0,
+        "minimum_cost": 0
+      },
+      "health_check": {
+        "enabled": true,
+        "interval_seconds": 600,
+        "timeout_seconds": 30,
+        "failure_threshold": 2,
+        "test_prompt": "Hello"
+      },
+      "metadata": {
+        "description": "Local models running through Ollama",
+        "tags": ["local", "privacy", "offline"],
+        "documentation_url": "https://ollama.ai/docs"
+      }
+    },
+    {
+      "id": "azure_openai",
+      "name": "Azure OpenAI",
+      "type": "azure_openai",
+      "enabled": false,
+      "priority": 25,
+      "config": {
+        "api_key": "${AZURE_OPENAI_API_KEY}",
+        "endpoint": "${AZURE_OPENAI_ENDPOINT}",
+        "api_version": "2024-02-01",
+        "deployment_name": "${AZURE_DEPLOYMENT_NAME}",
+        "timeout": 30
+      },
+      "models": [
+        {
+          "id": "gpt-4o",
+          "name": "GPT-4o (Azure)",
+          "description": "GPT-4o deployed on Azure OpenAI Service",
+          "context_length": 128000,
+          "max_output_tokens": 4096,
+          "supports_streaming": true,
+          "supports_function_calling": true,
+          "supports_vision": true,
+          "input_cost_per_token": 0.0025,
+          "output_cost_per_token": 0.01
+        }
+      ],
+      "capabilities": {
+        "text_generation": true,
+        "chat_completion": true,
+        "streaming": true,
+        "function_calling": true,
+        "vision": true,
+        "embeddings": true,
+        "fine_tuning": true,
+        "batch_processing": false
+      },
+      "pricing": {
+        "currency": "USD",
+        "billing_unit": "token",
+        "input_cost": 0.0025,
+        "output_cost": 0.01,
+        "minimum_cost": 0
+      },
+      "health_check": {
+        "enabled": true,
+        "interval_seconds": 300,
+        "timeout_seconds": 10,
+        "failure_threshold": 3,
+        "test_prompt": "Hello"
+      },
+      "metadata": {
+        "description": "OpenAI models hosted on Microsoft Azure",
+        "tags": ["enterprise", "azure", "compliance"],
+        "documentation_url": "https://docs.microsoft.com/en-us/azure/ai-services/openai/"
+      }
+    }
+  ]
+}
