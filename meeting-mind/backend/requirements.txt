@@ -1,0 +1,65 @@
+# Core FastAPI dependencies
+fastapi==0.104.1          # Modern, fast web framework for building APIs with Python
+uvicorn[standard]==0.24.0 # ASGI server for running FastAPI applications
+websockets==12.0          # WebSocket support for real-time communication
+
+# Database
+sqlalchemy==2.0.23        # SQL toolkit and ORM for Python
+alembic==1.12.1          # Database migration tool for SQLAlchemy
+
+# Data validation and serialization
+pydantic==2.5.0          # Data validation using Python type hints
+pydantic-settings==2.1.0 # Settings management for Pydantic
+
+# Development and testing
+pytest==7.4.3           # Testing framework
+pytest-asyncio==0.21.1  # Async testing support
+httpx==0.25.2           # HTTP client for testing FastAPI endpoints
+
+# CORS and security
+python-multipart==0.0.6 # File upload support
+python-jose[cryptography]==3.3.0 # JWT token handling
+passlib[bcrypt]==1.7.4   # Password hashing
+
+# Environment and configuration
+python-dotenv==1.0.0    # Load environment variables from .env file
+
+# AI Provider dependencies
+anthropic>=0.8.0        # Anthropic Claude API client
+openai>=1.0.0          # OpenAI GPT API client
+aiohttp>=3.9.0         # Async HTTP client for local providers
+jsonschema>=4.0.0      # JSON schema validation for provider configs
+
+# LangChain and AI Orchestration
+langchain>=0.1.0       # LangChain framework for AI orchestration
+langchain-anthropic>=0.1.0  # Anthropic integration for LangChain
+langchain-openai>=0.1.0     # OpenAI integration for LangChain
+langchain-community>=0.1.0  # Community integrations
+python-json-logger>=2.0.0   # Structured logging for metrics
+
+# Audio transcription dependencies
+faster-whisper>=0.9.0  # Optimized Whisper inference engine
+torch>=2.0.0          # PyTorch for audio processing
+torchaudio>=2.0.0     # Audio processing utilities
+librosa>=0.10.0       # Audio analysis library
+soundfile>=0.12.0     # Audio file I/O
+numpy>=1.24.0         # Numerical computing
+scipy>=1.10.0         # Scientific computing
+
+# Queue and task management
+celery>=5.3.0         # Distributed task queue
+redis>=4.5.0          # In-memory data store for queues
+kombu>=5.3.0          # Messaging library for Celery
+
+# Audio format support
+pydub>=0.25.0         # Audio format conversion
+ffmpeg-python>=0.2.0  # FFmpeg wrapper for audio processing
+
+# Cloud transcription dependencies
+aiohttp>=3.9.0        # Async HTTP client for API calls
+websockets>=12.0      # WebSocket client for real-time APIs
+jiwer>=3.0.0          # Word Error Rate calculation
+nltk>=3.8.0           # Natural language processing for analysis
+difflib               # Built-in for text comparison
+psutil>=5.9.0         # System monitoring for memory usage
+statistics            # Built-in for statistical calculations

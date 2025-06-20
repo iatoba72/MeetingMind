@@ -1,0 +1,179 @@
+{
+  "name": "meetingmind-desktop",
+  "version": "1.0.0",
+  "description": "MeetingMind Desktop Application - Secure meetings with end-to-end encryption",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "dev": "npm run build && electron dist/main.js",
+    "start": "electron dist/main.js",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "postinstall": "electron-builder install-app-deps",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "clean": "rimraf dist build",
+    "prebuild": "npm run clean"
+  },
+  "keywords": [
+    "electron",
+    "meeting",
+    "video-conference",
+    "encryption",
+    "privacy",
+    "secure"
+  ],
+  "author": {
+    "name": "MeetingMind Team",
+    "email": "team@meetingmind.com"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "electron": "^27.1.0",
+    "electron-builder": "^24.6.0",
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "electron-log": "^4.4.8",
+    "electron-updater": "^6.1.0",
+    "node-machine-id": "^1.1.12",
+    "systeminformation": "^5.21.0"
+  },
+  "build": {
+    "appId": "com.meetingmind.desktop",
+    "productName": "MeetingMind",
+    "copyright": "Copyright © 2024 MeetingMind Team",
+    "directories": {
+      "output": "dist-electron",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/*.md",
+      "!node_modules/**/LICENSE*",
+      "!node_modules/**/*.d.ts",
+      "!node_modules/**/*.map"
+    ],
+    "extraFiles": [
+      {
+        "from": "../frontend/dist",
+        "to": "resources/app",
+        "filter": ["**/*"]
+      }
+    ],
+    "publish": {
+      "provider": "github",
+      "repo": "meetingmind-desktop",
+      "owner": "meetingmind"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "publisherName": "MeetingMind Team",
+      "verifyUpdateCodeSignature": false,
+      "certificateFile": "certs/windows.p12",
+      "certificatePassword": "",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.business",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        },
+        {
+          "target": "rpm",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "category": "Office",
+      "desktop": {
+        "Name": "MeetingMind",
+        "Type": "Application",
+        "Categories": "Office;AudioVideo;Network;"
+      }
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/installer.ico",
+      "uninstallerIcon": "assets/uninstaller.ico",
+      "installerHeaderIcon": "assets/installer-header.ico",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "include": "build/installer.nsh"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "background": "assets/dmg-background.png",
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    }
+  },
+  "homepage": "https://meetingmind.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meetingmind/desktop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/meetingmind/desktop/issues"
+  }
+}

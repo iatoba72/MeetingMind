@@ -1,0 +1,141 @@
+{
+  "name": "calendar-integration",
+  "version": "1.0.0",
+  "description": "Integrate meetings with calendar systems (Google Calendar, Outlook, Apple Calendar)",
+  "author": "MeetingMind Team",
+  "email": "plugins@meetingmind.com",
+  "license": "MIT",
+  
+  "entry_point": "main.py",
+  "main_class": "CalendarIntegrationPlugin",
+  
+  "python_version": ">=3.8",
+  "dependencies": [
+    "google-api-python-client>=2.0.0",
+    "google-auth>=2.0.0",
+    "microsoft-graph-api>=1.0.0",
+    "icalendar>=4.0.0",
+    "pytz>=2021.1"
+  ],
+  "plugin_dependencies": [],
+  
+  "capabilities": [
+    "read:meetings",
+    "write:meetings", 
+    "read:participants",
+    "network:access",
+    "external:apis"
+  ],
+  "optional_capabilities": [
+    "ui:notifications"
+  ],
+  
+  "event_hooks": [
+    "meeting.created",
+    "meeting.updated", 
+    "meeting.ended",
+    "participant.joined"
+  ],
+  "custom_events": [
+    "calendar.event_created",
+    "calendar.event_updated",
+    "calendar.sync_completed"
+  ],
+  
+  "api_endpoints": [
+    {
+      "path": "/calendar/sync",
+      "method": "POST",
+      "description": "Manually trigger calendar sync"
+    },
+    {
+      "path": "/calendar/auth",
+      "method": "POST", 
+      "description": "Authorize calendar provider"
+    },
+    {
+      "path": "/calendar/events",
+      "method": "GET",
+      "description": "Get synchronized calendar events"
+    }
+  ],
+  
+  "ui_components": [
+    {
+      "name": "CalendarSettings",
+      "type": "settings-panel",
+      "description": "Calendar integration settings"
+    },
+    {
+      "name": "CalendarWidget",
+      "type": "dashboard-widget", 
+      "description": "Upcoming meetings calendar widget"
+    },
+    {
+      "name": "CalendarSync",
+      "type": "meeting-action",
+      "description": "Add to calendar button"
+    }
+  ],
+  
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "calendar_provider": {
+        "type": "string",
+        "enum": ["google", "outlook", "apple", "ical"],
+        "description": "Calendar provider to integrate with"
+      },
+      "sync_mode": {
+        "type": "string", 
+        "enum": ["bidirectional", "meetingmind_to_calendar", "calendar_to_meetingmind"],
+        "default": "bidirectional",
+        "description": "Calendar synchronization mode"
+      },
+      "auto_create_events": {
+        "type": "boolean",
+        "default": true,
+        "description": "Automatically create calendar events for meetings"
+      },
+      "reminder_settings": {
+        "type": "object",
+        "properties": {
+          "enabled": {"type": "boolean", "default": true},
+          "minutes_before": {"type": "integer", "default": 15}
+        }
+      },
+      "sync_interval_minutes": {
+        "type": "integer",
+        "default": 30,
+        "minimum": 5,
+        "description": "How often to sync with calendar (minutes)"
+      },
+      "timezone": {
+        "type": "string",
+        "default": "UTC",
+        "description": "Default timezone for calendar events"
+      }
+    },
+    "required": ["calendar_provider"]
+  },
+  
+  "default_config": {
+    "sync_mode": "bidirectional",
+    "auto_create_events": true,
+    "reminder_settings": {
+      "enabled": true,
+      "minutes_before": 15
+    },
+    "sync_interval_minutes": 30,
+    "timezone": "UTC"
+  },
+  
+  "tags": ["calendar", "sync", "google", "outlook", "integration", "scheduling"],
+  "category": "integration",
+  "homepage": "https://meetingmind.com/plugins/calendar-integration",
+  "repository": "https://github.com/meetingmind/calendar-integration-plugin",
+  "documentation": "https://docs.meetingmind.com/plugins/calendar-integration",
+  
+  "sandbox_level": "moderate",
+  "trusted": false
+}

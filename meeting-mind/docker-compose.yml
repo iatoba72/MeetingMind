@@ -1,0 +1,279 @@
+# MeetingMind Docker Compose Configuration
+# Production-ready multi-service deployment
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:15-alpine
+    container_name: meetingmind-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-meetingmind}
+      POSTGRES_USER: ${DB_USER:-meetingmind}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password_change_me}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deployment/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./deployment/configs/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - meetingmind-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-meetingmind} -d ${DB_NAME:-meetingmind}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.0
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: meetingmind-redis
+    restart: unless-stopped
+    command: redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD:-redis_password_change_me}
+    volumes:
+      - redis_data:/data
+      - ./deployment/configs/redis/redis.conf:/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - meetingmind-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: production
+      args:
+        - NODE_ENV=${NODE_ENV:-production}
+    container_name: meetingmind-backend
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${DB_USER:-meetingmind}:${DB_PASSWORD:-secure_password_change_me}@database:5432/${DB_NAME:-meetingmind}
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_password_change_me}@redis:6379/0
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-me}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-encryption-key-change-me}
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-change-me}
+      # Features
+      ENABLE_ENCRYPTION: ${ENABLE_ENCRYPTION:-true}
+      LOCAL_ONLY_MODE: ${LOCAL_ONLY_MODE:-false}
+      ENABLE_ANALYTICS: ${ENABLE_ANALYTICS:-true}
+      ENABLE_AUDIT_LOGGING: ${ENABLE_AUDIT_LOGGING:-true}
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,https://localhost:3000}
+      # File uploads
+      MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE:-100MB}
+      UPLOAD_PATH: /app/uploads
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: json
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+      - ./deployment/ssl:/app/ssl:ro
+      - ./deployment/configs/backend:/app/configs:ro
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+      - "${WEBSOCKET_PORT:-8001}:8001"
+    networks:
+      - meetingmind-network
+    healthcheck:
+      test: ["CMD", "python", "health-check.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2.0
+
+  # Frontend Web App
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - NODE_ENV=${NODE_ENV:-production}
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+        - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8001}
+        - VITE_ENCRYPTION_ENABLED=${VITE_ENCRYPTION_ENABLED:-true}
+        - VITE_LOCAL_ONLY_MODE=${VITE_LOCAL_ONLY_MODE:-false}
+        - VITE_ANALYTICS_ENABLED=${VITE_ANALYTICS_ENABLED:-true}
+    container_name: meetingmind-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    volumes:
+      - ./deployment/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deployment/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deployment/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_SSL_PORT:-443}:443"
+    networks:
+      - meetingmind-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+
+  # Nginx Load Balancer (for scaling)
+  loadbalancer:
+    image: nginx:alpine
+    container_name: meetingmind-lb
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./deployment/nginx/lb.conf:/etc/nginx/nginx.conf:ro
+      - ./deployment/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "${LB_HTTP_PORT:-80}:80"
+      - "${LB_HTTPS_PORT:-443}:443"
+    networks:
+      - meetingmind-network
+    profiles:
+      - production
+      - scaling
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.25
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: meetingmind-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./deployment/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - meetingmind-network
+    profiles:
+      - monitoring
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 0.5
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: meetingmind-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deployment/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deployment/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    networks:
+      - meetingmind-network
+    profiles:
+      - monitoring
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+
+  # Log Aggregation with Fluentd
+  fluentd:
+    build:
+      context: ./deployment/fluentd
+      dockerfile: Dockerfile
+    container_name: meetingmind-fluentd
+    restart: unless-stopped
+    volumes:
+      - ./deployment/fluentd/conf:/fluentd/etc:ro
+      - logs_data:/var/log
+    ports:
+      - "${FLUENTD_PORT:-24224}:24224"
+      - "${FLUENTD_UDP_PORT:-24224}:24224/udp"
+    networks:
+      - meetingmind-network
+    profiles:
+      - logging
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.25
+
+# Networks
+networks:
+  meetingmind-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+  logs_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# Secrets (for production)
+secrets:
+  db_password:
+    file: ./deployment/secrets/db_password.txt
+  redis_password:
+    file: ./deployment/secrets/redis_password.txt
+  secret_key:
+    file: ./deployment/secrets/secret_key.txt
+  jwt_secret:
+    file: ./deployment/secrets/jwt_secret.txt

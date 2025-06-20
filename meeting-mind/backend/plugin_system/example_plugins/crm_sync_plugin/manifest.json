@@ -1,0 +1,117 @@
+{
+  "name": "crm-sync",
+  "version": "1.0.0",
+  "description": "Synchronize meeting data with CRM systems (Salesforce, HubSpot, Pipedrive)",
+  "author": "MeetingMind Team",
+  "email": "plugins@meetingmind.com",
+  "license": "MIT",
+  
+  "entry_point": "main.py",
+  "main_class": "CRMSyncPlugin",
+  
+  "python_version": ">=3.8",
+  "dependencies": [
+    "requests>=2.25.0",
+    "salesforce-api>=0.1.0",
+    "hubspot-api-client>=3.0.0"
+  ],
+  "plugin_dependencies": [],
+  
+  "capabilities": [
+    "read:meetings",
+    "read:participants",
+    "read:transcripts",
+    "read:insights",
+    "network:access",
+    "external:apis"
+  ],
+  "optional_capabilities": [
+    "write:meetings"
+  ],
+  
+  "event_hooks": [
+    "meeting.ended",
+    "insights.generated",
+    "action_item.created"
+  ],
+  "custom_events": [
+    "crm.contact_created",
+    "crm.opportunity_updated"
+  ],
+  
+  "api_endpoints": [
+    {
+      "path": "/crm/sync",
+      "method": "POST",
+      "description": "Manually trigger CRM sync"
+    },
+    {
+      "path": "/crm/status",
+      "method": "GET",
+      "description": "Get CRM sync status"
+    }
+  ],
+  
+  "ui_components": [
+    {
+      "name": "CRMSettings",
+      "type": "settings-panel",
+      "description": "CRM configuration panel"
+    },
+    {
+      "name": "CRMStatus",
+      "type": "dashboard-widget",
+      "description": "CRM sync status widget"
+    }
+  ],
+  
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "crm_provider": {
+        "type": "string",
+        "enum": ["salesforce", "hubspot", "pipedrive"],
+        "description": "CRM provider to sync with"
+      },
+      "api_key": {
+        "type": "string",
+        "description": "API key for CRM access"
+      },
+      "api_url": {
+        "type": "string",
+        "description": "CRM API base URL"
+      },
+      "sync_mode": {
+        "type": "string",
+        "enum": ["realtime", "batch", "manual"],
+        "default": "realtime",
+        "description": "Synchronization mode"
+      },
+      "contact_mapping": {
+        "type": "object",
+        "description": "Mapping between meeting participants and CRM contacts"
+      },
+      "opportunity_creation": {
+        "type": "boolean",
+        "default": false,
+        "description": "Automatically create opportunities from meetings"
+      }
+    },
+    "required": ["crm_provider", "api_key"]
+  },
+  
+  "default_config": {
+    "sync_mode": "realtime",
+    "opportunity_creation": false,
+    "contact_mapping": {}
+  },
+  
+  "tags": ["crm", "sync", "salesforce", "hubspot", "integration"],
+  "category": "integration",
+  "homepage": "https://meetingmind.com/plugins/crm-sync",
+  "repository": "https://github.com/meetingmind/crm-sync-plugin",
+  "documentation": "https://docs.meetingmind.com/plugins/crm-sync",
+  
+  "sandbox_level": "moderate",
+  "trusted": false
+}

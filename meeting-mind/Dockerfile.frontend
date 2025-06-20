@@ -1,0 +1,92 @@
+# MeetingMind Frontend Dockerfile
+# Multi-stage build for optimal production deployment
+
+# Build stage
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install dependencies with cache optimization
+RUN npm ci --only=production --silent
+
+# Copy source code
+COPY frontend/ ./
+
+# Build arguments for environment configuration
+ARG NODE_ENV=production
+ARG VITE_API_URL
+ARG VITE_WS_URL
+ARG VITE_ENCRYPTION_ENABLED=true
+ARG VITE_LOCAL_ONLY_MODE=false
+ARG VITE_ANALYTICS_ENABLED=true
+
+# Set environment variables
+ENV NODE_ENV=${NODE_ENV}
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_WS_URL=${VITE_WS_URL}
+ENV VITE_ENCRYPTION_ENABLED=${VITE_ENCRYPTION_ENABLED}
+ENV VITE_LOCAL_ONLY_MODE=${VITE_LOCAL_ONLY_MODE}
+ENV VITE_ANALYTICS_ENABLED=${VITE_ANALYTICS_ENABLED}
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine AS production
+
+# Install security updates
+RUN apk update && apk upgrade && apk add --no-cache \
+    curl \
+    bash \
+    openssl
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S meetingmind && \
+    adduser -S meetingmind -u 1001 -G meetingmind
+
+# Copy custom nginx configuration
+COPY deployment/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY deployment/nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy SSL certificates directory (will be mounted)
+RUN mkdir -p /etc/nginx/ssl && \
+    chown -R meetingmind:meetingmind /etc/nginx/ssl
+
+# Create logs directory
+RUN mkdir -p /var/log/nginx && \
+    chown -R meetingmind:meetingmind /var/log/nginx
+
+# Security headers script
+COPY deployment/scripts/security-headers.sh /docker-entrypoint.d/
+RUN chmod +x /docker-entrypoint.d/security-headers.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:80/health || exit 1
+
+# Create health check endpoint
+RUN echo '<!DOCTYPE html><html><head><title>Health Check</title></head><body><h1>OK</h1></body></html>' \
+    > /usr/share/nginx/html/health
+
+# Switch to non-root user
+USER meetingmind
+
+# Expose port
+EXPOSE 80 443
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
+
+# Labels for metadata
+LABEL maintainer="MeetingMind Team"
+LABEL version="1.0.0"
+LABEL description="MeetingMind Frontend - Secure meeting application with end-to-end encryption"
+LABEL org.opencontainers.image.source="https://github.com/meetingmind/app"
+LABEL org.opencontainers.image.licenses="MIT"

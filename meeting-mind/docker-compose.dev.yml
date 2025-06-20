@@ -1,0 +1,257 @@
+# MeetingMind Development Docker Compose
+# Optimized for development with hot reload and debugging
+
+version: '3.8'
+
+services:
+  # Development Database
+  database:
+    image: postgres:15-alpine
+    container_name: meetingmind-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: meetingmind_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./deployment/sql/init-dev.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5433:5432"
+    networks:
+      - meetingmind-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d meetingmind_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Development Redis
+  redis:
+    image: redis:7-alpine
+    container_name: meetingmind-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - meetingmind-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Development Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: development
+    container_name: meetingmind-backend-dev
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Development database
+      DATABASE_URL: postgresql://dev_user:dev_password@database:5432/meetingmind_dev
+      REDIS_URL: redis://redis:6379/0
+      # Development secrets (not secure - for dev only)
+      SECRET_KEY: dev-secret-key-not-secure
+      ENCRYPTION_KEY: dev-encryption-key-not-secure
+      JWT_SECRET: dev-jwt-secret-not-secure
+      # Development features
+      DEBUG: "true"
+      ENABLE_ENCRYPTION: "true"
+      LOCAL_ONLY_MODE: "false"
+      ENABLE_ANALYTICS: "true"
+      ENABLE_AUDIT_LOGGING: "true"
+      # CORS for development
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
+      # Logging
+      LOG_LEVEL: DEBUG
+      LOG_FORMAT: pretty
+      # Hot reload
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      # Mount source code for hot reload
+      - ./backend:/app:rw
+      - uploads_dev_data:/app/uploads
+      - logs_dev_data:/app/logs
+      # Development configs
+      - ./deployment/configs/dev:/app/configs:ro
+    ports:
+      - "8000:8000"  # API
+      - "8001:8001"  # WebSocket
+      - "5678:5678"  # Debug port
+    networks:
+      - meetingmind-dev-network
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "python", "health-check.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Development Frontend (Vite dev server)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.dev
+    container_name: meetingmind-frontend-dev
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8001
+      - VITE_ENCRYPTION_ENABLED=true
+      - VITE_LOCAL_ONLY_MODE=false
+      - VITE_ANALYTICS_ENABLED=true
+      - VITE_DEV_MODE=true
+    volumes:
+      # Mount source code for hot reload
+      - ./frontend:/app:rw
+      - /app/node_modules  # Exclude node_modules
+    ports:
+      - "3000:3000"  # Vite dev server
+      - "3001:3001"  # Vite HMR
+    networks:
+      - meetingmind-dev-network
+    stdin_open: true
+    tty: true
+    command: npm run dev -- --host 0.0.0.0
+
+  # Development Tools Container
+  devtools:
+    image: node:18-alpine
+    container_name: meetingmind-devtools
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:rw
+      - devtools_cache:/root/.cache
+    networks:
+      - meetingmind-dev-network
+    profiles:
+      - tools
+    command: tail -f /dev/null
+
+  # Database Admin Interface
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: meetingmind-pgadmin
+    restart: unless-stopped
+    depends_on:
+      - database
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@meetingmind.local
+      PGADMIN_DEFAULT_PASSWORD: admin_password
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_dev_data:/var/lib/pgadmin
+      - ./deployment/configs/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    ports:
+      - "5050:80"
+    networks:
+      - meetingmind-dev-network
+    profiles:
+      - admin
+
+  # Redis Admin Interface
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: meetingmind-redis-admin
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - meetingmind-dev-network
+    profiles:
+      - admin
+
+  # MailHog for development email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: meetingmind-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - meetingmind-dev-network
+    profiles:
+      - email
+
+  # Development Elasticsearch (for search testing)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: meetingmind-elasticsearch-dev
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    volumes:
+      - elasticsearch_dev_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - meetingmind-dev-network
+    profiles:
+      - search
+    mem_limit: 1g
+
+  # Development Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: meetingmind-kibana-dev
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - xpack.security.enabled=false
+    ports:
+      - "5601:5601"
+    networks:
+      - meetingmind-dev-network
+    profiles:
+      - search
+    mem_limit: 512m
+
+# Development Networks
+networks:
+  meetingmind-dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# Development Volumes
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  uploads_dev_data:
+    driver: local
+  logs_dev_data:
+    driver: local
+  pgadmin_dev_data:
+    driver: local
+  elasticsearch_dev_data:
+    driver: local
+  devtools_cache:
+    driver: local

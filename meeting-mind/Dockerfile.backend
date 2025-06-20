@@ -1,0 +1,107 @@
+# MeetingMind Backend Dockerfile
+# Production-ready Python FastAPI application
+
+FROM python:3.11-slim AS base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    g++ \
+    make \
+    libffi-dev \
+    libssl-dev \
+    libpq-dev \
+    postgresql-client \
+    ffmpeg \
+    libavcodec-extra \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r meetingmind && useradd -r -g meetingmind meetingmind
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY backend/requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY backend/ ./
+
+# Create necessary directories
+RUN mkdir -p /app/uploads /app/logs /app/data /app/ssl && \
+    chown -R meetingmind:meetingmind /app
+
+# Copy configuration files
+COPY deployment/configs/backend/ ./configs/
+
+# Copy SSL certificates (if available)
+COPY deployment/ssl/ ./ssl/ 2>/dev/null || true
+
+# Database initialization script
+COPY deployment/scripts/init-db.sh ./scripts/
+RUN chmod +x ./scripts/init-db.sh
+
+# Health check script
+COPY deployment/scripts/health-check.py ./
+RUN chmod +x ./health-check.py
+
+# Production stage
+FROM base AS production
+
+# Copy application
+COPY --from=base /app /app
+WORKDIR /app
+
+# Switch to non-root user
+USER meetingmind
+
+# Expose ports
+EXPOSE 8000 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD python health-check.py || exit 1
+
+# Run database migrations and start server
+CMD ["sh", "-c", "python -m alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"]
+
+# Development stage
+FROM base AS development
+
+# Install development dependencies
+RUN pip install --no-cache-dir \
+    pytest \
+    pytest-asyncio \
+    pytest-cov \
+    black \
+    flake8 \
+    mypy \
+    pre-commit
+
+# Copy development configuration
+COPY deployment/configs/dev/ ./configs/
+
+# Switch to non-root user
+USER meetingmind
+
+# Expose ports (including debug port)
+EXPOSE 8000 8001 5678
+
+# Development command with hot reload
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# Labels
+LABEL maintainer="MeetingMind Team"
+LABEL version="1.0.0"
+LABEL description="MeetingMind Backend - Secure API server with encryption and privacy features"

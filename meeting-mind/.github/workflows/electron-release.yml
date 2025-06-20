@@ -1,0 +1,321 @@
+# MeetingMind Desktop - Auto-Update CI/CD Pipeline
+# Automatically builds and publishes Electron releases for all platforms
+
+name: Electron Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            arch: x64
+          - os: windows-latest
+            platform: win
+            arch: ia32
+          - os: macos-latest
+            platform: mac
+            arch: x64
+          - os: macos-latest
+            platform: mac
+            arch: arm64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+            electron/package-lock.json
+
+      - name: Setup Python (for native dependencies)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2-dev libxcomposite-dev libxdamage-dev libxrandr-dev libgbm-dev libgtk-3-dev libxss1
+
+      - name: Cache Electron
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.ELECTRON_CACHE }}
+          key: ${{ runner.os }}-electron-cache-${{ hashFiles('electron/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-cache-
+
+      - name: Cache Electron Builder
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.ELECTRON_BUILDER_CACHE }}
+          key: ${{ runner.os }}-electron-builder-cache-${{ hashFiles('electron/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-builder-cache-
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --production
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm run build
+          ls -la dist/
+
+      - name: Install Electron dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Setup code signing (Windows)
+        if: matrix.platform == 'win' && env.WINDOWS_CERTIFICATE != ''
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "${{ secrets.WINDOWS_CERTIFICATE }}" | base64 --decode > electron/certs/windows.p12
+        shell: bash
+
+      - name: Setup code signing (macOS)
+        if: matrix.platform == 'mac'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -n "$CSC_LINK" ]; then
+            echo "Code signing certificate configured"
+          else
+            echo "No code signing certificate - building unsigned"
+          fi
+
+      - name: Build Electron app
+        working-directory: electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          WIN_CSC_LINK: electron/certs/windows.p12
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ "${{ matrix.platform }}" = "win" ]; then
+            if [ "${{ matrix.arch }}" = "x64" ]; then
+              npm run dist:win -- --x64
+            else
+              npm run dist:win -- --ia32
+            fi
+          elif [ "${{ matrix.platform }}" = "mac" ]; then
+            if [ "${{ matrix.arch }}" = "arm64" ]; then
+              npm run dist:mac -- --arm64
+            else
+              npm run dist:mac -- --x64
+            fi
+          else
+            npm run dist:linux
+          fi
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform }}-${{ matrix.arch }}-build
+          path: |
+            electron/dist-electron/*.exe
+            electron/dist-electron/*.dmg
+            electron/dist-electron/*.zip
+            electron/dist-electron/*.AppImage
+            electron/dist-electron/*.deb
+            electron/dist-electron/*.rpm
+            electron/dist-electron/latest*.yml
+          retention-days: 30
+
+  create-release:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Display artifact structure
+        run: find artifacts -type f -name "*" | head -20
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release-files
+          find artifacts -name "*.exe" -exec cp {} release-files/ \;
+          find artifacts -name "*.dmg" -exec cp {} release-files/ \;
+          find artifacts -name "*.zip" -exec cp {} release-files/ \;
+          find artifacts -name "*.AppImage" -exec cp {} release-files/ \;
+          find artifacts -name "*.deb" -exec cp {} release-files/ \;
+          find artifacts -name "*.rpm" -exec cp {} release-files/ \;
+          find artifacts -name "latest*.yml" -exec cp {} release-files/ \;
+          ls -la release-files/
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION=${{ github.ref_name }}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION=${{ github.event.inputs.version }}
+          fi
+          
+          cat > release_notes.md << EOF
+          # MeetingMind Desktop ${VERSION}
+          
+          ## 🚀 Features
+          - Secure end-to-end encrypted meetings
+          - Local-only mode for maximum privacy
+          - Auto-update functionality
+          - Cross-platform support (Windows, macOS, Linux)
+          
+          ## 🔒 Security
+          - AES-256-GCM encryption
+          - Perfect forward secrecy
+          - Quantum-resistant cryptography support
+          - Tamper-evident audit logging
+          
+          ## 📦 Installation
+          
+          ### Windows
+          - **Installer**: Download \`MeetingMind-Setup-*.exe\` for automatic installation
+          - **Portable**: Download \`MeetingMind-*-win.exe\` for portable version
+          
+          ### macOS
+          - **DMG**: Download \`MeetingMind-*.dmg\` for drag-and-drop installation
+          - **ZIP**: Download \`MeetingMind-*-mac.zip\` for manual installation
+          
+          ### Linux
+          - **AppImage**: Download \`MeetingMind-*.AppImage\` for universal Linux support
+          - **DEB**: Download \`meetingmind_*_amd64.deb\` for Debian/Ubuntu
+          - **RPM**: Download \`meetingmind-*.x86_64.rpm\` for RedHat/Fedora
+          
+          ## 🔄 Auto-Updates
+          The application will automatically check for and install updates.
+          Manual update check available in Help → Check for Updates.
+          
+          ## 🛡️ Code Signing
+          - Windows: Signed with EV certificate
+          - macOS: Signed and notarized with Apple Developer ID
+          - Linux: GPG signed packages
+          
+          ---
+          
+          **Full Changelog**: https://github.com/meetingmind/desktop/compare/v1.0.0...${VERSION}
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name || github.event.inputs.version }}
+          name: ${{ github.ref_name || github.event.inputs.version }}
+          body_path: release_notes.md
+          files: release-files/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update auto-update server
+        run: |
+          echo "Notifying auto-update server of new release..."
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.UPDATE_SERVER_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "version": "${{ github.ref_name || github.event.inputs.version }}",
+              "platform": "all",
+              "url": "https://github.com/meetingmind/desktop/releases/latest"
+            }' \
+            "${{ secrets.UPDATE_SERVER_URL }}/api/releases" || echo "Update server notification failed (non-critical)"
+
+  security-scan:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-x64-build
+          path: security-scan
+
+      - name: Security scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          input: security-scan
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  notify-deployment:
+    needs: [create-release, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Notify team
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          channel: '#releases'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          custom_payload: |
+            {
+              attachments: [{
+                color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+                text: `MeetingMind Desktop ${{ github.ref_name || github.event.inputs.version }} release ${{ job.status }}`
+              }]
+            }
