@@ -17,6 +17,13 @@ import websockets
 import base64
 from abc import ABC, abstractmethod
 
+# Import specific exceptions for better error handling
+import aiohttp.client_exceptions
+import websockets.exceptions
+import ssl
+import socket
+import asyncio
+
 # Import existing local transcription components
 from transcription_service import (
     TranscriptionConfig, TranscriptionResult, TranscriptionSegment, 
@@ -186,8 +193,16 @@ class BaseTranscriptionProvider(ABC):
         try:
             # Implement provider-specific health check
             return self.status == ProviderStatus.AVAILABLE
-        except Exception as e:
+        except (aiohttp.client_exceptions.ClientError, 
+                websockets.exceptions.WebSocketException,
+                asyncio.TimeoutError,
+                ssl.SSLError,
+                socket.error,
+                ConnectionError) as e:
             logger.error(f"Health check failed for {self.config.provider.value}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error during health check for {self.config.provider.value}: {e}")
             return False
 
 class AssemblyAIProvider(BaseTranscriptionProvider):
@@ -255,10 +270,29 @@ class AssemblyAIProvider(BaseTranscriptionProvider):
                 if status_data["status"] == "completed":
                     return self._parse_assemblyai_result(status_data)
                 elif status_data["status"] == "error":
-                    raise Exception(f"AssemblyAI transcription failed: {status_data.get('error')}")
+                    raise aiohttp.client_exceptions.ClientResponseError(
+                        request_info=None,
+                        history=(),
+                        message=f"AssemblyAI transcription failed: {status_data.get('error')}"
+                    )
                 
                 await asyncio.sleep(1)  # Poll every second
                 
+        except aiohttp.client_exceptions.ClientResponseError as e:
+            logger.error(f"AssemblyAI HTTP error: {e}")
+            raise
+        except aiohttp.client_exceptions.ClientConnectionError as e:
+            logger.error(f"AssemblyAI connection error: {e}")
+            raise
+        except asyncio.TimeoutError as e:
+            logger.error(f"AssemblyAI request timeout: {e}")
+            raise
+        except (ssl.SSLError, socket.error) as e:
+            logger.error(f"AssemblyAI network error: {e}")
+            raise
+        except (KeyError, ValueError, TypeError) as e:
+            logger.error(f"AssemblyAI data parsing error: {e}")
+            raise
         finally:
             await session.close()
     
@@ -271,48 +305,70 @@ class AssemblyAIProvider(BaseTranscriptionProvider):
         auth_token = self.config.api_key
         
         # Get temporary token for WebSocket
-        async with aiohttp.ClientSession() as session:
-            token_response = await session.post(
-                f"{self.base_url}/realtime/token",
-                headers={"authorization": auth_token},
-                json={"expires_in": 3600}
-            )
-            token_response.raise_for_status()
-            token_data = await token_response.json()
-            temp_token = token_data["token"]
+        try:
+            async with aiohttp.ClientSession() as session:
+                token_response = await session.post(
+                    f"{self.base_url}/realtime/token",
+                    headers={"authorization": auth_token},
+                    json={"expires_in": 3600}
+                )
+                token_response.raise_for_status()
+                token_data = await token_response.json()
+                temp_token = token_data["token"]
+        except aiohttp.client_exceptions.ClientError as e:
+            logger.error(f"Failed to get AssemblyAI real-time token: {e}")
+            raise
+        except (KeyError, ValueError) as e:
+            logger.error(f"Invalid AssemblyAI token response: {e}")
+            raise
         
         # Connect to WebSocket
         ws_url = f"{self.ws_url}?sample_rate=16000&token={temp_token}"
         
-        async with websockets.connect(ws_url) as websocket:
-            # Send configuration
-            await websocket.send(json.dumps({
-                "word_timestamps": True,
-                "punctuate": True,
-                "format_text": True
-            }))
-            
-            # Handle incoming transcriptions
-            async def receive_transcriptions():
-                async for message in websocket:
-                    data = json.loads(message)
-                    if data["message_type"] == "FinalTranscript":
-                        result = self._parse_realtime_result(data)
-                        callback(result)
-            
-            # Start receiving task
-            receive_task = asyncio.create_task(receive_transcriptions())
-            
-            # Send audio data
-            try:
-                async for audio_chunk in audio_stream:
-                    if audio_chunk:
-                        audio_b64 = base64.b64encode(audio_chunk).decode('utf-8')
-                        await websocket.send(json.dumps({
-                            "audio_data": audio_b64
-                        }))
-            finally:
-                receive_task.cancel()
+        try:
+            async with websockets.connect(ws_url) as websocket:
+                # Send configuration
+                await websocket.send(json.dumps({
+                    "word_timestamps": True,
+                    "punctuate": True,
+                    "format_text": True
+                }))
+                
+                # Handle incoming transcriptions
+                async def receive_transcriptions():
+                    try:
+                        async for message in websocket:
+                            data = json.loads(message)
+                            if data["message_type"] == "FinalTranscript":
+                                result = self._parse_realtime_result(data)
+                                callback(result)
+                    except websockets.exceptions.ConnectionClosedError as e:
+                        logger.error(f"AssemblyAI WebSocket connection closed: {e}")
+                    except (KeyError, ValueError, TypeError) as e:
+                        logger.error(f"AssemblyAI real-time parsing error: {e}")
+                
+                # Start receiving task
+                receive_task = asyncio.create_task(receive_transcriptions())
+                
+                # Send audio data
+                try:
+                    async for audio_chunk in audio_stream:
+                        if audio_chunk:
+                            audio_b64 = base64.b64encode(audio_chunk).decode('utf-8')
+                            await websocket.send(json.dumps({
+                                "audio_data": audio_b64
+                            }))
+                except websockets.exceptions.ConnectionClosedError as e:
+                    logger.error(f"AssemblyAI WebSocket connection lost during send: {e}")
+                    raise
+                finally:
+                    receive_task.cancel()
+        except websockets.exceptions.WebSocketException as e:
+            logger.error(f"AssemblyAI WebSocket error: {e}")
+            raise
+        except (ssl.SSLError, socket.error, ConnectionError) as e:
+            logger.error(f"AssemblyAI WebSocket connection error: {e}")
+            raise
     
     def _parse_assemblyai_result(self, data: Dict[str, Any]) -> TranscriptionResult:
         """Parse AssemblyAI response into TranscriptionResult"""
@@ -480,6 +536,21 @@ class OpenAIWhisperProvider(BaseTranscriptionProvider):
             
             return self._parse_openai_result(result_data)
             
+        except aiohttp.client_exceptions.ClientResponseError as e:
+            logger.error(f"OpenAI HTTP error: {e}")
+            raise
+        except aiohttp.client_exceptions.ClientConnectionError as e:
+            logger.error(f"OpenAI connection error: {e}")
+            raise
+        except asyncio.TimeoutError as e:
+            logger.error(f"OpenAI request timeout: {e}")
+            raise
+        except (ssl.SSLError, socket.error) as e:
+            logger.error(f"OpenAI network error: {e}")
+            raise
+        except (KeyError, ValueError, TypeError) as e:
+            logger.error(f"OpenAI data parsing error: {e}")
+            raise
         finally:
             await session.close()
     
@@ -506,8 +577,16 @@ class OpenAIWhisperProvider(BaseTranscriptionProvider):
                 try:
                     result = await self.transcribe_audio(chunk_data, "wav")
                     callback(result)
+                except aiohttp.client_exceptions.ClientError as e:
+                    logger.error(f"OpenAI real-time HTTP error: {e}")
+                except asyncio.TimeoutError as e:
+                    logger.error(f"OpenAI real-time timeout: {e}")
+                except (ssl.SSLError, socket.error, ConnectionError) as e:
+                    logger.error(f"OpenAI real-time connection error: {e}")
+                except (KeyError, ValueError, TypeError) as e:
+                    logger.error(f"OpenAI real-time parsing error: {e}")
                 except Exception as e:
-                    logger.error(f"OpenAI real-time chunk processing failed: {e}")
+                    logger.error(f"OpenAI real-time unexpected error: {e}")
     
     def _parse_openai_result(self, data: Dict[str, Any]) -> TranscriptionResult:
         """Parse OpenAI Whisper response into TranscriptionResult"""
@@ -640,8 +719,12 @@ class CloudTranscriptionService:
                 self.cost_tracking[provider_type] = 0.0
                 logger.info(f"Initialized {provider_type.value} provider")
                 
+            except (ImportError, ModuleNotFoundError) as e:
+                logger.error(f"Missing dependencies for {provider_type.value}: {e}")
+            except (KeyError, ValueError) as e:
+                logger.error(f"Configuration error for {provider_type.value}: {e}")
             except Exception as e:
-                logger.error(f"Failed to initialize {provider_type.value}: {e}")
+                logger.error(f"Unexpected error initializing {provider_type.value}: {e}")
     
     async def transcribe_with_fallback(
         self,
@@ -731,17 +814,59 @@ class CloudTranscriptionService:
                 logger.info(f"Transcription successful with {provider_type.value}, cost: ${cost:.4f}")
                 return job
                 
-            except Exception as e:
-                # Update attempt with failure
+            except aiohttp.client_exceptions.ClientError as e:
+                # Handle HTTP client errors
                 attempt.end_time = datetime.utcnow()
                 attempt.success = False
-                attempt.error_message = str(e)
+                attempt.error_message = f"HTTP client error: {str(e)}"
                 job.attempts.append(attempt)
                 
                 provider.error_count += 1
-                logger.error(f"Transcription failed with {provider_type.value}: {e}")
+                logger.error(f"HTTP client error with {provider_type.value}: {e}")
+                continue
                 
-                # Continue to next provider
+            except websockets.exceptions.WebSocketException as e:
+                # Handle WebSocket errors
+                attempt.end_time = datetime.utcnow()
+                attempt.success = False
+                attempt.error_message = f"WebSocket error: {str(e)}"
+                job.attempts.append(attempt)
+                
+                provider.error_count += 1
+                logger.error(f"WebSocket error with {provider_type.value}: {e}")
+                continue
+                
+            except asyncio.TimeoutError as e:
+                # Handle timeout errors
+                attempt.end_time = datetime.utcnow()
+                attempt.success = False
+                attempt.error_message = f"Request timeout: {str(e)}"
+                job.attempts.append(attempt)
+                
+                provider.error_count += 1
+                logger.error(f"Timeout error with {provider_type.value}: {e}")
+                continue
+                
+            except (ssl.SSLError, socket.error, ConnectionError) as e:
+                # Handle connection errors
+                attempt.end_time = datetime.utcnow()
+                attempt.success = False
+                attempt.error_message = f"Connection error: {str(e)}"
+                job.attempts.append(attempt)
+                
+                provider.error_count += 1
+                logger.error(f"Connection error with {provider_type.value}: {e}")
+                continue
+                
+            except Exception as e:
+                # Handle unexpected errors
+                attempt.end_time = datetime.utcnow()
+                attempt.success = False
+                attempt.error_message = f"Unexpected error: {str(e)}"
+                job.attempts.append(attempt)
+                
+                provider.error_count += 1
+                logger.error(f"Unexpected transcription error with {provider_type.value}: {e}")
                 continue
         
         # All providers failed
@@ -820,11 +945,40 @@ class CloudTranscriptionService:
             provider.update_usage(job.audio_duration, cost)
             self.cost_tracking[provider_type] += cost
             
+        except aiohttp.client_exceptions.ClientError as e:
+            attempt.end_time = datetime.utcnow()
+            attempt.success = False
+            attempt.error_message = f"HTTP client error: {str(e)}"
+            provider.error_count += 1
+            logger.error(f"HTTP client error in comparison mode with {provider_type.value}: {e}")
+            
+        except websockets.exceptions.WebSocketException as e:
+            attempt.end_time = datetime.utcnow()
+            attempt.success = False
+            attempt.error_message = f"WebSocket error: {str(e)}"
+            provider.error_count += 1
+            logger.error(f"WebSocket error in comparison mode with {provider_type.value}: {e}")
+            
+        except asyncio.TimeoutError as e:
+            attempt.end_time = datetime.utcnow()
+            attempt.success = False
+            attempt.error_message = f"Request timeout: {str(e)}"
+            provider.error_count += 1
+            logger.error(f"Timeout error in comparison mode with {provider_type.value}: {e}")
+            
+        except (ssl.SSLError, socket.error, ConnectionError) as e:
+            attempt.end_time = datetime.utcnow()
+            attempt.success = False
+            attempt.error_message = f"Connection error: {str(e)}"
+            provider.error_count += 1
+            logger.error(f"Connection error in comparison mode with {provider_type.value}: {e}")
+            
         except Exception as e:
             attempt.end_time = datetime.utcnow()
             attempt.success = False
-            attempt.error_message = str(e)
+            attempt.error_message = f"Unexpected error: {str(e)}"
             provider.error_count += 1
+            logger.error(f"Unexpected error in comparison mode with {provider_type.value}: {e}")
         
         job.attempts.append(attempt)
         return attempt

@@ -20,6 +20,11 @@ interface ElectronAPI {
   closeWindow: () => Promise<void>;
   openSettings: () => Promise<void>;
 
+  // Settings management
+  getSettings: () => Promise<any>;
+  saveSettings: (settings: any) => Promise<{ success: boolean }>;
+  validateSetting: (key: string, value: any) => Promise<{ valid: boolean; error?: string }>;
+
   // File operations
   saveFile: (data: any, filters?: any) => Promise<{ success: boolean; path?: string; error?: string; cancelled?: boolean }>;
   loadFile: () => Promise<{ success: boolean; data?: any; path?: string; error?: string; cancelled?: boolean }>;
@@ -59,6 +64,11 @@ const electronAPI: ElectronAPI = {
   maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
   openSettings: () => ipcRenderer.invoke('open-settings'),
+
+  // Settings management
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  saveSettings: (settings: any) => ipcRenderer.invoke('save-settings', settings),
+  validateSetting: (key: string, value: any) => ipcRenderer.invoke('validate-setting', key, value),
 
   // File operations
   saveFile: (data: any, filters?: any) => ipcRenderer.invoke('save-file', data, filters),

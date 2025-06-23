@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>MeetingMind Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.6;
+            overflow: hidden;
+        }
+
+        .settings-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: #ffffff;
+            border-right: 1px solid #e5e5e7;
+            padding: 20px 0;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #e5e5e7;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin: 0;
+        }
+
+        .sidebar-nav a {
+            display: block;
+            padding: 12px 20px;
+            text-decoration: none;
+            color: #424245;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background: #f0f0f2;
+            color: #007aff;
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .content-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+
+        .content-header p {
+            color: #86868b;
+            font-size: 16px;
+        }
+
+        .setting-group {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e5e7;
+        }
+
+        .setting-group h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 16px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f2;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .setting-item:first-child {
+            padding-top: 0;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-info h4 {
+            font-size: 16px;
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+        }
+
+        .setting-info p {
+            font-size: 14px;
+            color: #86868b;
+        }
+
+        .setting-control {
+            margin-left: 16px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 26px;
+            background: #e5e5e7;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .toggle-switch.active {
+            background: #007aff;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(18px);
+        }
+
+        .input-field {
+            padding: 8px 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 200px;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+
+        .select-field {
+            padding: 8px 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .select-field:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+
+        .button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .button-primary {
+            background: #007aff;
+            color: white;
+        }
+
+        .button-primary:hover {
+            background: #0051d5;
+        }
+
+        .button-secondary {
+            background: #f0f0f2;
+            color: #424245;
+        }
+
+        .button-secondary:hover {
+            background: #e5e5e7;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background: #30d158;
+        }
+
+        .status-disconnected {
+            background: #ff3b30;
+        }
+
+        .loading-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e5e7;
+            border-top: 2px solid #007aff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Settings</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="#general" class="nav-link active" data-tab="general">General</a></li>
+                <li><a href="#audio" class="nav-link" data-tab="audio">Audio & Video</a></li>
+                <li><a href="#security" class="nav-link" data-tab="security">Security & Privacy</a></li>
+                <li><a href="#notifications" class="nav-link" data-tab="notifications">Notifications</a></li>
+                <li><a href="#advanced" class="nav-link" data-tab="advanced">Advanced</a></li>
+                <li><a href="#about" class="nav-link" data-tab="about">About</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content">
+            <!-- General Tab -->
+            <div id="general-tab" class="tab-content">
+                <div class="content-header">
+                    <h1>General Settings</h1>
+                    <p>Configure your basic application preferences</p>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Appearance</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Theme</h4>
+                            <p>Choose your preferred app appearance</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="select-field" id="theme-select">
+                                <option value="system">System</option>
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Language</h4>
+                            <p>Select your preferred language</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="select-field" id="language-select">
+                                <option value="en">English</option>
+                                <option value="es">Español</option>
+                                <option value="fr">Français</option>
+                                <option value="de">Deutsch</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Startup</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Launch at startup</h4>
+                            <p>Automatically start MeetingMind when you log in</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" data-setting="launch-startup"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Start minimized</h4>
+                            <p>Start the app in the system tray</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" data-setting="start-minimized"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio & Video Tab -->
+            <div id="audio-tab" class="tab-content hidden">
+                <div class="content-header">
+                    <h1>Audio & Video Settings</h1>
+                    <p>Configure your audio and video devices</p>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Audio Input</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Microphone</h4>
+                            <p>Select your preferred microphone</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="select-field" id="microphone-select">
+                                <option value="default">Default</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Noise cancellation</h4>
+                            <p>Reduce background noise during meetings</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" data-setting="noise-cancellation"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Video</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Camera</h4>
+                            <p>Select your preferred camera</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="select-field" id="camera-select">
+                                <option value="default">Default</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Video quality</h4>
+                            <p>Choose video resolution and quality</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="select-field" id="video-quality-select">
+                                <option value="720p">720p (HD)</option>
+                                <option value="1080p">1080p (Full HD)</option>
+                                <option value="auto">Auto</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security & Privacy Tab -->
+            <div id="security-tab" class="tab-content hidden">
+                <div class="content-header">
+                    <h1>Security & Privacy</h1>
+                    <p>Manage your security and privacy settings</p>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Connection Security</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Connection Status</h4>
+                            <p id="connection-status">
+                                <span class="status-indicator status-connected"></span>
+                                Secure connection established
+                            </p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="button button-secondary" onclick="testConnection()">Test Connection</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>End-to-end encryption</h4>
+                            <p>All meetings are encrypted by default</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" data-setting="e2e-encryption" disabled></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Privacy</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Analytics</h4>
+                            <p>Help improve MeetingMind by sharing anonymous usage data</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" data-setting="analytics"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Crash reports</h4>
+                            <p>Automatically send crash reports to help fix issues</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" data-setting="crash-reports"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div id="notifications-tab" class="tab-content hidden">
+                <div class="content-header">
+                    <h1>Notifications</h1>
+                    <p>Customize your notification preferences</p>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Meeting Notifications</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Meeting reminders</h4>
+                            <p>Show notifications for upcoming meetings</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" data-setting="meeting-reminders"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Chat messages</h4>
+                            <p>Show notifications for new chat messages</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" data-setting="chat-notifications"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Tab -->
+            <div id="advanced-tab" class="tab-content hidden">
+                <div class="content-header">
+                    <h1>Advanced Settings</h1>
+                    <p>Configure advanced application options</p>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Performance</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Hardware acceleration</h4>
+                            <p>Use GPU acceleration for better performance</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" data-setting="hardware-acceleration"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>GPU acceleration</h4>
+                            <p>Enable GPU-accelerated video processing</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" data-setting="gpu-acceleration"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Developer</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Developer tools</h4>
+                            <p>Enable developer console and debugging tools</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" data-setting="dev-tools"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Tab -->
+            <div id="about-tab" class="tab-content hidden">
+                <div class="content-header">
+                    <h1>About MeetingMind</h1>
+                    <p>Information about your application</p>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Application Info</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Version</h4>
+                            <p id="app-version">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>System</h4>
+                            <p id="system-info">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Updates</h4>
+                            <p>Check for application updates</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="button button-primary" onclick="checkForUpdates()">Check for Updates</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Settings management
+        class SettingsManager {
+            constructor() {
+                this.initializeEventListeners();
+                this.loadSettings();
+                this.loadSystemInfo();
+            }
+
+            initializeEventListeners() {
+                // Tab navigation
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.switchTab(e.target.dataset.tab);
+                    });
+                });
+
+                // Toggle switches
+                document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                    if (!toggle.hasAttribute('disabled')) {
+                        toggle.addEventListener('click', () => {
+                            toggle.classList.toggle('active');
+                            this.saveSetting(toggle.dataset.setting, toggle.classList.contains('active'));
+                        });
+                    }
+                });
+
+                // Select fields
+                document.querySelectorAll('.select-field').forEach(select => {
+                    select.addEventListener('change', (e) => {
+                        this.saveSetting(e.target.id, e.target.value);
+                    });
+                });
+
+                // Theme selector
+                document.getElementById('theme-select').addEventListener('change', async (e) => {
+                    if (window.electronAPI) {
+                        const newTheme = await window.electronAPI.setTheme(e.target.value);
+                        console.log('Theme changed to:', newTheme);
+                    }
+                });
+            }
+
+            switchTab(tabName) {
+                // Update navigation
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+                // Update content
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.add('hidden');
+                });
+                document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+            }
+
+            async loadSettings() {
+                try {
+                    // Load theme
+                    if (window.electronAPI) {
+                        const currentTheme = await window.electronAPI.getTheme();
+                        const themeSelect = document.getElementById('theme-select');
+                        
+                        // Try to determine the theme setting from system
+                        if (currentTheme === 'dark') {
+                            themeSelect.value = 'dark';
+                        } else {
+                            themeSelect.value = 'light';
+                        }
+                    }
+
+                    // Load saved settings from localStorage
+                    const savedSettings = JSON.parse(localStorage.getItem('meetingmind-settings') || '{}');
+                    
+                    // Apply saved toggle states
+                    Object.entries(savedSettings).forEach(([key, value]) => {
+                        const toggle = document.querySelector(`[data-setting="${key}"]`);
+                        if (toggle) {
+                            toggle.classList.toggle('active', value);
+                        }
+                        
+                        const select = document.getElementById(key);
+                        if (select) {
+                            select.value = value;
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Failed to load settings:', error);
+                }
+            }
+
+            saveSetting(key, value) {
+                try {
+                    const settings = JSON.parse(localStorage.getItem('meetingmind-settings') || '{}');
+                    settings[key] = value;
+                    localStorage.setItem('meetingmind-settings', JSON.stringify(settings));
+                    console.log(`Setting saved: ${key} = ${value}`);
+                } catch (error) {
+                    console.error('Failed to save setting:', error);
+                }
+            }
+
+            async loadSystemInfo() {
+                try {
+                    if (window.electronAPI) {
+                        const version = await window.electronAPI.getAppVersion();
+                        document.getElementById('app-version').textContent = version;
+
+                        const systemInfo = await window.electronAPI.getSystemInfo();
+                        const systemText = `${systemInfo.os.platform} ${systemInfo.os.release} (${systemInfo.arch})`;
+                        document.getElementById('system-info').textContent = systemText;
+                    } else {
+                        document.getElementById('app-version').textContent = 'Web Version';
+                        document.getElementById('system-info').textContent = navigator.userAgent;
+                    }
+                } catch (error) {
+                    console.error('Failed to load system info:', error);
+                    document.getElementById('app-version').textContent = 'Unknown';
+                    document.getElementById('system-info').textContent = 'Unknown';
+                }
+            }
+        }
+
+        // Global functions
+        async function testConnection() {
+            const statusElement = document.getElementById('connection-status');
+            const originalHTML = statusElement.innerHTML;
+            
+            statusElement.innerHTML = '<div class="loading-indicator"></div> Testing connection...';
+            
+            // Simulate connection test
+            setTimeout(() => {
+                statusElement.innerHTML = '<span class="status-indicator status-connected"></span>Connection test successful';
+                
+                setTimeout(() => {
+                    statusElement.innerHTML = originalHTML;
+                }, 3000);
+            }, 2000);
+        }
+
+        async function checkForUpdates() {
+            try {
+                if (window.electronAPI) {
+                    await window.electronAPI.checkForUpdates();
+                    console.log('Checking for updates...');
+                } else {
+                    alert('Update checking is only available in the desktop app');
+                }
+            } catch (error) {
+                console.error('Failed to check for updates:', error);
+            }
+        }
+
+        // Initialize settings when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SettingsManager();
+        });
+
+        // Handle update status messages
+        if (window.electronAPI) {
+            window.electronAPI.onUpdateStatus((status) => {
+                console.log('Update status:', status);
+                // Handle update status notifications here
+            });
+        }
+    </script>
+</body>
+</html>

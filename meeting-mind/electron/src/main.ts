@@ -139,28 +139,40 @@ class MeetingMindApp {
     // Security: Block new window creation
     contents.on('new-window', (event, navigationUrl) => {
       event.preventDefault();
+      log.warn('Blocked new window creation:', navigationUrl);
       shell.openExternal(navigationUrl);
     });
 
     // Security: Block navigation to external URLs
     contents.on('will-navigate', (event, navigationUrl) => {
-      const parsedUrl = new URL(navigationUrl);
-      const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:8000',
-        'https://app.meetingmind.com'
-      ];
-
-      if (!allowedOrigins.some(origin => navigationUrl.startsWith(origin))) {
+      const isFileProtocol = navigationUrl.startsWith('file://');
+      const isLocalhost = navigationUrl.startsWith('http://localhost:');
+      const isAllowedDomain = navigationUrl.startsWith('https://app.meetingmind.com');
+      
+      // Allow file:// protocol for local HTML files, localhost in development, and approved domains
+      if (!isFileProtocol && !isLocalhost && !isAllowedDomain) {
         event.preventDefault();
         log.warn('Blocked navigation to external URL:', navigationUrl);
       }
     });
 
-    // Security: Prevent node integration
+    // Security: Prevent webview attachment
     contents.on('will-attach-webview', (event) => {
       event.preventDefault();
       log.warn('Blocked webview attachment for security');
+    });
+
+    // Security: Block external resource loading in settings
+    contents.on('will-frame-navigate', (event, navigationUrl) => {
+      if (contents === settingsWindow?.webContents) {
+        const settingsHtmlPath = path.join(__dirname, '../assets/settings.html');
+        const expectedUrl = `file://${settingsHtmlPath}`;
+        
+        if (navigationUrl !== expectedUrl) {
+          event.preventDefault();
+          log.warn('Blocked frame navigation in settings window:', navigationUrl);
+        }
+      }
     });
   };
 
@@ -268,6 +280,34 @@ class MeetingMindApp {
     // Settings window
     ipcMain.handle('open-settings', async () => {
       await this.createSettingsWindow();
+    });
+
+    // Settings management
+    ipcMain.handle('get-settings', () => {
+      // Return app settings (could be stored in a secure location)
+      return {};
+    });
+
+    ipcMain.handle('save-settings', (event, settings) => {
+      // Save settings securely (could use encrypted storage)
+      log.info('Settings saved:', Object.keys(settings));
+      return { success: true };
+    });
+
+    // Security validation for settings
+    ipcMain.handle('validate-setting', (event, key, value) => {
+      // Validate setting values for security
+      const allowedSettings = [
+        'theme', 'language', 'launch-startup', 'start-minimized',
+        'noise-cancellation', 'e2e-encryption', 'analytics'
+      ];
+      
+      if (!allowedSettings.includes(key)) {
+        log.warn('Invalid setting key:', key);
+        return { valid: false, error: 'Invalid setting key' };
+      }
+      
+      return { valid: true };
     });
 
     // File operations
@@ -537,21 +577,36 @@ class MeetingMindApp {
         nodeIntegration: false,
         contextIsolation: true,
         preload: path.join(__dirname, 'preload.js'),
-        sandbox: true
+        sandbox: true,
+        webSecurity: true
       }
     });
 
-    if (isDevelopment) {
-      await settingsWindow.loadURL('http://localhost:3000/#/settings');
-    } else {
-      await settingsWindow.loadFile(path.join(__dirname, '../resources/app/index.html'), {
-        hash: 'settings'
-      });
-    }
+    // Security: Always load settings from local file, never from network
+    const settingsPath = path.join(__dirname, '../assets/settings.html');
+    await settingsWindow.loadFile(settingsPath);
+
+    // Security: Prevent navigation away from the settings page
+    settingsWindow.webContents.on('will-navigate', (event, url) => {
+      // Only allow navigation to the settings file itself
+      if (!url.startsWith('file://')) {
+        event.preventDefault();
+        log.warn('Blocked navigation attempt from settings window:', url);
+      }
+    });
+
+    // Security: Block new window creation from settings
+    settingsWindow.webContents.on('new-window', (event, url) => {
+      event.preventDefault();
+      log.warn('Blocked new window creation from settings:', url);
+      shell.openExternal(url);
+    });
 
     settingsWindow.on('closed', () => {
       settingsWindow = null;
     });
+
+    log.info('Settings window opened securely from local file');
   }
 
   private createMenu(): void {

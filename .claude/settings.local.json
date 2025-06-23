@@ -27,7 +27,17 @@
       "Bash(chmod:*)",
       "Bash(ls:*)",
       "Bash(git restore:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git commit:*)",
+      "Bash(gh:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl:*)",
+      "Bash(tar:*)",
+      "Bash(./gh_2.74.2_linux_amd64/bin/gh --version)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\")",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git pull:*)"
     ],
     "deny": []
   }

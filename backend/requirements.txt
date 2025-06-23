@@ -31,13 +31,16 @@ aiohttp>=3.9.0         # Async HTTP client for local providers
 jsonschema>=4.0.0      # JSON schema validation for provider configs
 
 # Audio transcription dependencies
-faster-whisper>=0.9.0  # Optimized Whisper inference engine
-torch>=2.0.0          # PyTorch for audio processing
-torchaudio>=2.0.0     # Audio processing utilities
+faster-whisper>=0.10.0  # Optimized Whisper inference engine with network stream support
+torch>=2.1.0          # PyTorch for audio processing
+torchaudio>=2.1.0     # Audio processing utilities
 librosa>=0.10.0       # Audio analysis library
 soundfile>=0.12.0     # Audio file I/O
 numpy>=1.24.0         # Numerical computing
 scipy>=1.10.0         # Scientific computing
+silero-vad>=4.0.0     # Silero Voice Activity Detection for network streams
+webrtcvad>=2.0.10     # WebRTC Voice Activity Detection
+pyaudio>=0.2.11       # Real-time audio I/O
 
 # Queue and task management
 celery>=5.3.0         # Distributed task queue

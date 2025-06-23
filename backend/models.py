@@ -587,3 +587,205 @@ Index('idx_ai_insights_meeting_confidence', AIInsight.meeting_id, AIInsight.conf
 Index('idx_active_meetings', Meeting.id, postgresql_where=Meeting.status == MeetingStatus.ACTIVE)
 Index('idx_pending_insights', AIInsight.meeting_id, postgresql_where=AIInsight.is_processed_for_insights == False)
 Index('idx_actionable_insights', AIInsight.id, postgresql_where=AIInsight.is_action_required == True)
+
+# ==========================================
+# STREAMING MODELS
+# ==========================================
+
+class StreamingProtocol(PyEnum):
+    """Supported streaming protocols"""
+    RTMP = "rtmp"
+    SRT = "srt"
+    WEBRTC = "webrtc"
+
+class StreamStatus(PyEnum):
+    """Stream lifecycle states"""
+    CONNECTING = "connecting"
+    LIVE = "live"
+    ENDED = "ended"
+    ERROR = "error"
+
+class StreamSession(Base):
+    """
+    Streaming session management
+    
+    Tracks streaming sessions for meetings, including authentication,
+    protocols used, and session metadata.
+    """
+    __tablename__ = 'stream_sessions'
+    
+    # Primary key
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    
+    # Foreign keys and relationships
+    meeting_id = Column(UUID(as_uuid=True), ForeignKey('meetings.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_id = Column(String(255), nullable=False, index=True)  # Streaming user
+    
+    # Stream identification
+    stream_key_id = Column(String(255), nullable=False, unique=True, index=True)
+    stream_id = Column(String(255), index=True)  # Assigned by streaming server
+    
+    # Stream configuration
+    protocol = Column(Enum(StreamingProtocol), nullable=False, index=True)
+    title = Column(String(255))
+    description = Column(Text)
+    
+    # Session timing
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    started_at = Column(DateTime(timezone=True), index=True)
+    ended_at = Column(DateTime(timezone=True), index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    revoked_at = Column(DateTime(timezone=True), index=True)
+    
+    # Stream status and quality
+    status = Column(Enum(StreamStatus), default=StreamStatus.CONNECTING, index=True)
+    max_viewers = Column(Integer, default=0)
+    peak_viewers = Column(Integer, default=0)
+    
+    # Quality metrics (aggregated)
+    avg_bitrate = Column(Integer, default=0)  # bps
+    avg_fps = Column(Float, default=0.0)
+    avg_latency = Column(Integer, default=0)  # milliseconds
+    total_bytes = Column(Integer, default=0)
+    frame_drops = Column(Integer, default=0)
+    
+    # Health and reliability
+    connection_issues = Column(Integer, default=0)
+    reconnect_count = Column(Integer, default=0)
+    error_count = Column(Integer, default=0)
+    
+    # Metadata
+    metadata = Column(JSONB, default=dict)
+    
+    # Relationships
+    meeting = relationship("Meeting", back_populates="stream_sessions")
+    metrics = relationship("StreamMetrics", back_populates="session", cascade="all, delete-orphan")
+    
+    # Constraints and indexes
+    __table_args__ = (
+        Index('idx_stream_sessions_meeting_protocol', 'meeting_id', 'protocol'),
+        Index('idx_stream_sessions_user_created', 'user_id', 'created_at'),
+        Index('idx_stream_sessions_status_started', 'status', 'started_at'),
+    )
+
+class StreamMetrics(Base):
+    """
+    Real-time streaming metrics collection
+    
+    Stores time-series data for streaming performance monitoring,
+    quality analysis, and optimization.
+    """
+    __tablename__ = 'stream_metrics'
+    
+    # Primary key
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    
+    # Foreign keys
+    session_id = Column(UUID(as_uuid=True), ForeignKey('stream_sessions.id', ondelete='CASCADE'), nullable=False, index=True)
+    stream_id = Column(String(255), nullable=False, index=True)
+    
+    # Timestamp for time-series data
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    
+    # Video metrics
+    bitrate = Column(Integer, default=0)  # bits per second
+    fps = Column(Float, default=0.0)  # frames per second
+    resolution_width = Column(Integer)
+    resolution_height = Column(Integer)
+    keyframes = Column(Integer, default=0)
+    frame_drops = Column(Integer, default=0)
+    
+    # Audio metrics
+    audio_bitrate = Column(Integer, default=0)  # bits per second
+    sample_rate = Column(Integer)  # Hz
+    audio_channels = Column(Integer)
+    
+    # Network metrics
+    latency = Column(Integer, default=0)  # milliseconds
+    jitter = Column(Integer, default=0)  # milliseconds
+    packet_loss = Column(Float, default=0.0)  # percentage
+    bandwidth_usage = Column(Integer, default=0)  # bytes per second
+    
+    # Connection metrics
+    viewers = Column(Integer, default=0)
+    connection_quality = Column(String(20))  # excellent, good, fair, poor
+    
+    # Performance metrics
+    cpu_usage = Column(Float, default=0.0)  # percentage
+    memory_usage = Column(Float, default=0.0)  # percentage
+    encoder_usage = Column(Float, default=0.0)  # percentage
+    
+    # Quality score (0-100)
+    quality_score = Column(Integer, default=100)
+    
+    # Raw metrics data
+    data = Column(JSONB, default=dict)
+    
+    # Relationships
+    session = relationship("StreamSession", back_populates="metrics")
+    
+    # Constraints and indexes
+    __table_args__ = (
+        Index('idx_stream_metrics_session_timestamp', 'session_id', 'timestamp'),
+        Index('idx_stream_metrics_stream_timestamp', 'stream_id', 'timestamp'),
+        Index('idx_stream_metrics_quality_timestamp', 'quality_score', 'timestamp'),
+    )
+
+class StreamAlert(Base):
+    """
+    Streaming health alerts and notifications
+    
+    Tracks issues, performance degradation, and system alerts
+    for proactive monitoring and troubleshooting.
+    """
+    __tablename__ = 'stream_alerts'
+    
+    # Primary key
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    
+    # Foreign keys
+    session_id = Column(UUID(as_uuid=True), ForeignKey('stream_sessions.id', ondelete='CASCADE'), index=True)
+    stream_id = Column(String(255), nullable=False, index=True)
+    
+    # Alert details
+    alert_type = Column(String(50), nullable=False, index=True)  # low_bitrate, high_latency, etc.
+    severity = Column(String(20), nullable=False, index=True)  # critical, warning, info
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    
+    # Alert timing
+    triggered_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    resolved_at = Column(DateTime(timezone=True), index=True)
+    acknowledged_at = Column(DateTime(timezone=True), index=True)
+    acknowledged_by = Column(String(255), index=True)
+    
+    # Alert context
+    metric_value = Column(Float)  # The value that triggered the alert
+    threshold_value = Column(Float)  # The threshold that was exceeded
+    impact_score = Column(Integer, default=0)  # 0-100 impact assessment
+    
+    # Status tracking
+    is_active = Column(Boolean, default=True, index=True)
+    is_acknowledged = Column(Boolean, default=False, index=True)
+    is_resolved = Column(Boolean, default=False, index=True)
+    
+    # Additional data
+    metadata = Column(JSONB, default=dict)
+    
+    # Relationships
+    session = relationship("StreamSession")
+    
+    # Constraints and indexes
+    __table_args__ = (
+        Index('idx_stream_alerts_type_severity', 'alert_type', 'severity'),
+        Index('idx_stream_alerts_active_triggered', 'is_active', 'triggered_at'),
+        Index('idx_stream_alerts_stream_triggered', 'stream_id', 'triggered_at'),
+    )
+
+# Add streaming relationships to existing models
+Meeting.stream_sessions = relationship("StreamSession", back_populates="meeting", cascade="all, delete-orphan")
+
+# Additional streaming indexes
+Index('idx_stream_sessions_expires_status', StreamSession.expires_at, StreamSession.status)
+Index('idx_stream_metrics_timestamp_quality', StreamMetrics.timestamp, StreamMetrics.quality_score)
+Index('idx_stream_alerts_severity_active', StreamAlert.severity, StreamAlert.is_active)

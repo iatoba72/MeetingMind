@@ -1,0 +1,219 @@
+# Prometheus Alert Rules for MeetingMind Application
+
+groups:
+  - name: meetingmind_frontend_alerts
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: rate(meetingmind_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "High error rate detected in MeetingMind frontend"
+          description: "Error rate is {{ $value }} errors per second for the last 5 minutes"
+
+      # Critical error alert
+      - alert: CriticalErrors
+        expr: rate(meetingmind_errors_total{severity="critical"}[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: frontend
+        annotations:
+          summary: "Critical errors detected in MeetingMind"
+          description: "Critical errors are occurring at {{ $value }} per second"
+
+      # High memory usage alert
+      - alert: HighMemoryUsage
+        expr: meetingmind_memory_usage_bytes > 100000000  # 100MB
+        for: 5m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "High memory usage in MeetingMind frontend"
+          description: "Memory usage is {{ $value | humanizeBytes }} for the last 5 minutes"
+
+      # Low performance alert
+      - alert: LowPerformance
+        expr: meetingmind_ui_render_time_ms > 50
+        for: 3m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "Poor rendering performance detected"
+          description: "UI render time is {{ $value }}ms, exceeding the 50ms threshold"
+
+      # Low FPS alert
+      - alert: LowFPS
+        expr: meetingmind_performance_fps < 30
+        for: 2m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "Low FPS detected in MeetingMind"
+          description: "FPS has dropped to {{ $value }}, below the 30 fps threshold"
+
+      # Network latency alert
+      - alert: HighNetworkLatency
+        expr: meetingmind_network_latency_ms > 1000
+        for: 1m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "High network latency detected"
+          description: "Network latency is {{ $value }}ms, exceeding the 1000ms threshold"
+
+      # Audio quality alert
+      - alert: PoorAudioQuality
+        expr: meetingmind_audio_quality_score < 0.5
+        for: 2m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "Poor audio quality detected"
+          description: "Audio quality score is {{ $value }}, below the 0.5 threshold"
+
+      # Meeting failure alert
+      - alert: MeetingCreationFailures
+        expr: rate(meetingmind_meetings_total{result="failure"}[5m]) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+          service: frontend
+        annotations:
+          summary: "High meeting creation failure rate"
+          description: "Meeting creation is failing at {{ $value }} per second"
+
+      # AI service failure alert
+      - alert: AIServiceFailures
+        expr: rate(meetingmind_ai_requests_total{result="failure"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "AI service failures detected"
+          description: "AI requests are failing at {{ $value }} per second"
+
+  - name: meetingmind_system_alerts
+    rules:
+      # Service down alert
+      - alert: ServiceDown
+        expr: up{job=~"meetingmind.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MeetingMind service is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} is down"
+
+      # High CPU usage alert
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Low disk space alert
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value }}% full on {{ $labels.instance }}"
+
+      # Database connection issues
+      - alert: DatabaseConnectionIssues
+        expr: rate(meetingmind_database_errors_total[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection issues"
+          description: "Database errors are occurring at {{ $value }} per second"
+
+  - name: meetingmind_business_alerts
+    rules:
+      # Low user activity alert
+      - alert: LowUserActivity
+        expr: rate(meetingmind_user_actions_total[1h]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low user activity detected"
+          description: "User activity is {{ $value }} actions per second over the last hour"
+
+      # High meeting duration alert
+      - alert: LongMeetings
+        expr: meetingmind_meeting_duration_seconds > 7200  # 2 hours
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: "Long meeting detected"
+          description: "Meeting has been running for {{ $value | humanizeDuration }}"
+
+      # Audio device issues
+      - alert: AudioDeviceIssues
+        expr: rate(meetingmind_audio_device_errors_total[5m]) > 0.02
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Audio device issues detected"
+          description: "Audio device errors are occurring at {{ $value }} per second"
+
+      # Recording failures
+      - alert: RecordingFailures
+        expr: rate(meetingmind_recording_failures_total[5m]) > 0.01
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Recording failures detected"
+          description: "Recording failures are occurring at {{ $value }} per second"
+
+  - name: meetingmind_security_alerts
+    rules:
+      # Unusual user activity patterns
+      - alert: UnusualUserActivity
+        expr: rate(meetingmind_user_actions_total[1m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusual user activity pattern detected"
+          description: "User activity spike: {{ $value }} actions per second"
+
+      # Failed authentication attempts
+      - alert: FailedAuthentication
+        expr: rate(meetingmind_auth_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failures at {{ $value }} per second"
+
+      # Suspicious API access patterns
+      - alert: SuspiciousAPIAccess
+        expr: rate(meetingmind_api_requests_total{status_code=~"4.."}[5m]) > 1
+        for: 3m
+        labels:
+          severity: info
+        annotations:
+          summary: "High 4xx error rate in API"
+          description: "API 4xx errors at {{ $value }} per second - possible attack or misconfiguration"

@@ -1,18 +1,29 @@
-// Audio Visualization Component
-// Provides real-time waveform and frequency spectrum visualization
+// Enhanced Audio Visualization Component
+// Provides real-time waveform and frequency spectrum visualization for multiple sources
 // Educational component demonstrating Web Audio API concepts
 
 import { useEffect, useRef, useState } from 'react';
+import { AudioSource } from '../utils/AudioPipeline';
 
 interface AudioVisualizerProps {
-  audioData: Float32Array | null;
-  frequencyData: Uint8Array | null;
-  isActive: boolean;
+  // Legacy props for backwards compatibility
+  audioData?: Float32Array | null;
+  frequencyData?: Uint8Array | null;
+  isActive?: boolean;
+  
+  // New props for multi-source support
+  sources?: AudioSource[];
+  primarySourceId?: string | null;
+  getVisualizationData?: (sourceId: string) => { frequency: Uint8Array; time: Uint8Array } | null;
+  
+  // Configuration
   width?: number;
   height?: number;
   showWaveform?: boolean;
   showSpectrum?: boolean;
+  showMultiSource?: boolean;
   color?: string;
+  visualizationType?: 'combined' | 'waveform' | 'spectrum' | 'vu_meters';
 }
 
 /**
@@ -43,27 +54,50 @@ interface AudioVisualizerProps {
  * - Shows practical application of audio processing concepts
  */
 export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
+  // Legacy props
   audioData,
   frequencyData,
-  isActive,
+  isActive = false,
+  
+  // New props
+  sources = [],
+  primarySourceId,
+  getVisualizationData,
+  
+  // Configuration
   width = 400,
   height = 200,
   showWaveform = true,
   showSpectrum = true,
-  color = '#3b82f6'
+  showMultiSource = false,
+  color = '#3b82f6',
+  visualizationType = 'combined'
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+  const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [visualizerStats, setVisualizerStats] = useState({
     peakAmplitude: 0,
     averageAmplitude: 0,
     dominantFrequency: 0,
     spectralCentroid: 0
   });
+
+  // Determine if using multi-source mode
+  const isMultiSource = sources.length > 0 && showMultiSource;
+  const activeSources = sources.filter(s => s.status === 'active');
+  const effectiveIsActive = isMultiSource ? activeSources.length > 0 : isActive;
   
+  // Set default selected source
+  useEffect(() => {
+    if (isMultiSource && !selectedSource && activeSources.length > 0) {
+      setSelectedSource(primarySourceId || activeSources[0].id);
+    }
+  }, [isMultiSource, selectedSource, activeSources, primarySourceId]);
+
   // Animation loop for smooth visualization updates
   useEffect(() => {
-    if (!isActive) {
+    if (!effectiveIsActive) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -82,7 +116,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isActive, audioData, frequencyData, showWaveform, showSpectrum]);
+  }, [effectiveIsActive, audioData, frequencyData, showWaveform, showSpectrum, sources, selectedSource, visualizationType]);
   
   // Main drawing function
   const draw = () => {
@@ -96,7 +130,41 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, width, height);
     
-    // Calculate layout for dual visualization
+    if (isMultiSource) {
+      drawMultiSourceVisualization(ctx);
+    } else {
+      drawLegacyVisualization(ctx);
+    }
+    
+    // Update statistics
+    updateVisualizerStats();
+  };
+
+  // Draw visualization for multiple sources
+  const drawMultiSourceVisualization = (ctx: CanvasRenderingContext2D) => {
+    if (activeSources.length === 0) {
+      drawNoSignal(ctx);
+      return;
+    }
+
+    switch (visualizationType) {
+      case 'combined':
+        drawCombinedVisualization(ctx);
+        break;
+      case 'waveform':
+        drawMultiSourceWaveform(ctx);
+        break;
+      case 'spectrum':
+        drawMultiSourceSpectrum(ctx);
+        break;
+      case 'vu_meters':
+        drawVUMeters(ctx);
+        break;
+    }
+  };
+
+  // Legacy visualization for backwards compatibility
+  const drawLegacyVisualization = (ctx: CanvasRenderingContext2D) => {
     const halfHeight = height / 2;
     
     if (showWaveform && audioData) {
@@ -108,9 +176,133 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       const vizHeight = showWaveform ? halfHeight : height;
       drawSpectrum(ctx, frequencyData, 0, yOffset, width, vizHeight);
     }
+  };
+
+  const drawNoSignal = (ctx: CanvasRenderingContext2D) => {
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No Active Audio Sources', width / 2, height / 2);
+  };
+
+  const drawCombinedVisualization = (ctx: CanvasRenderingContext2D) => {
+    const topHeight = height * 0.6;
+    const bottomHeight = height * 0.4;
+
+    // Get data for selected source
+    const source = activeSources.find(s => s.id === selectedSource) || 
+                   activeSources.find(s => s.id === primarySourceId) ||
+                   activeSources[0];
     
-    // Update statistics
-    updateVisualizerStats();
+    if (!source || !getVisualizationData) return;
+
+    const data = getVisualizationData(source.id);
+    if (!data) return;
+
+    // Draw frequency spectrum in top area
+    drawSpectrum(ctx, data.frequency, 0, 0, width, topHeight);
+
+    // Draw separator
+    ctx.strokeStyle = '#d1d5db';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, topHeight);
+    ctx.lineTo(width, topHeight);
+    ctx.stroke();
+
+    // Convert Uint8Array to Float32Array for waveform
+    const timeData = new Float32Array(data.time.length);
+    for (let i = 0; i < data.time.length; i++) {
+      timeData[i] = (data.time[i] - 128) / 128.0;
+    }
+
+    // Draw waveform in bottom area
+    drawWaveform(ctx, timeData, 0, topHeight, width, bottomHeight);
+  };
+
+  const drawMultiSourceWaveform = (ctx: CanvasRenderingContext2D) => {
+    const sourceHeight = height / Math.max(activeSources.length, 1);
+    
+    activeSources.forEach((source, index) => {
+      if (!getVisualizationData) return;
+      
+      const data = getVisualizationData(source.id);
+      if (!data) return;
+
+      const yOffset = index * sourceHeight;
+      
+      // Convert Uint8Array to Float32Array
+      const timeData = new Float32Array(data.time.length);
+      for (let i = 0; i < data.time.length; i++) {
+        timeData[i] = (data.time[i] - 128) / 128.0;
+      }
+
+      drawWaveform(ctx, timeData, 0, yOffset, width, sourceHeight, getSourceColor(index), source.name);
+    });
+  };
+
+  const drawMultiSourceSpectrum = (ctx: CanvasRenderingContext2D) => {
+    const source = activeSources.find(s => s.id === selectedSource) || 
+                   activeSources.find(s => s.id === primarySourceId) ||
+                   activeSources[0];
+    
+    if (!source || !getVisualizationData) return;
+
+    const data = getVisualizationData(source.id);
+    if (!data) return;
+
+    drawSpectrum(ctx, data.frequency, 0, 0, width, height);
+  };
+
+  const drawVUMeters = (ctx: CanvasRenderingContext2D) => {
+    const meterWidth = 60;
+    const meterHeight = height - 60;
+    const meterSpacing = (width - (activeSources.length * meterWidth)) / (activeSources.length + 1);
+
+    activeSources.forEach((source, index) => {
+      const x = meterSpacing + index * (meterWidth + meterSpacing);
+      const y = 30;
+
+      // Background
+      ctx.fillStyle = '#e5e7eb';
+      ctx.fillRect(x, y, meterWidth, meterHeight);
+
+      // Border
+      ctx.strokeStyle = '#9ca3af';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, meterWidth, meterHeight);
+
+      // VU level
+      const level = Math.min(source.metrics.volumeLevel * 100, 100);
+      const fillHeight = (level / 100) * meterHeight;
+
+      // Color based on level
+      let fillColor = '#10b981'; // Green
+      if (level > 70) fillColor = '#f59e0b'; // Amber
+      if (level > 90) fillColor = '#ef4444'; // Red
+
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(x, y + meterHeight - fillHeight, meterWidth, fillHeight);
+
+      // Peak indicator
+      const peak = Math.min(source.metrics.peakLevel * 100, 100);
+      const peakY = y + meterHeight - (peak / 100) * meterHeight;
+      
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(x, peakY - 2, meterWidth, 4);
+
+      // Labels
+      ctx.fillStyle = '#374151';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(source.name.substring(0, 8), x + meterWidth / 2, y + meterHeight + 15);
+      ctx.fillText(`${level.toFixed(0)}%`, x + meterWidth / 2, y - 5);
+    });
+  };
+
+  const getSourceColor = (index: number): string => {
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    return colors[index % colors.length];
   };
   
   // Draw waveform visualization (time domain)
@@ -120,7 +312,9 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     x: number,
     y: number,
     w: number,
-    h: number
+    h: number,
+    waveColor?: string,
+    sourceName?: string
   ) => {
     // Draw background grid for better readability
     drawGrid(ctx, x, y, w, h, '#e2e8f0');
@@ -146,13 +340,16 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       const barX = x + i * barWidth;
       
       // Color based on amplitude polarity
+      const baseColor = waveColor || color;
+      const opacity = 0.3 + Math.abs(amplitude) * 0.7;
+      
       if (amplitude >= 0) {
-        // Positive amplitude - green gradient
-        ctx.fillStyle = `rgba(34, 197, 94, ${0.3 + Math.abs(amplitude) * 0.7})`;
+        // Positive amplitude
+        ctx.fillStyle = baseColor + Math.floor(opacity * 255).toString(16).padStart(2, '0');
         ctx.fillRect(barX, centerY - barHeight, barWidth - 1, barHeight);
       } else {
-        // Negative amplitude - red gradient
-        ctx.fillStyle = `rgba(239, 68, 68, ${0.3 + Math.abs(amplitude) * 0.7})`;
+        // Negative amplitude - slightly darker
+        ctx.fillStyle = baseColor + Math.floor(opacity * 128).toString(16).padStart(2, '0');
         ctx.fillRect(barX, centerY, barWidth - 1, barHeight);
       }
     }
@@ -163,7 +360,8 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     // Add title
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
-    ctx.fillText('Waveform (Time Domain)', x + 5, y + 15);
+    const title = sourceName ? `${sourceName} - Waveform` : 'Waveform (Time Domain)';
+    ctx.fillText(title, x + 5, y + 15);
   };
   
   // Draw frequency spectrum visualization
@@ -351,9 +549,12 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Audio Visualization</h3>
         <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
+          <div className={`w-2 h-2 rounded-full ${effectiveIsActive ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
           <span className="text-sm text-gray-600">
-            {isActive ? 'Recording' : 'Inactive'}
+            {isMultiSource 
+              ? `${activeSources.length} Active Sources` 
+              : effectiveIsActive ? 'Recording' : 'Inactive'
+            }
           </span>
         </div>
       </div>
@@ -371,31 +572,72 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       
       {/* Visualization Controls */}
       <div className="flex flex-wrap gap-4 mb-4 text-sm">
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={showWaveform}
-            onChange={(e) => {
-              // In a real implementation, you'd lift this state up
-              console.log('Toggle waveform:', e.target.checked);
-            }}
-            className="rounded border-gray-300"
-          />
-          <span>Waveform</span>
-        </label>
-        
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={showSpectrum}
-            onChange={(e) => {
-              // In a real implementation, you'd lift this state up
-              console.log('Toggle spectrum:', e.target.checked);
-            }}
-            className="rounded border-gray-300"
-          />
-          <span>Spectrum</span>
-        </label>
+        {isMultiSource ? (
+          <>
+            {/* Multi-source controls */}
+            <div className="flex items-center space-x-2">
+              <label>Visualization Type:</label>
+              <select
+                value={visualizationType}
+                onChange={(e) => {
+                  // In a real implementation, you'd lift this state up
+                  console.log('Change visualization type:', e.target.value);
+                }}
+                className="px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                <option value="combined">Combined</option>
+                <option value="waveform">Waveform</option>
+                <option value="spectrum">Spectrum</option>
+                <option value="vu_meters">VU Meters</option>
+              </select>
+            </div>
+            
+            {/* Source selector */}
+            {activeSources.length > 1 && (
+              <div className="flex items-center space-x-2">
+                <label>Focus Source:</label>
+                <select
+                  value={selectedSource || ''}
+                  onChange={(e) => setSelectedSource(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm"
+                >
+                  {activeSources.map((source) => (
+                    <option key={source.id} value={source.id}>
+                      {source.name} {source.isPrimary ? '(Primary)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Legacy controls */}
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={showWaveform}
+                onChange={(e) => {
+                  console.log('Toggle waveform:', e.target.checked);
+                }}
+                className="rounded border-gray-300"
+              />
+              <span>Waveform</span>
+            </label>
+            
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={showSpectrum}
+                onChange={(e) => {
+                  console.log('Toggle spectrum:', e.target.checked);
+                }}
+                className="rounded border-gray-300"
+              />
+              <span>Spectrum</span>
+            </label>
+          </>
+        )}
       </div>
       
       {/* Visualization Statistics */}

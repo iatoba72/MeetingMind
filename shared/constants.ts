@@ -3,12 +3,8 @@
 
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: process.env.NODE_ENV === 'production' 
-    ? 'https://api.meetingmind.app' 
-    : 'http://localhost:8000',
-  WS_URL: process.env.NODE_ENV === 'production' 
-    ? 'wss://api.meetingmind.app/ws' 
-    : 'ws://localhost:8000/ws',
+  BASE_URL: process.env.VITE_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000',
+  WS_URL: process.env.VITE_WS_URL || process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws',
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000 // 1 second

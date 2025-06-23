@@ -125,6 +125,22 @@ class ConflictError(CRUDError):
     """Raised when a resource conflict occurs"""
     pass
 
+class DatabaseConnectionError(CRUDError):
+    """Raised when database connection fails"""
+    pass
+
+class DatabaseTimeoutError(CRUDError):
+    """Raised when database operations timeout"""
+    pass
+
+class ForeignKeyError(ValidationError):
+    """Raised when foreign key constraints are violated"""
+    pass
+
+class UniqueConstraintError(ConflictError):
+    """Raised when unique constraints are violated"""
+    pass
+
 # CRUD Base Class with Common Operations
 class BaseCRUD:
     """Base class providing common CRUD operations"""
@@ -180,7 +196,19 @@ class BaseCRUD:
         except SQLAlchemyError as e:
             db.rollback()
             logger.error(f"Error creating {self.model.__name__}: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Re-raise with more specific context based on error type
+            if "unique constraint" in str(e).lower() or "duplicate" in str(e).lower():
+                raise UniqueConstraintError(f"Resource already exists: {str(e)}")
+            elif "foreign key" in str(e).lower():
+                raise ForeignKeyError(f"Referenced entity not found: {str(e)}")
+            elif "not null" in str(e).lower() or "check constraint" in str(e).lower():
+                raise ValidationError(f"Invalid data provided: {str(e)}")
+            elif "connection" in str(e).lower():
+                raise DatabaseConnectionError(f"Database connection failed: {str(e)}")
+            elif "timeout" in str(e).lower():
+                raise DatabaseTimeoutError(f"Database operation timed out: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
     
     def update(
         self, 
@@ -206,7 +234,19 @@ class BaseCRUD:
         except SQLAlchemyError as e:
             db.rollback()
             logger.error(f"Error updating {self.model.__name__}: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Re-raise with more specific context based on error type
+            if "unique constraint" in str(e).lower() or "duplicate" in str(e).lower():
+                raise UniqueConstraintError(f"Update conflicts with existing data: {str(e)}")
+            elif "foreign key" in str(e).lower():
+                raise ForeignKeyError(f"Referenced entity not found: {str(e)}")
+            elif "not null" in str(e).lower() or "check constraint" in str(e).lower():
+                raise ValidationError(f"Invalid update data: {str(e)}")
+            elif "connection" in str(e).lower():
+                raise DatabaseConnectionError(f"Database connection failed: {str(e)}")
+            elif "timeout" in str(e).lower():
+                raise DatabaseTimeoutError(f"Database operation timed out: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
     
     def delete(self, db: Session, *, id: Union[str, uuid.UUID]) -> bool:
         """Delete a record by ID"""
@@ -220,7 +260,11 @@ class BaseCRUD:
         except SQLAlchemyError as e:
             db.rollback()
             logger.error(f"Error deleting {self.model.__name__}: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Re-raise with more specific context based on error type
+            if "foreign key" in str(e).lower():
+                raise ConflictError(f"Cannot delete: Resource is referenced by other entities: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
 
 # Meeting CRUD Operations
 class MeetingCRUD(BaseCRUD):
@@ -319,9 +363,18 @@ class MeetingCRUD(BaseCRUD):
                 "has_prev": pagination.page > 1
             }
             
+        except ValueError as e:
+            logger.error(f"Invalid filter parameters: {e}")
+            raise ValidationError(f"Invalid filter parameters: {str(e)}")
         except SQLAlchemyError as e:
             logger.error(f"Error getting filtered meetings: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Check for specific database issues
+            if "timeout" in str(e).lower():
+                raise DatabaseTimeoutError(f"Database query timeout: {str(e)}")
+            elif "connection" in str(e).lower():
+                raise DatabaseConnectionError(f"Database connection error: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
     
     def create_with_participants(
         self, 
@@ -372,7 +425,23 @@ class MeetingCRUD(BaseCRUD):
         except SQLAlchemyError as e:
             db.rollback()
             logger.error(f"Error creating meeting with participants: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Re-raise with more specific context
+            if "unique constraint" in str(e).lower() and "meeting_number" in str(e).lower():
+                raise UniqueConstraintError(f"Meeting number conflict - please retry: {str(e)}")
+            elif "foreign key" in str(e).lower() and "tag" in str(e).lower():
+                raise ForeignKeyError(f"One or more specified tags do not exist: {str(e)}")
+            elif "foreign key" in str(e).lower() and "template" in str(e).lower():
+                raise ForeignKeyError(f"Specified meeting template does not exist: {str(e)}")
+            elif "foreign key" in str(e).lower():
+                raise ForeignKeyError(f"Referenced entity not found: {str(e)}")
+            elif "check constraint" in str(e).lower():
+                raise ValidationError(f"Meeting data validation failed: {str(e)}")
+            elif "connection" in str(e).lower():
+                raise DatabaseConnectionError(f"Database connection failed: {str(e)}")
+            elif "timeout" in str(e).lower():
+                raise DatabaseTimeoutError(f"Database operation timed out: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
     
     def update_status(
         self, 
@@ -409,7 +478,11 @@ class MeetingCRUD(BaseCRUD):
         except SQLAlchemyError as e:
             db.rollback()
             logger.error(f"Error updating meeting status: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Re-raise with specific context for status updates
+            if "check constraint" in str(e).lower():
+                raise ValidationError(f"Invalid status transition: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
     
     def get_upcoming_meetings(
         self, 
@@ -485,7 +558,13 @@ class MeetingCRUD(BaseCRUD):
             raise
         except SQLAlchemyError as e:
             logger.error(f"Error getting meeting statistics: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Check for specific issues with statistics calculation
+            if "timeout" in str(e).lower():
+                raise DatabaseTimeoutError(f"Statistics calculation timeout - meeting may have too much data: {str(e)}")
+            elif "connection" in str(e).lower():
+                raise DatabaseConnectionError(f"Database connection failed: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
     
     def _generate_meeting_number(self, db: Session) -> str:
         """Generate a unique meeting number"""
@@ -562,7 +641,11 @@ class ParticipantCRUD(BaseCRUD):
         except SQLAlchemyError as e:
             db.rollback()
             logger.error(f"Error updating participant engagement: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Re-raise with specific context for engagement updates
+            if "check constraint" in str(e).lower():
+                raise ValidationError(f"Invalid engagement metric values: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
 
 # Transcript CRUD Operations
 class TranscriptCRUD(BaseCRUD):
@@ -592,7 +675,23 @@ class TranscriptCRUD(BaseCRUD):
         except SQLAlchemyError as e:
             db.rollback()
             logger.error(f"Error creating bulk transcripts: {e}")
-            raise CRUDError(f"Database error: {str(e)}")
+            # Re-raise with specific context for bulk operations
+            if "unique constraint" in str(e).lower():
+                raise UniqueConstraintError(f"Duplicate transcript entries detected: {str(e)}")
+            elif "foreign key" in str(e).lower() and "meeting" in str(e).lower():
+                raise ForeignKeyError(f"Invalid meeting ID in transcript data: {str(e)}")
+            elif "foreign key" in str(e).lower() and "participant" in str(e).lower():
+                raise ForeignKeyError(f"Invalid participant ID in transcript data: {str(e)}")
+            elif "foreign key" in str(e).lower():
+                raise ForeignKeyError(f"Referenced entity not found: {str(e)}")
+            elif "check constraint" in str(e).lower():
+                raise ValidationError(f"Invalid transcript data: {str(e)}")
+            elif "connection" in str(e).lower():
+                raise DatabaseConnectionError(f"Database connection failed: {str(e)}")
+            elif "timeout" in str(e).lower():
+                raise DatabaseTimeoutError(f"Database operation timed out: {str(e)}")
+            else:
+                raise CRUDError(f"Database error: {str(e)}")
     
     def get_by_meeting_time_range(
         self,
@@ -669,5 +768,9 @@ __all__ = [
     "NotFoundError",
     "ValidationError",
     "ConflictError",
-    "CRUDError"
+    "CRUDError",
+    "DatabaseConnectionError",
+    "DatabaseTimeoutError",
+    "ForeignKeyError",
+    "UniqueConstraintError"
 ]
