@@ -168,7 +168,7 @@ An advanced, AI-powered meeting assistant platform that provides real-time trans
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd meeting-mind
+   cd MeetingsHacker/meeting-mind
    ```
 
 2. **Backend Setup**
@@ -212,74 +212,81 @@ The application automatically connects the frontend to the backend via WebSocket
 ## 📁 Project Structure
 
 ```
-MeetingMind/
-├── backend/                          # FastAPI application
-│   ├── main.py                      # Application entry point with WebSocket setup
-│   ├── models.py                    # SQLAlchemy database models
-│   ├── crud.py                      # Database operations with specific exception handling
-│   ├── database.py                  # Database connection and session management
-│   ├── config.py                    # Environment-driven configuration management
-│   ├── audio_processor.py           # Real-time audio processing
-│   ├── transcription_service.py     # Local Whisper transcription
-│   ├── cloud_transcription_service.py # Multi-provider cloud transcription with specific errors
-│   ├── speaker_detection_service.py # Speaker diarization and identification
-│   ├── transcription_queue.py       # Async transcription processing
-│   ├── transcription_accuracy_analyzer.py # WER and quality metrics
-│   ├── ai_provider_registry.py      # Dynamic AI provider management
-│   ├── jitter_buffer.py             # Network audio jitter buffer with security validation
-│   ├── jitter_buffer_validation.py  # Comprehensive packet validation and monitoring
-│   ├── observability/               # OpenTelemetry tracing and metrics
-│   │   ├── telemetry.py             # Core telemetry configuration
-│   │   ├── tracing.ts               # MeetingMind-specific instrumentation
-│   │   └── middleware.ts            # Zustand store observability
-│   ├── alembic/                     # Database migrations
-│   │   ├── versions/                # Migration scripts
-│   │   └── env.py                   # Alembic configuration
-│   ├── requirements.txt             # Python dependencies
-│   └── .env.example                 # Environment configuration template
-├── frontend/                        # React + TypeScript application
-│   ├── src/
-│   │   ├── App.tsx                  # Main application component
-│   │   ├── components/              # React components
-│   │   │   ├── MeetingDashboard.tsx # Meeting management interface
-│   │   │   ├── AudioInterface.tsx   # Audio capture and visualization
-│   │   │   ├── RealtimeTranscription.tsx # Live transcription display
-│   │   │   ├── AIProviderManager.tsx # AI provider configuration
-│   │   │   ├── AIPlayground.tsx     # Interactive AI testing
-│   │   │   ├── TranscriptionBattleMode.tsx # Provider comparison
-│   │   │   ├── SpeakerTrainingMode.tsx # Speaker identification training
-│   │   │   ├── DatabaseVisualizer.tsx # Interactive schema explorer
-│   │   │   ├── ChatInterface.tsx    # Real-time chat system
-│   │   │   ├── MeetingStatistics.tsx # Analytics dashboard
-│   │   │   └── [25+ additional components]
-│   │   ├── hooks/                   # Custom React hooks
-│   │   │   ├── useAudioCapture.ts   # Audio processing hook
-│   │   │   ├── useWebSocket.ts      # WebSocket management
-│   │   │   ├── useMeetingState.ts   # Meeting state management
-│   │   │   └── useAudioStreaming.ts # Audio streaming hook
-│   │   ├── index.css                # Tailwind CSS configuration
-│   │   └── main.tsx                 # Application entry point
-│   ├── tailwind.config.js           # Tailwind configuration
-│   ├── package.json                 # Frontend dependencies
-│   └── [configuration files]
-├── shared/                          # Shared TypeScript definitions
-│   ├── types.ts                     # Interface definitions for meetings, AI, etc.
-│   ├── constants.ts                 # Environment-driven configuration with 50+ settings
-│   ├── ai-provider-schema.json      # AI provider configuration schema
-│   └── ai-provider-examples.json    # Example AI provider configurations
-├── scripts/                         # Utility and migration scripts
-│   ├── migrate_config.py            # Configuration migration from hardcoded to env vars
-│   └── export_codebase_gemini.py    # Codebase export script for AI analysis
-├── .env.example                     # Comprehensive environment variable template
-├── docker-compose.observability.yml # Observability stack (Jaeger, Prometheus, Grafana)
-├── JITTER_BUFFER_SECURITY.md        # Security implementation documentation
-├── ELECTRON_SECURITY_IMPROVEMENTS.md # Electron security hardening guide
-├── docs/                            # Documentation
-│   ├── ARCHITECTURE.md              # Detailed architecture explanations
-│   └── DEVELOPMENT.md               # Development setup and guidelines
-├── SPEAKER_DETECTION_LEARNING_GUIDE.md # Speaker detection implementation guide
-├── WHISPER_SETUP.md                 # Whisper model setup and optimization
-└── README.md                        # This comprehensive guide
+MeetingsHacker/
+└── meeting-mind/                     # Main project directory
+    ├── backend/                      # FastAPI application
+    │   ├── main.py                   # Application entry point with WebSocket setup
+    │   ├── models.py                 # SQLAlchemy database models
+    │   ├── crud.py                   # Database operations with specific exception handling
+    │   ├── database.py               # Database connection and session management
+    │   ├── config.py                 # Environment-driven configuration management
+    │   ├── audio_processor.py        # Real-time audio processing
+    │   ├── transcription_service.py  # Local Whisper transcription
+    │   ├── cloud_transcription_service.py # Multi-provider cloud transcription with specific errors
+    │   ├── speaker_detection_service.py # Speaker diarization and identification
+    │   ├── transcription_queue.py    # Async transcription processing
+    │   ├── transcription_accuracy_analyzer.py # WER and quality metrics
+    │   ├── ai_provider_registry.py   # Dynamic AI provider management
+    │   ├── jitter_buffer.py          # Network audio jitter buffer with security validation
+    │   ├── jitter_buffer_validation.py # Comprehensive packet validation and monitoring
+    │   ├── alembic/                  # Database migrations
+    │   │   ├── versions/             # Migration scripts
+    │   │   └── env.py                # Alembic configuration
+    │   ├── requirements.txt          # Python dependencies
+    │   └── settings/                 # Configuration management system
+    ├── frontend/                     # React + TypeScript application
+    │   ├── src/
+    │   │   ├── App.tsx               # Main application component
+    │   │   ├── components/           # React components
+    │   │   │   ├── MeetingDashboard.tsx # Meeting management interface
+    │   │   │   ├── AudioInterface.tsx # Audio capture and visualization
+    │   │   │   ├── RealtimeTranscription.tsx # Live transcription display
+    │   │   │   ├── AIProviderManager.tsx # AI provider configuration
+    │   │   │   ├── AIPlayground.tsx  # Interactive AI testing
+    │   │   │   ├── TranscriptionBattleMode.tsx # Provider comparison
+    │   │   │   ├── SpeakerTrainingMode.tsx # Speaker identification training
+    │   │   │   ├── DatabaseVisualizer.tsx # Interactive schema explorer
+    │   │   │   ├── ChatInterface.tsx # Real-time chat system
+    │   │   │   ├── MeetingStatistics.tsx # Analytics dashboard
+    │   │   │   └── [60+ additional components]
+    │   │   ├── hooks/                # Custom React hooks
+    │   │   │   ├── useAudioCapture.ts # Audio processing hook
+    │   │   │   ├── useWebSocket.ts   # WebSocket management
+    │   │   │   ├── useMeetingState.ts # Meeting state management
+    │   │   │   └── useAudioStreaming.ts # Audio streaming hook
+    │   │   ├── store/                # State management
+    │   │   ├── observability/        # Frontend observability
+    │   │   ├── security/             # Security services
+    │   │   ├── services/             # Business logic services
+    │   │   ├── utils/                # Utility functions
+    │   │   ├── index.css             # Tailwind CSS configuration
+    │   │   └── main.tsx              # Application entry point
+    │   ├── tailwind.config.js        # Tailwind configuration
+    │   ├── package.json              # Frontend dependencies
+    │   └── [configuration files]
+    ├── shared/                       # Shared TypeScript definitions
+    │   ├── types.ts                  # Interface definitions for meetings, AI, etc.
+    │   ├── constants.ts              # Environment-driven configuration with 50+ settings
+    │   ├── ai-provider-schema.json   # AI provider configuration schema
+    │   └── ai-provider-examples.json # Example AI provider configurations
+    ├── scripts/                      # Utility and migration scripts
+    │   ├── migrate_config.py         # Configuration migration from hardcoded to env vars
+    │   └── scripts/                  # Additional utility scripts
+    ├── docs/                         # Documentation
+    │   ├── ARCHITECTURE.md           # Detailed architecture explanations
+    │   ├── DEVELOPMENT.md            # Development setup and guidelines
+    │   ├── CONFIGURATION.md          # Configuration management guide
+    │   └── OBS_SETUP_GUIDE.md        # OBS integration setup
+    ├── electron/                     # Desktop application
+    ├── streaming-server/             # Streaming infrastructure
+    ├── obs-plugin/                   # OBS Studio plugin
+    ├── deployment/                   # Deployment scripts and configs
+    ├── docker-compose.yml            # Development environment
+    ├── DEPLOYMENT_CONFIG.md          # Deployment configuration guide
+    ├── JITTER_BUFFER_SECURITY.md     # Security implementation documentation
+    ├── SPEAKER_DETECTION_LEARNING_GUIDE.md # Speaker detection implementation guide
+    ├── WHISPER_SETUP.md              # Whisper model setup and optimization
+    └── README.md                     # This comprehensive guide
 ```
 
 ## 🎓 Learning Resources
