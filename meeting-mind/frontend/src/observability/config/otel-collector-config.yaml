@@ -1,0 +1,131 @@
+# OpenTelemetry Collector Configuration
+# Receives telemetry data from the frontend and routes it to appropriate backends
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost:3000"
+            - "http://localhost:5173"
+            - "https://meetingmind.app"
+          allowed_headers:
+            - "*"
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          static_configs:
+            - targets: ['localhost:8889']
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  memory_limiter:
+    limit_mib: 512
+
+  resource:
+    attributes:
+      - key: service.name
+        value: meetingmind-frontend
+        action: upsert
+      - key: service.version
+        from_attribute: service.version
+        action: upsert
+      - key: deployment.environment
+        from_attribute: deployment.environment
+        action: upsert
+
+  # Filter out noisy or sensitive traces
+  filter/traces:
+    traces:
+      span:
+        - 'attributes["http.url"] matches ".*healthcheck.*"'
+        - 'attributes["http.url"] matches ".*metrics.*"'
+
+  # Sample traces to reduce volume in production
+  probabilistic_sampler:
+    sampling_percentage: 10.0
+
+  # Enrich spans with additional metadata
+  attributes:
+    actions:
+      - key: telemetry.sdk.name
+        value: "opentelemetry"
+        action: upsert
+      - key: telemetry.collector.version
+        value: "1.0.0"
+        action: upsert
+
+exporters:
+  # Jaeger for distributed tracing
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+
+  # Prometheus for metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: meetingmind
+    const_labels:
+      service: frontend
+
+  # Logging exporter for debugging
+  logging:
+    loglevel: debug
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+  # OTLP HTTP exporter for additional backends
+  otlphttp:
+    endpoint: http://localhost:4318
+    headers:
+      api-key: "your-api-key-here"
+
+  # Elasticsearch for logs
+  elasticsearch:
+    endpoints: [http://elasticsearch:9200]
+    logs_index: meetingmind-logs
+    traces_index: meetingmind-traces
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, attributes, filter/traces, probabilistic_sampler, batch]
+      exporters: [jaeger, logging]
+
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus, logging]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [elasticsearch, logging]
+
+  telemetry:
+    logs:
+      level: "debug"
+    metrics:
+      address: 0.0.0.0:8888

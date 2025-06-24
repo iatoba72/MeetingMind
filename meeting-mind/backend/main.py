@@ -32,27 +32,134 @@ from crud import (
     MeetingCreate, MeetingUpdate, ParticipantCreate, TranscriptCreate, AIInsightCreate,
     PaginationParams, MeetingFilters, NotFoundError, ValidationError, ConflictError
 )
+from streaming_integration import (
+    StreamingIntegration, StreamKeyRequest, StreamStatus,
+    create_stream_key, get_meeting_streams, get_streaming_metrics, get_streaming_health,
+    periodic_health_monitoring
+)
+
+# Import new OBS integration
+try:
+    from obs_api import router as obs_router
+    from obs_integration import get_obs_client, get_obs_automation, get_obs_monitor
+    OBS_INTEGRATION_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ OBS integration not available: {e}")
+    OBS_INTEGRATION_AVAILABLE = False
 from models import Meeting, MeetingStatus, ParticipantRole, ParticipantStatus
 from sqlalchemy.orm import Session
 import time
 
-# Import Claude-specific endpoints
-from claude_endpoints import claude_router
+# Import audio pipeline WebSocket handler
+from audio_pipeline_ws import handle_audio_pipeline_websocket
 
-# Import orchestration endpoints
-from orchestration_endpoints import orchestration_router, startup_orchestration
+# Import RTMP server
+try:
+    from rtmp_api import router as rtmp_router
+    from rtmp_server import get_rtmp_server, start_rtmp_server, RTMPServerConfig
+    RTMP_SERVER_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ RTMP server not available: {e}")
+    RTMP_SERVER_AVAILABLE = False
 
-# Import automation endpoints
-from automation_endpoints import router as automation_router
+# Import SRT server
+try:
+    from srt_api import router as srt_router
+    from srt_server import get_srt_server, start_srt_server, SRTServerConfig
+    SRT_SERVER_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ SRT server not available: {e}")
+    SRT_SERVER_AVAILABLE = False
+
+# Import Source Switcher
+try:
+    from source_switcher_api import router as source_switcher_router
+    from source_switcher import get_source_switcher, SwitchingConfig
+    SOURCE_SWITCHER_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Source switcher not available: {e}")
+    SOURCE_SWITCHER_AVAILABLE = False
+
+# Import Jitter Buffer
+try:
+    from jitter_buffer_api import router as jitter_buffer_router
+    from jitter_buffer import get_jitter_buffer_manager, JitterBufferConfig
+    JITTER_BUFFER_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Jitter buffer not available: {e}")
+    JITTER_BUFFER_AVAILABLE = False
+
+# Import Stream Recorder
+try:
+    from stream_recorder_api import router as stream_recorder_router
+    from stream_recorder import get_recording_manager, RecordingConfig
+    STREAM_RECORDER_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Stream recorder not available: {e}")
+    STREAM_RECORDER_AVAILABLE = False
+
+# Import startup services
+from startup_services import initialize_services, shutdown_services, get_services_status
 
 # Create FastAPI application instance
 app = FastAPI(
     title="MeetingMind API",
-    description="AI-powered Meeting Assistant API",
-    version="1.0.0",
-    docs_url="/docs",  # Swagger UI at /docs
-    redoc_url="/redoc"  # ReDoc at /redoc
+    description="Advanced meeting management and streaming platform with OBS integration",
+    version="2.0.0",
+    docs_url="/api/docs",  # Swagger UI at /api/docs
+    redoc_url="/api/redoc"  # ReDoc at /api/redoc
 )
+
+# Include OBS router if available
+if OBS_INTEGRATION_AVAILABLE:
+    app.include_router(obs_router, prefix="/api")
+
+# Include RTMP router if available
+if RTMP_SERVER_AVAILABLE:
+    app.include_router(rtmp_router, prefix="/api")
+
+# Include SRT router if available
+if SRT_SERVER_AVAILABLE:
+    app.include_router(srt_router, prefix="/api")
+
+# Include Source Switcher router if available
+if SOURCE_SWITCHER_AVAILABLE:
+    app.include_router(source_switcher_router, prefix="/api")
+
+# Include Jitter Buffer router if available
+if JITTER_BUFFER_AVAILABLE:
+    app.include_router(jitter_buffer_router, prefix="/api")
+
+# Include Stream Recorder router if available
+if STREAM_RECORDER_AVAILABLE:
+    app.include_router(stream_recorder_router, prefix="/api")
+
+# Import and include OBS Setup Guide
+try:
+    from obs_setup_guide_api import router as obs_setup_router
+    app.include_router(obs_setup_router, prefix="/api")
+    OBS_SETUP_GUIDE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ OBS Setup Guide not available: {e}")
+    OBS_SETUP_GUIDE_AVAILABLE = False
+
+# Import and include Network Diagnostics
+try:
+    from network_diagnostics_api import router as network_diagnostics_router
+    app.include_router(network_diagnostics_router, prefix="/api")
+    NETWORK_DIAGNOSTICS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Network Diagnostics not available: {e}")
+    NETWORK_DIAGNOSTICS_AVAILABLE = False
+
+# Import and include Network Transcription
+try:
+    from network_transcription_api import router as network_transcription_router
+    app.include_router(network_transcription_router, prefix="/api")
+    NETWORK_TRANSCRIPTION_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Network Transcription not available: {e}")
+    NETWORK_TRANSCRIPTION_AVAILABLE = False
 
 # Configure CORS middleware to allow frontend connections
 # This enables our React frontend to communicate with the FastAPI backend
@@ -63,19 +170,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Include Claude-specific endpoints
-app.include_router(claude_router)
-
-# Include orchestration endpoints
-app.include_router(orchestration_router)
-
-# Include automation endpoints
-app.include_router(automation_router)
-
-# Include internationalization endpoints
-from i18n_endpoints import router as i18n_router
-app.include_router(i18n_router)
 
 # Enhanced WebSocket connection manager for real-time features
 # This manages the WebSocket lifecycle, message broadcasting, and connection state
@@ -304,7 +398,37 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring"""
-    return {"status": "healthy", "service": "meetingmind-api"}
+    try:
+        # Check database connection
+        db = next(get_db())
+        db.execute("SELECT 1")
+        db.close()
+        
+        # Check OBS connection if available
+        obs_status = "not_configured"
+        if OBS_INTEGRATION_AVAILABLE:
+            try:
+                obs_client = await get_obs_client()
+                obs_status = "connected" if obs_client.connected else "disconnected"
+            except Exception:
+                obs_status = "error"
+        
+        return {
+            "status": "healthy",
+            "version": "2.0.0",
+            "database": "connected",
+            "obs_integration": obs_status,
+            "components": {
+                "api": "active",
+                "database": "connected", 
+                "streaming": "available",
+                "obs_websocket": obs_status,
+                "transcription": "available"
+            }
+        }
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Service unhealthy")
 
 @app.get("/ws/stats")
 async def websocket_stats():
@@ -544,6 +668,34 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         print(f"💥 Unexpected error in WebSocket for client {client_id}: {e}")
         if connection_id:
             manager.disconnect(connection_id)
+
+# Audio Pipeline WebSocket endpoint
+@app.websocket("/ws/audio-pipeline/{client_id}")
+async def audio_pipeline_websocket_endpoint(websocket: WebSocket, client_id: str = None):
+    """
+    WebSocket endpoint for unified audio pipeline
+    
+    This endpoint handles:
+    - Local browser audio capture coordination
+    - Network audio stream reception (RTMP/SRT from OBS)
+    - Audio chunk processing and forwarding
+    - Real-time audio metrics and visualization data
+    - Automatic source switching coordination
+    
+    Message Types:
+    - start_network_source: Start receiving from RTMP/SRT stream
+    - stop_network_source: Stop receiving from network stream
+    - audio_chunks: Process audio chunks from frontend
+    - get_source_status: Get status of all audio sources
+    - update_source_config: Update audio source configuration
+    
+    Response Types:
+    - network_audio: Audio chunk from network source
+    - source_status: Status update for audio source
+    - metrics_update: Real-time audio metrics
+    - error: Error messages
+    """
+    await handle_audio_pipeline_websocket(websocket, client_id)
 
 # Audio processing endpoints
 @app.get("/audio/stats")
@@ -1784,9 +1936,14 @@ async def get_upcoming_meetings(user_id: str, hours_ahead: int = 24, db: Session
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks when the application starts"""
+    print("🚀 Starting MeetingMind API v2.0.0")
+    
     # Start audio session cleanup task
-    asyncio.create_task(cleanup_audio_sessions())
-    print("📊 Audio session cleanup task started")
+    try:
+        asyncio.create_task(cleanup_audio_sessions())
+        print("📊 Audio session cleanup task started")
+    except Exception as e:
+        print(f"⚠️ Failed to start audio cleanup: {e}")
     
     # Initialize AI provider registry
     try:
@@ -1812,22 +1969,209 @@ async def startup_event():
         print(f"⚠️ Failed to initialize cloud transcription service: {e}")
         print("   Cloud transcription endpoints may not work properly")
     
-    # Initialize AI orchestration system
+    # Initialize OBS integration if available
+    if OBS_INTEGRATION_AVAILABLE:
+        try:
+            obs_client = await get_obs_client()
+            if obs_client.connected:
+                print("🎥 OBS integration initialized successfully")
+                
+                # Start monitoring
+                obs_monitor = await get_obs_monitor()
+                # Note: In production, you'd want to run this in a background task
+                # asyncio.create_task(obs_monitor.start_monitoring())
+                
+            else:
+                print("🎥 OBS integration available but not connected")
+        except Exception as e:
+            print(f"⚠️ OBS integration initialization failed: {e}")
+    else:
+        print("🎥 OBS integration not available")
+    
+    # Start streaming health monitoring
     try:
-        await startup_orchestration()
-        print("🏢 AI Orchestration system initialized")
+        asyncio.create_task(periodic_health_monitoring())
+        print("📹 Streaming health monitoring started")
     except Exception as e:
-        print(f"⚠️ Failed to initialize AI Orchestration system: {e}")
-        print("   Orchestration endpoints may not work properly")
+        print(f"⚠️ Failed to start streaming monitoring: {e}")
+    
+    print("✅ MeetingMind API startup complete")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources when the application shuts down"""
+    print("🛑 Shutting down MeetingMind API")
+    
     try:
         await queue_manager.stop()
         print("🎤 Transcription queue manager stopped")
     except Exception as e:
         print(f"⚠️ Error stopping transcription queue manager: {e}")
+    
+    # Cleanup OBS connections
+    if OBS_INTEGRATION_AVAILABLE:
+        try:
+            obs_client = await get_obs_client()
+            if obs_client:
+                await obs_client.disconnect()
+            
+            obs_monitor = await get_obs_monitor()
+            if obs_monitor:
+                obs_monitor.stop_monitoring()
+                
+        except Exception as e:
+            print(f"⚠️ Error during OBS cleanup: {e}")
+    
+    print("✅ MeetingMind API shutdown complete")
+
+# ==========================================
+# STREAMING SERVER INTEGRATION
+# ==========================================
+
+@app.post("/api/streaming/stream-keys", response_model=dict)
+async def create_meeting_stream_key(
+    request: StreamKeyRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Generate a stream key for a meeting
+    
+    This endpoint creates a secure stream key that can be used with OBS Studio
+    or other streaming software to broadcast to a meeting.
+    """
+    try:
+        return await create_stream_key(request, db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/streaming/stream-keys/{key_id}")
+async def revoke_meeting_stream_key(
+    key_id: str,
+    db: Session = Depends(get_db)
+):
+    """Revoke a stream key"""
+    try:
+        integration = StreamingIntegration()
+        await integration.initialize()
+        result = await integration.revoke_stream_key(key_id, db)
+        await integration.cleanup()
+        return {"success": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/streaming/streams", response_model=List[StreamStatus])
+async def get_active_streams(meeting_id: Optional[str] = None):
+    """
+    Get active streams
+    
+    Returns a list of currently active streams, optionally filtered by meeting ID.
+    """
+    try:
+        return await get_meeting_streams(meeting_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/streaming/streams/{stream_id}")
+async def get_stream_details(stream_id: str):
+    """Get detailed information about a specific stream"""
+    try:
+        integration = StreamingIntegration()
+        await integration.initialize()
+        result = await integration.get_stream_metrics(stream_id)
+        await integration.cleanup()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/streaming/metrics")
+async def get_streaming_system_metrics():
+    """
+    Get streaming system metrics
+    
+    Returns comprehensive metrics about the streaming system including
+    bandwidth usage, stream quality, and performance statistics.
+    """
+    try:
+        return await get_streaming_metrics()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/streaming/health")
+async def get_streaming_system_health():
+    """
+    Get streaming system health status
+    
+    Returns health information including any alerts, system status,
+    and performance indicators.
+    """
+    try:
+        return await get_streaming_health()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/streaming/config/{meeting_id}")
+async def get_streaming_configuration(meeting_id: str):
+    """
+    Get streaming configuration for a meeting
+    
+    Returns the streaming server URLs and configuration needed
+    for OBS Studio setup.
+    """
+    try:
+        from streaming_integration import StreamingServerConfig, format_stream_url
+        
+        config = StreamingServerConfig()
+        server_ip = "localhost"  # This should be configurable
+        
+        return {
+            "meeting_id": meeting_id,
+            "protocols": {
+                "rtmp": {
+                    "name": "RTMP Stream",
+                    "url": format_stream_url("rtmp", server_ip, "YOUR_STREAM_KEY"),
+                    "port": config.rtmp_port,
+                    "description": "Standard streaming protocol with universal compatibility",
+                    "latency": "3-10 seconds",
+                    "setup_guide": "Use 'Custom' service in OBS, paste server URL and your stream key"
+                },
+                "srt": {
+                    "name": "SRT Stream", 
+                    "url": format_stream_url("srt", server_ip, "YOUR_STREAM_KEY"),
+                    "port": config.srt_port,
+                    "description": "Low-latency streaming with error correction",
+                    "latency": "0.5-2 seconds",
+                    "setup_guide": "Requires OBS 28+ or SRT plugin. Use full SRT URL including streamid parameter"
+                },
+                "webrtc": {
+                    "name": "WebRTC WHIP",
+                    "url": format_stream_url("webrtc", server_ip, "YOUR_STREAM_KEY", meeting_id),
+                    "port": config.webrtc_port,
+                    "description": "Ultra-low latency browser-based streaming",
+                    "latency": "0.1-0.5 seconds",
+                    "setup_guide": "Requires WebRTC plugin for OBS. Use WHIP endpoint with Bearer token authentication"
+                }
+            },
+            "recommended_settings": {
+                "resolution": "1920x1080",
+                "fps": 30,
+                "bitrate": "2500-5000 Kbps",
+                "encoder": "H.264",
+                "audio": "AAC 44.1kHz Stereo"
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Background task for streaming health monitoring
+@app.on_event("startup")
+async def start_streaming_monitoring():
+    """Start background streaming health monitoring"""
+    try:
+        # Start periodic health monitoring in background
+        asyncio.create_task(periodic_health_monitoring())
+        print("📹 Streaming health monitoring started")
+    except Exception as e:
+        print(f"⚠️ Failed to start streaming monitoring: {e}")
 
 if __name__ == "__main__":
     # Run the application with uvicorn

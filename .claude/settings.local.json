@@ -37,7 +37,15 @@
       "Bash(export PATH=\"$HOME/.local/bin:$PATH\")",
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(find:*)",
+      "Bash(diff:*)",
+      "Bash(echo:*)",
+      "Bash(comm:*)",
+      "Bash(cmp:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(python:*)"
     ],
     "deny": []
   }
