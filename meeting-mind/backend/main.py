@@ -48,6 +48,10 @@ except ImportError as e:
     OBS_INTEGRATION_AVAILABLE = False
 from models import Meeting, MeetingStatus, ParticipantRole, ParticipantStatus
 from sqlalchemy.orm import Session
+from websocket_security import validate_websocket_message, validate_client_id, sanitize_string
+from rate_limiter import websocket_rate_limit, api_rate_limit, audio_upload_rate_limit
+from error_handler import safe_error_response, safe_http_exception
+from security_middleware import SecurityHeadersMiddleware, RateLimitMiddleware
 import time
 
 # Import audio pipeline WebSocket handler
@@ -160,6 +164,9 @@ try:
 except ImportError as e:
     print(f"⚠️ Network Transcription not available: {e}")
     NETWORK_TRANSCRIPTION_AVAILABLE = False
+
+# Add security middleware
+app.add_middleware(SecurityHeadersMiddleware, strict_mode=False)
 
 # Configure CORS middleware to allow frontend connections
 # This enables our React frontend to communicate with the FastAPI backend
@@ -427,8 +434,7 @@ async def health_check():
             }
         }
     except Exception as e:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=503, detail="Service unhealthy")
+        raise safe_http_exception(503, "internal_error", "Service temporarily unavailable")
 
 @app.get("/ws/stats")
 async def websocket_stats():
@@ -468,6 +474,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     
     connection_id = None
     audio_session_id = None
+    
+    # Validate client ID
+    if not validate_client_id(client_id):
+        await websocket.close(code=1008, reason="Invalid client ID format")
+        return
+    
     try:
         # Establish connection and get unique connection ID
         connection_id = await manager.connect(websocket, client_id)
@@ -479,8 +491,19 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             data = await websocket.receive_text()
             
             try:
-                # Parse incoming message
-                message = json.loads(data)
+                # Check rate limiting
+                if not websocket_rate_limit(client_id):
+                    logger.warning(f"Rate limit exceeded for {client_id}")
+                    await websocket.close(code=1008, reason="Rate limit exceeded")
+                    break
+                
+                # Validate and parse incoming message
+                message = validate_websocket_message(data)
+                if message is None:
+                    logger.warning(f"Invalid message from {client_id}, closing connection")
+                    await websocket.close(code=1008, reason="Invalid message format")
+                    break
+                
                 message_type = message.get("type", "unknown")
                 message_data = message.get("data", {})
                 
@@ -489,12 +512,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 # Process different message types
                 if message_type == "chat_message":
                     # Handle chat messages - broadcast to all connected clients
+                    # Messages are already validated by validate_websocket_message
                     chat_broadcast = {
                         "type": "chat_message",
                         "data": {
-                            "message": message_data.get("message", ""),
+                            "message": sanitize_string(message_data.get("message", "")),
                             "sender": client_id,
-                            "sender_name": message_data.get("sender_name", client_id),
+                            "sender_name": sanitize_string(message_data.get("sender_name", client_id), 100),
                             "message_id": str(uuid.uuid4())
                         },
                         "timestamp": datetime.now().isoformat()
@@ -556,6 +580,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 
                 elif message_type == "audio_start_session":
                     # Handle audio session initialization
+                    if not audio_upload_rate_limit(client_id):
+                        error_response = {
+                            "type": "audio_session_error",
+                            "data": {"error": "Audio upload rate limit exceeded"},
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        await manager.send_personal_message(json.dumps(error_response), websocket)
+                        continue
+                    
                     try:
                         audio_config = message_data.get("config", {})
                         audio_session_id = await audio_processor.create_session(client_id, audio_config)

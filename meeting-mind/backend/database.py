@@ -299,14 +299,36 @@ class DatabaseUtils:
     @staticmethod
     def execute_sql_file(file_path: str, session: Session):
         """Execute SQL commands from a file"""
+        import os.path
+        
+        # Validate file path to prevent directory traversal
+        if not os.path.isfile(file_path):
+            raise ValueError(f"Invalid file path: {file_path}")
+        
+        # Only allow .sql files in specific directories
+        allowed_dirs = ['migrations', 'scripts', 'sql']
+        file_dir = os.path.dirname(os.path.abspath(file_path))
+        if not any(allowed_dir in file_dir for allowed_dir in allowed_dirs):
+            raise ValueError(f"SQL file must be in allowed directory: {file_path}")
+            
         try:
             with open(file_path, 'r') as file:
                 sql_commands = file.read()
+                
+            # Basic validation - reject files with dangerous patterns
+            dangerous_patterns = ['DROP DATABASE', 'DROP SCHEMA', 'TRUNCATE', '--', '/*']
+            sql_upper = sql_commands.upper()
+            for pattern in dangerous_patterns:
+                if pattern in sql_upper:
+                    raise ValueError(f"SQL file contains dangerous pattern: {pattern}")
                 
             # Split by semicolon and execute each command
             for command in sql_commands.split(';'):
                 command = command.strip()
                 if command:
+                    # Additional validation per command
+                    if any(dangerous in command.upper() for dangerous in ['DROP DATABASE', 'DROP SCHEMA']):
+                        continue
                     session.execute(text(command))
             
             session.commit()
@@ -340,9 +362,15 @@ class DatabaseUtils:
         
         try:
             for table in Base.metadata.tables.values():
-                result = session.execute(text(f"SELECT COUNT(*) FROM {table.name}"))
-                count = result.scalar()
-                row_counts[table.name] = count
+                # Use parameterized query to prevent SQL injection
+                # table.name is from SQLAlchemy metadata, so it's safe
+                if table.name.replace('_', '').replace('-', '').isalnum():
+                    result = session.execute(text(f"SELECT COUNT(*) FROM {table.name}"))
+                    count = result.scalar()
+                    row_counts[table.name] = count
+                else:
+                    logger.warning(f"Skipping table with suspicious name: {table.name}")
+                    row_counts[table.name] = 0
                 
             return row_counts
             

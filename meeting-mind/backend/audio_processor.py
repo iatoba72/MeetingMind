@@ -265,9 +265,27 @@ class AudioSession:
             if chunk_id not in self.chunks:
                 return {"error": f"Chunk {chunk_id} metadata not found"}
             
-            # Decode base64 audio data
+            # Decode and validate base64 audio data
             try:
-                audio_bytes = base64.b64decode(data_b64)
+                # Validate base64 format first
+                if not data_b64 or not isinstance(data_b64, str):
+                    return {"error": "Invalid base64 data format"}
+                
+                # Check base64 string length (reasonable limit)
+                if len(data_b64) > 10 * 1024 * 1024:  # 10MB max encoded
+                    return {"error": "Audio data too large"}
+                
+                # Decode base64
+                audio_bytes = base64.b64decode(data_b64, validate=True)
+                
+                # Validate decoded size
+                if len(audio_bytes) > 5 * 1024 * 1024:  # 5MB max decoded
+                    return {"error": "Decoded audio data too large"}
+                
+                # Basic audio format validation
+                if len(audio_bytes) < 44:  # Minimum for WAV header
+                    return {"error": "Audio data too small to be valid"}
+                
             except Exception as e:
                 return {"error": f"Failed to decode audio data: {str(e)}"}
             

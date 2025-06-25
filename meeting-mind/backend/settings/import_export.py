@@ -21,6 +21,7 @@ from contextlib import asynccontextmanager
 
 from .settings_models import SettingsScope, SettingsDefinition, SettingsValue, settings_registry
 from .settings_manager import get_settings_manager
+from ..file_security import safe_open, validate_file_path, safe_extract_zip, ALLOWED_SETTINGS_EXTENSIONS, MAX_SETTINGS_FILE_SIZE
 
 class ExportFormat(Enum):
     """Supported export formats"""
@@ -507,7 +508,10 @@ class SettingsImportExport:
                                                    ExportFormat.XML, ExportFormat.ENV, 
                                                    ExportFormat.PROPERTIES] else 'wb'
                     
-                    with open(path, mode, encoding='utf-8' if mode == 'w' else None) as f:
+                    with safe_open(path, mode, 
+                                 allowed_extensions=ALLOWED_SETTINGS_EXTENSIONS,
+                                 max_size=MAX_SETTINGS_FILE_SIZE,
+                                 encoding='utf-8' if mode == 'w' else None) as f:
                         f.write(formatted_data)
                 
                 result.source_target = str(path)
@@ -528,7 +532,9 @@ class SettingsImportExport:
         options = options or ImportExportOptions()
         
         try:
-            path = Path(file_path)
+            # Validate file path for security
+            path = validate_file_path(file_path, allowed_extensions=ALLOWED_SETTINGS_EXTENSIONS)
+            
             if not path.exists():
                 result = ImportExportResult(
                     success=False,
@@ -558,7 +564,10 @@ class SettingsImportExport:
             if options.format == ExportFormat.ZIP:
                 data = await self._read_zip_file(path)
             else:
-                with open(path, 'r', encoding='utf-8') as f:
+                with safe_open(path, 'r', 
+                             allowed_extensions=ALLOWED_SETTINGS_EXTENSIONS,
+                             max_size=MAX_SETTINGS_FILE_SIZE,
+                             encoding='utf-8') as f:
                     content = f.read()
                 data = await self._parse_file_content(content, options.format)
             
