@@ -87,3 +87,25 @@ build/
 # Cache
 .cache/
 .parcel-cache/
+
+# Downloaded tools and archives
+*.tar.gz
+gh_*
+gh.tar.gz
+
+# Security secrets
+deployment/secrets/
+electron/.secrets/
+deployment/update-server/.secrets/
+
+# SSL certificates
+deployment/ssl/
+deployment/update-server/ssl/
+
+# Electron build outputs
+electron/dist/
+electron/dist-electron/
+electron/build/
+
+# Docker volumes
+docker-data/
