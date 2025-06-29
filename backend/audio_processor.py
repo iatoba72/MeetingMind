@@ -6,11 +6,14 @@ import asyncio
 import base64
 import io
 import json
+import logging
 import time
 import wave
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # Audio processing pipeline class
 class AudioProcessor:
@@ -59,7 +62,7 @@ class AudioProcessor:
         self.chunk_timeout = 30.0  # seconds
         self.buffer_size_limit = 10 * 1024 * 1024  # 10MB per session
         
-        print("Audio processor initialized")
+        logger.info("Audio processor initialized")
     
     async def create_session(self, client_id: str, audio_config: Dict) -> str:
         """
@@ -85,8 +88,8 @@ class AudioProcessor:
         
         self.active_sessions[session_id] = session
         
-        print(f"Created audio session {session_id} for client {client_id}")
-        print(f"Session config: {audio_config}")
+        logger.info(f"Created audio session {session_id} for client {client_id}")
+        logger.debug(f"Session config: {audio_config}")
         
         return session_id
     
@@ -148,7 +151,7 @@ class AudioProcessor:
                 expired_sessions.append(session_id)
         
         for session_id in expired_sessions:
-            print(f"Cleaning up expired session: {session_id}")
+            logger.info(f"Cleaning up expired session: {session_id}")
             del self.active_sessions[session_id]
     
     def get_global_stats(self) -> Dict:
@@ -206,7 +209,7 @@ class AudioSession:
         self.bytes_processed = 0
         self.processing_errors = 0
         
-        print(f"Audio session {session_id} initialized with config: {config}")
+        logger.info(f"Audio session {session_id} initialized with config: {config}")
     
     async def process_chunk_metadata(self, metadata: Dict) -> Dict:
         """
@@ -385,11 +388,11 @@ class AudioSession:
                 "timestamp": time.time()
             }
             
-            print(f"Analyzed chunk {chunk_id}: {analysis}")
+            logger.debug(f"Analyzed chunk {chunk_id}: {analysis}")
             return analysis
             
         except Exception as e:
-            print(f"Error analyzing audio chunk {chunk_id}: {e}")
+            logger.error(f"Error analyzing audio chunk {chunk_id}: {e}")
             return {
                 "error": f"Analysis failed: {str(e)}",
                 "timestamp": time.time()
@@ -461,7 +464,7 @@ class AudioSession:
             del self.chunks[chunk_id]
         
         if old_chunks:
-            print(f"Cleaned up {len(old_chunks)} old chunks from session {self.session_id}")
+            logger.debug(f"Cleaned up {len(old_chunks)} old chunks from session {self.session_id}")
     
     def get_statistics(self) -> Dict:
         """Get comprehensive session statistics"""
@@ -536,5 +539,5 @@ async def cleanup_audio_sessions():
             await audio_processor.cleanup_expired_sessions()
             await asyncio.sleep(60)  # Run every minute
         except Exception as e:
-            print(f"Error in cleanup task: {e}")
+            logger.error(f"Error in cleanup task: {e}")
             await asyncio.sleep(60)

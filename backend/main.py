@@ -1973,38 +1973,38 @@ async def get_upcoming_meetings(user_id: str, hours_ahead: int = 24, db: Session
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks when the application starts"""
-    print("🚀 Starting MeetingMind API v2.0.0")
+    logger.info("🚀 Starting MeetingMind API v2.0.0")
     
     # Start audio session cleanup task
     try:
         asyncio.create_task(cleanup_audio_sessions())
-        print("📊 Audio session cleanup task started")
+        logger.info("📊 Audio session cleanup task started")
     except Exception as e:
-        print(f"⚠️ Failed to start audio cleanup: {e}")
+        logger.error(f"⚠️ Failed to start audio cleanup: {e}")
     
     # Initialize AI provider registry
     try:
         await initialize_registry()
-        print("🤖 AI Provider Registry initialized")
+        logger.info("🤖 AI Provider Registry initialized")
     except Exception as e:
-        print(f"⚠️ Failed to initialize AI Provider Registry: {e}")
-        print("   AI endpoints will not be available until configuration is loaded")
+        logger.error(f"⚠️ Failed to initialize AI Provider Registry: {e}")
+        logger.warning("   AI endpoints will not be available until configuration is loaded")
     
     # Start transcription queue manager
     try:
         await queue_manager.start()
-        print("🎤 Transcription queue manager started")
+        logger.info("🎤 Transcription queue manager started")
     except Exception as e:
-        print(f"⚠️ Failed to start transcription queue manager: {e}")
-        print("   Transcription endpoints may not work properly")
+        logger.error(f"⚠️ Failed to start transcription queue manager: {e}")
+        logger.warning("   Transcription endpoints may not work properly")
     
     # Initialize cloud transcription service
     try:
-        print("☁️ Cloud transcription service initialized")
-        print(f"   Available providers: {list(cloud_transcription_service.providers.keys())}")
+        logger.info("☁️ Cloud transcription service initialized")
+        logger.info(f"   Available providers: {list(cloud_transcription_service.providers.keys())}")
     except Exception as e:
-        print(f"⚠️ Failed to initialize cloud transcription service: {e}")
-        print("   Cloud transcription endpoints may not work properly")
+        logger.error(f"⚠️ Failed to initialize cloud transcription service: {e}")
+        logger.warning("   Cloud transcription endpoints may not work properly")
     
     # Initialize OBS integration if available
     if OBS_INTEGRATION_AVAILABLE:
@@ -2032,18 +2032,18 @@ async def startup_event():
     except Exception as e:
         print(f"⚠️ Failed to start streaming monitoring: {e}")
     
-    print("✅ MeetingMind API startup complete")
+    logger.info("✅ MeetingMind API startup complete")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources when the application shuts down"""
-    print("🛑 Shutting down MeetingMind API")
+    logger.info("🛑 Shutting down MeetingMind API")
     
     try:
         await queue_manager.stop()
-        print("🎤 Transcription queue manager stopped")
+        logger.info("🎤 Transcription queue manager stopped")
     except Exception as e:
-        print(f"⚠️ Error stopping transcription queue manager: {e}")
+        logger.error(f"⚠️ Error stopping transcription queue manager: {e}")
     
     # Cleanup OBS connections
     if OBS_INTEGRATION_AVAILABLE:
@@ -2059,7 +2059,7 @@ async def shutdown_event():
         except Exception as e:
             print(f"⚠️ Error during OBS cleanup: {e}")
     
-    print("✅ MeetingMind API shutdown complete")
+    logger.info("✅ MeetingMind API shutdown complete")
 
 # ==========================================
 # STREAMING SERVER INTEGRATION
@@ -2213,16 +2213,16 @@ async def start_streaming_monitoring():
 if __name__ == "__main__":
     # Run the application with uvicorn
     # uvicorn is an ASGI server optimized for async Python web applications
-    print("🚀 Starting MeetingMind API server...")
-    print("📡 WebSocket endpoint: ws://localhost:8000/ws/{client_id}")
-    print("📚 API Documentation: http://localhost:8000/docs")
-    print("📊 WebSocket Stats: http://localhost:8000/ws/stats")
-    print("🎵 Audio Stats: http://localhost:8000/audio/stats")
-    print("🎤 Audio Sessions: http://localhost:8000/audio/sessions")
-    print("🤖 AI Providers: http://localhost:8000/ai/providers")
-    print("💬 AI Chat: http://localhost:8000/ai/chat")
-    print("✍️ AI Generate: http://localhost:8000/ai/generate")
-    print("🏥 AI Health: http://localhost:8000/ai/health")
+    logger.info("🚀 Starting MeetingMind API server...")
+    logger.info("📡 WebSocket endpoint: ws://localhost:8000/ws/{client_id}")
+    logger.info("📚 API Documentation: http://localhost:8000/docs")
+    logger.info("📊 WebSocket Stats: http://localhost:8000/ws/stats")
+    logger.info("🎵 Audio Stats: http://localhost:8000/audio/stats")
+    logger.info("🎤 Audio Sessions: http://localhost:8000/audio/sessions")
+    logger.info("🤖 AI Providers: http://localhost:8000/ai/providers")
+    logger.info("💬 AI Chat: http://localhost:8000/ai/chat")
+    logger.info("✍️ AI Generate: http://localhost:8000/ai/generate")
+    logger.info("🏥 AI Health: http://localhost:8000/ai/health")
     
     uvicorn.run(
         "main:app",

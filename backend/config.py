@@ -4,9 +4,12 @@ Centralized configuration management using environment variables
 """
 
 import os
+import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
 
 
 def get_env_bool(env_var: str, default: bool = False) -> bool:
@@ -278,7 +281,7 @@ class Config:
                 raise ValueError("JWT_SECRET_KEY must be set in production")
             
             if not self.security.secure_cookies:
-                print("WARNING: Secure cookies disabled in production")
+                logger.warning("Secure cookies disabled in production - this is a security risk")
         
         # Validate meeting limits
         if self.meeting.max_participants <= 0:
