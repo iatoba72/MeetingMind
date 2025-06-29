@@ -158,8 +158,84 @@ export const AdvancedTranscriptDisplay: React.FC<AdvancedTranscriptDisplayProps>
     }
   }, [searchMatches, currentMatchIndex, filteredSegments]);
 
+  const saveEdit = useCallback(() => {
+    if (editingSegmentId && editingText.trim() !== '') {
+      onSegmentEdit?.(editingSegmentId, editingText.trim());
+      setEditingSegmentId(null);
+      setEditingText('');
+    }
+  }, [editingSegmentId, editingText, onSegmentEdit]);
+
+  const exportTranscript = useCallback((format: 'txt' | 'srt' | 'json') => {
+    let content: string;
+    let filename: string;
+    let mimeType: string;
+
+    const exportSegments = selectedSegments.size > 0 
+      ? filteredSegments.filter(s => selectedSegments.has(s.id))
+      : filteredSegments;
+
+    switch (format) {
+      case 'txt':
+        content = exportSegments.map(segment => {
+          const timestamp = showTimestamps ? `[${formatTimestamp(segment.start_time)}] ` : '';
+          const speaker = showSpeakerLabels && segment.speaker ? `${segment.speaker}: ` : '';
+          return `${timestamp}${speaker}${segment.text}`;
+        }).join('\n\n');
+        filename = 'transcript.txt';
+        mimeType = 'text/plain';
+        break;
+
+      case 'srt': {
+        content = exportSegments.map((segment, index) => {
+          const startTime = formatSRTTime(segment.start_time);
+          const endTime = formatSRTTime(segment.end_time);
+          const speaker = segment.speaker ? `${segment.speaker}: ` : '';
+          return `${index + 1}\n${startTime} --> ${endTime}\n${speaker}${segment.text}\n`;
+        }).join('\n');
+        filename = 'transcript.srt';
+        mimeType = 'text/plain';
+        break;
+      }
+
+      case 'json':
+        content = JSON.stringify({
+          segments: exportSegments,
+          metadata: {
+            exportDate: new Date().toISOString(),
+            totalSegments: exportSegments.length,
+            speakers: speakers,
+            filters: {
+              speaker: filterBySpeaker,
+              confidence: filterByConfidence,
+              search: searchTerm
+            }
+          }
+        }, null, 2);
+        filename = 'transcript.json';
+        mimeType = 'application/json';
+        break;
+    }
+
+    // Download file
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [selectedSegments, filteredSegments, showTimestamps, showSpeakerLabels, speakers, filterBySpeaker, filterByConfidence, searchTerm]);
+
   // Keyboard shortcuts
   useEffect(() => {
+    const cancelEdit = () => {
+      setEditingSegmentId(null);
+      setEditingText('');
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl/Cmd combinations
       if (e.ctrlKey || e.metaKey) {
@@ -213,7 +289,7 @@ export const AdvancedTranscriptDisplay: React.FC<AdvancedTranscriptDisplayProps>
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [presentationMode, searchTerm, editingSegmentId, navigateSearch]);
+  }, [presentationMode, searchTerm, editingSegmentId, navigateSearch, exportTranscript, saveEdit, filteredSegments]);
 
   // Perform search when search term changes
   useEffect(() => {
@@ -248,15 +324,6 @@ export const AdvancedTranscriptDisplay: React.FC<AdvancedTranscriptDisplayProps>
     setTimeout(() => editInputRef.current?.focus(), 0);
   };
 
-  // Save edit
-  const saveEdit = () => {
-    if (editingSegmentId && editingText.trim() !== '') {
-      onSegmentEdit?.(editingSegmentId, editingText.trim());
-      setEditingSegmentId(null);
-      setEditingText('');
-    }
-  };
-
   // Cancel edit
   const cancelEdit = () => {
     setEditingSegmentId(null);
@@ -268,69 +335,6 @@ export const AdvancedTranscriptDisplay: React.FC<AdvancedTranscriptDisplayProps>
     if (window.confirm('Are you sure you want to delete this segment?')) {
       onSegmentDelete?.(segmentId);
     }
-  };
-
-  // Export functionality
-  const exportTranscript = (format: 'txt' | 'srt' | 'json') => {
-    let content: string;
-    let filename: string;
-    let mimeType: string;
-
-    const exportSegments = selectedSegments.size > 0 
-      ? filteredSegments.filter(s => selectedSegments.has(s.id))
-      : filteredSegments;
-
-    switch (format) {
-      case 'txt':
-        content = exportSegments.map(segment => {
-          const timestamp = showTimestamps ? `[${formatTimestamp(segment.start_time)}] ` : '';
-          const speaker = showSpeakerLabels && segment.speaker ? `${segment.speaker}: ` : '';
-          return `${timestamp}${speaker}${segment.text}`;
-        }).join('\n\n');
-        filename = 'transcript.txt';
-        mimeType = 'text/plain';
-        break;
-
-      case 'srt':
-        content = exportSegments.map((segment, index) => {
-          const startTime = formatSRTTime(segment.start_time);
-          const endTime = formatSRTTime(segment.end_time);
-          const speaker = segment.speaker ? `${segment.speaker}: ` : '';
-          return `${index + 1}\n${startTime} --> ${endTime}\n${speaker}${segment.text}\n`;
-        }).join('\n');
-        filename = 'transcript.srt';
-        mimeType = 'text/plain';
-        break;
-
-      case 'json':
-        content = JSON.stringify({
-          segments: exportSegments,
-          metadata: {
-            exportDate: new Date().toISOString(),
-            totalSegments: exportSegments.length,
-            speakers: speakers,
-            filters: {
-              speaker: filterBySpeaker,
-              confidence: filterByConfidence,
-              search: searchTerm
-            }
-          }
-        }, null, 2);
-        filename = 'transcript.json';
-        mimeType = 'application/json';
-        break;
-    }
-
-    // Download file
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   // Format time for SRT format

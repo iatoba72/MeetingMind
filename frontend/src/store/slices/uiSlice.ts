@@ -16,7 +16,6 @@ import {
   NotificationAction,
   NotificationSettings,
   SidebarSection,
-  SidebarItem,
   LayoutConfig,
   PerformanceMetric,
   AppState,
@@ -43,11 +42,11 @@ export interface UISlice {
   removeCustomSection: (id: string) => void;
   
   // Modal management
-  openModal: (modalId: string, data?: any) => void;
+  openModal: (modalId: string, data?: unknown) => void;
   closeModal: (modalId: string) => void;
   closeAllModals: () => void;
   isModalOpen: (modalId: string) => boolean;
-  getModalData: (modalId: string) => any;
+  getModalData: (modalId: string) => unknown;
   
   // Notification management
   addNotification: (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => string;
@@ -484,7 +483,7 @@ export const createUISlice: StateCreator<
     const { performance } = get().ui;
     
     // Apply performance optimizations
-    let optimizations: Partial<PerformanceState> = {};
+    const optimizations: Partial<PerformanceState> = {};
     
     if (performance.fps < 30) {
       optimizations.isOptimized = false;

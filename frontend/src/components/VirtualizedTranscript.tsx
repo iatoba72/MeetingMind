@@ -4,21 +4,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FixedSizeList as List, areEqual } from 'react-window';
 import { 
-  User, 
   Clock, 
-  Search, 
-  Filter, 
-  Download,
   Copy,
   Bookmark,
   MessageSquare,
-  Mic,
-  MicOff,
-  Volume2,
-  VolumeX,
   ChevronUp,
-  ChevronDown,
-  MoreHorizontal
+  ChevronDown
 } from 'lucide-react';
 
 interface TranscriptSegment {

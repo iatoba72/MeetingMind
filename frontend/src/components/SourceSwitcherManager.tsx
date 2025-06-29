@@ -20,7 +20,7 @@ interface AudioSource {
   latency_ms: number;
   packet_loss_rate: number;
   signal_to_noise_ratio: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface SwitcherConfig {

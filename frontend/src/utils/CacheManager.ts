@@ -1,6 +1,42 @@
 // Advanced Caching System for MeetingMind
 // Multi-level caching with automatic invalidation and performance optimization
 
+export interface TranscriptSegment {
+  id: string;
+  text: string;
+  start: number;
+  end: number;
+  speaker?: string;
+  confidence: number;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time?: string;
+  participants: string[];
+  status: 'scheduled' | 'active' | 'completed' | 'cancelled';
+  transcript_id?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface MeetingFilters {
+  status?: Meeting['status'];
+  dateFrom?: string;
+  dateTo?: string;
+  participants?: string[];
+  search?: string;
+}
+
+export interface APIResponse {
+  data: unknown;
+  status: number;
+  message?: string;
+  timestamp: number;
+  error?: string;
+}
+
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
@@ -32,7 +68,7 @@ interface CacheConfig {
   persistenceKey: string;
 }
 
-class MemoryCache<T = any> {
+class MemoryCache<T = unknown> {
   private cache = new Map<string, CacheEntry<T>>();
   private accessOrder: string[] = [];
   private stats: CacheStats;
@@ -320,7 +356,7 @@ class MemoryCache<T = any> {
     this.stats.avgAccessTime = ((this.stats.avgAccessTime * (total - 1)) + accessTime) / total;
   }
 
-  private calculateSize(data: any): number {
+  private calculateSize(data: T): number {
     // Rough estimation of object size in bytes
     try {
       return new TextEncoder().encode(JSON.stringify(data)).length;
@@ -453,7 +489,7 @@ class MemoryCache<T = any> {
 }
 
 // Specialized caches for different data types
-export class TranscriptCache extends MemoryCache<any> {
+export class TranscriptCache extends MemoryCache<TranscriptSegment[]> {
   constructor() {
     super({
       maxSize: 500,
@@ -463,12 +499,12 @@ export class TranscriptCache extends MemoryCache<any> {
     });
   }
 
-  async cacheTranscriptSegments(meetingId: string, segments: any[]): Promise<void> {
+  async cacheTranscriptSegments(meetingId: string, segments: TranscriptSegment[]): Promise<void> {
     const key = `transcript:${meetingId}`;
     await this.set(key, segments, undefined, ['transcript', meetingId]);
   }
 
-  async getTranscriptSegments(meetingId: string): Promise<any[] | null> {
+  async getTranscriptSegments(meetingId: string): Promise<TranscriptSegment[] | null> {
     const key = `transcript:${meetingId}`;
     return await this.get(key);
   }
@@ -478,7 +514,7 @@ export class TranscriptCache extends MemoryCache<any> {
   }
 }
 
-export class MeetingCache extends MemoryCache<any> {
+export class MeetingCache extends MemoryCache<Meeting | Meeting[]> {
   constructor() {
     super({
       maxSize: 1000,
@@ -488,22 +524,22 @@ export class MeetingCache extends MemoryCache<any> {
     });
   }
 
-  async cacheMeetingList(page: number, filters: any, meetings: any[]): Promise<void> {
+  async cacheMeetingList(page: number, filters: MeetingFilters, meetings: Meeting[]): Promise<void> {
     const key = `meetings:${page}:${JSON.stringify(filters)}`;
     await this.set(key, meetings, undefined, ['meetings', `page:${page}`]);
   }
 
-  async getMeetingList(page: number, filters: any): Promise<any[] | null> {
+  async getMeetingList(page: number, filters: MeetingFilters): Promise<Meeting[] | null> {
     const key = `meetings:${page}:${JSON.stringify(filters)}`;
     return await this.get(key);
   }
 
-  async cacheMeetingDetails(meetingId: string, details: any): Promise<void> {
+  async cacheMeetingDetails(meetingId: string, details: Meeting): Promise<void> {
     const key = `meeting:${meetingId}`;
     await this.set(key, details, undefined, ['meeting', meetingId]);
   }
 
-  async getMeetingDetails(meetingId: string): Promise<any | null> {
+  async getMeetingDetails(meetingId: string): Promise<Meeting | null> {
     const key = `meeting:${meetingId}`;
     return await this.get(key);
   }
@@ -513,7 +549,7 @@ export class MeetingCache extends MemoryCache<any> {
   }
 }
 
-export class APICache extends MemoryCache<any> {
+export class APICache extends MemoryCache<APIResponse> {
   constructor() {
     super({
       maxSize: 2000,
@@ -523,12 +559,12 @@ export class APICache extends MemoryCache<any> {
     });
   }
 
-  async cacheAPIResponse(endpoint: string, params: any, response: any, ttl?: number): Promise<void> {
+  async cacheAPIResponse(endpoint: string, params: Record<string, unknown>, response: APIResponse, ttl?: number): Promise<void> {
     const key = `api:${endpoint}:${JSON.stringify(params)}`;
     await this.set(key, response, ttl, ['api', endpoint]);
   }
 
-  async getAPIResponse(endpoint: string, params: any): Promise<any | null> {
+  async getAPIResponse(endpoint: string, params: Record<string, unknown>): Promise<APIResponse | null> {
     const key = `api:${endpoint}:${JSON.stringify(params)}`;
     return await this.get(key);
   }

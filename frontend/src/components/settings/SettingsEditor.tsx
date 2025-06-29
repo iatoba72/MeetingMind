@@ -2,6 +2,7 @@
 // Advanced settings management interface with hierarchical configuration
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useToast } from '../../store/hooks';
 import {
   Settings,
   Search,
@@ -143,6 +144,9 @@ export const SettingsEditor: React.FC<SettingsEditorProps> = ({
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+
+  // Hooks
+  const showToast = useToast();
 
   // Categories
   const categories = useMemo(() => {
@@ -317,14 +321,14 @@ export const SettingsEditor: React.FC<SettingsEditorProps> = ({
         await loadSettingsData();
         
         // Show success message
-        // TODO: Add toast notification
+        showToast('Settings saved successfully', 'success');
       } else {
         throw new Error('Failed to save settings');
       }
 
     } catch (error) {
       console.error('Error saving settings:', error);
-      // TODO: Show error message
+      showToast('Failed to save settings. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -376,14 +380,42 @@ export const SettingsEditor: React.FC<SettingsEditorProps> = ({
 
       if (response.ok) {
         await loadSettingsData();
-        // TODO: Show success message
+        showToast('Settings imported successfully', 'success');
       } else {
         throw new Error('Failed to import settings');
       }
 
     } catch (error) {
       console.error('Error importing settings:', error);
-      // TODO: Show error message
+      showToast('Failed to import settings. Please check the file format.', 'error');
+    }
+  };
+
+  // Rollback to version
+  const rollbackToVersion = async (versionId: string) => {
+    try {
+      const response = await fetch(`/api/settings/rollback/${currentScope}/${currentScopeId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          version_id: versionId,
+          rolled_back_by: 'settings_editor'
+        })
+      });
+
+      if (response.ok) {
+        await loadSettingsData();
+        showToast('Settings rolled back successfully', 'success');
+        setShowVersionHistory(false);
+        setSelectedVersion(null);
+      } else {
+        throw new Error('Failed to rollback settings');
+      }
+    } catch (error) {
+      console.error('Error rolling back settings:', error);
+      showToast('Failed to rollback settings. Please try again.', 'error');
     }
   };
 
@@ -842,10 +874,7 @@ export const SettingsEditor: React.FC<SettingsEditorProps> = ({
               </button>
               {selectedVersion && (
                 <button
-                  onClick={() => {
-                    // TODO: Implement rollback
-                    setShowVersionHistory(false);
-                  }}
+                  onClick={() => rollbackToVersion(selectedVersion!)}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
                   Rollback to This Version

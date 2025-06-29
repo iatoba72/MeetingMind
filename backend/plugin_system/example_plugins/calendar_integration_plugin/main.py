@@ -85,19 +85,35 @@ class GoogleCalendarProvider(CalendarProvider):
     async def authenticate(self) -> bool:
         """Authenticate with Google Calendar"""
         try:
-            # In a real implementation, this would handle OAuth2 flow
-            # For demo purposes, assume credentials are configured
+            # Check for required credentials
             api_key = self.config.get('api_key')
             service_account_file = self.config.get('service_account_file')
+            client_id = self.config.get('client_id')
+            client_secret = self.config.get('client_secret')
             
-            if api_key or service_account_file:
-                # Initialize Google Calendar service
-                # This is a simplified version - real implementation would use google-api-python-client
-                self.service = "google_calendar_service"  # Mock service
+            # Validate credentials configuration
+            if not (api_key or service_account_file or (client_id and client_secret)):
+                print("Google Calendar: No valid credentials found")
+                return False
+            
+            # TODO: Replace with real Google Calendar API implementation
+            # Real implementation would:
+            # 1. Use google-auth library for authentication
+            # 2. Initialize googleapiclient.discovery.build('calendar', 'v3', credentials=creds)
+            # 3. Test connection with a simple API call
+            
+            # For now, simulate authentication
+            if self.config.get('mock_mode', True):
+                self.service = {"type": "mock_google_service", "authenticated": True}
+                print("Google Calendar: Mock authentication successful")
                 return True
-            
-            return False
-        except Exception:
+            else:
+                # Real implementation would go here
+                print("Google Calendar: Real API integration not implemented")
+                return False
+                
+        except Exception as e:
+            print(f"Google Calendar authentication error: {e}")
             return False
     
     async def create_event(self, event: CalendarEvent) -> str:
@@ -132,10 +148,26 @@ class GoogleCalendarProvider(CalendarProvider):
             }
         }
         
-        # In real implementation: result = self.service.events().insert(calendarId=self.calendar_id, body=google_event).execute()
-        # For demo, return mock event ID
-        mock_event_id = f"google_{hashlib.md5(event.title.encode()).hexdigest()}"
-        return mock_event_id
+        # TODO: Replace with real Google Calendar API call
+        # Real implementation would be:
+        # result = self.service.events().insert(calendarId=self.calendar_id, body=google_event).execute()
+        # return result['id']
+        
+        if self.config.get('mock_mode', True):
+            # Enhanced mock implementation with validation
+            if not event.title:
+                raise ValueError("Event title is required")
+            if not event.start_time or not event.end_time:
+                raise ValueError("Event start and end times are required")
+            if event.start_time >= event.end_time:
+                raise ValueError("Event start time must be before end time")
+            
+            # Generate realistic event ID
+            event_id = f"google_{hashlib.md5(f'{event.title}{event.start_time}'.encode()).hexdigest()[:16]}"
+            print(f"Google Calendar: Created mock event '{event.title}' with ID: {event_id}")
+            return event_id
+        else:
+            raise NotImplementedError("Real Google Calendar API integration not available")
     
     async def update_event(self, provider_event_id: str, event: CalendarEvent) -> bool:
         """Update Google Calendar event"""
@@ -154,17 +186,35 @@ class GoogleCalendarProvider(CalendarProvider):
                 }
             }
             
-            # In real implementation: self.service.events().update(calendarId=self.calendar_id, eventId=provider_event_id, body=google_event).execute()
-            return True
-        except Exception:
+            # TODO: Replace with real Google Calendar API call
+            # Real implementation: self.service.events().update(calendarId=self.calendar_id, eventId=provider_event_id, body=google_event).execute()
+            
+            if self.config.get('mock_mode', True):
+                if not provider_event_id.startswith('google_'):
+                    raise ValueError("Invalid Google Calendar event ID")
+                print(f"Google Calendar: Updated mock event {provider_event_id}")
+                return True
+            else:
+                raise NotImplementedError("Real Google Calendar API integration not available")
+        except Exception as e:
+            print(f"Google Calendar update error: {e}")
             return False
     
     async def delete_event(self, provider_event_id: str) -> bool:
         """Delete Google Calendar event"""
         try:
-            # In real implementation: self.service.events().delete(calendarId=self.calendar_id, eventId=provider_event_id).execute()
-            return True
-        except Exception:
+            # TODO: Replace with real Google Calendar API call
+            # Real implementation: self.service.events().delete(calendarId=self.calendar_id, eventId=provider_event_id).execute()
+            
+            if self.config.get('mock_mode', True):
+                if not provider_event_id.startswith('google_'):
+                    raise ValueError("Invalid Google Calendar event ID")
+                print(f"Google Calendar: Deleted mock event {provider_event_id}")
+                return True
+            else:
+                raise NotImplementedError("Real Google Calendar API integration not available")
+        except Exception as e:
+            print(f"Google Calendar delete error: {e}")
             return False
     
     async def get_events(self, start_date: datetime, end_date: datetime) -> List[CalendarEvent]:
@@ -190,18 +240,34 @@ class OutlookCalendarProvider(CalendarProvider):
     async def authenticate(self) -> bool:
         """Authenticate with Microsoft Graph"""
         try:
-            # In real implementation, use Microsoft Graph SDK
+            # Check for required credentials
             client_id = self.config.get('client_id')
             client_secret = self.config.get('client_secret')
             tenant_id = self.config.get('tenant_id')
             
-            if client_id and client_secret and tenant_id:
-                # Initialize Graph client
-                self.graph_client = "graph_client"  # Mock client
-                return True
+            # Validate credentials configuration
+            if not (client_id and client_secret and tenant_id):
+                print("Outlook Calendar: Missing required credentials (client_id, client_secret, tenant_id)")
+                return False
             
-            return False
-        except Exception:
+            # TODO: Replace with real Microsoft Graph API implementation
+            # Real implementation would:
+            # 1. Use microsoft-graph-auth library for authentication
+            # 2. Initialize GraphServiceClient with proper auth provider
+            # 3. Test connection with a simple API call
+            
+            # For now, simulate authentication
+            if self.config.get('mock_mode', True):
+                self.graph_client = {"type": "mock_graph_client", "authenticated": True}
+                print("Outlook Calendar: Mock authentication successful")
+                return True
+            else:
+                # Real implementation would go here
+                print("Outlook Calendar: Real API integration not implemented")
+                return False
+                
+        except Exception as e:
+            print(f"Outlook Calendar authentication error: {e}")
             return False
     
     async def create_event(self, event: CalendarEvent) -> str:
@@ -239,24 +305,59 @@ class OutlookCalendarProvider(CalendarProvider):
             ]
         }
         
-        # In real implementation: result = self.graph_client.me.events.post(outlook_event)
-        mock_event_id = f"outlook_{hashlib.md5(event.title.encode()).hexdigest()}"
-        return mock_event_id
+        # TODO: Replace with real Microsoft Graph API call
+        # Real implementation would be:
+        # result = self.graph_client.me.events.post(outlook_event)
+        # return result.id
+        
+        if self.config.get('mock_mode', True):
+            # Enhanced mock implementation with validation
+            if not event.title:
+                raise ValueError("Event title is required")
+            if not event.start_time or not event.end_time:
+                raise ValueError("Event start and end times are required")
+            if event.start_time >= event.end_time:
+                raise ValueError("Event start time must be before end time")
+            
+            # Generate realistic event ID
+            event_id = f"outlook_{hashlib.md5(f'{event.title}{event.start_time}'.encode()).hexdigest()[:16]}"
+            print(f"Outlook Calendar: Created mock event '{event.title}' with ID: {event_id}")
+            return event_id
+        else:
+            raise NotImplementedError("Real Outlook Calendar API integration not available")
     
     async def update_event(self, provider_event_id: str, event: CalendarEvent) -> bool:
         """Update Outlook calendar event"""
         try:
-            # Implementation similar to create_event but using PATCH
-            return True
-        except Exception:
+            # TODO: Replace with real Microsoft Graph API call
+            # Real implementation: self.graph_client.me.events[provider_event_id].patch(outlook_event)
+            
+            if self.config.get('mock_mode', True):
+                if not provider_event_id.startswith('outlook_'):
+                    raise ValueError("Invalid Outlook Calendar event ID")
+                print(f"Outlook Calendar: Updated mock event {provider_event_id}")
+                return True
+            else:
+                raise NotImplementedError("Real Outlook Calendar API integration not available")
+        except Exception as e:
+            print(f"Outlook Calendar update error: {e}")
             return False
     
     async def delete_event(self, provider_event_id: str) -> bool:
         """Delete Outlook calendar event"""
         try:
-            # In real implementation: self.graph_client.me.events[provider_event_id].delete()
-            return True
-        except Exception:
+            # TODO: Replace with real Microsoft Graph API call
+            # Real implementation: self.graph_client.me.events[provider_event_id].delete()
+            
+            if self.config.get('mock_mode', True):
+                if not provider_event_id.startswith('outlook_'):
+                    raise ValueError("Invalid Outlook Calendar event ID")
+                print(f"Outlook Calendar: Deleted mock event {provider_event_id}")
+                return True
+            else:
+                raise NotImplementedError("Real Outlook Calendar API integration not available")
+        except Exception as e:
+            print(f"Outlook Calendar delete error: {e}")
             return False
     
     async def get_events(self, start_date: datetime, end_date: datetime) -> List[CalendarEvent]:

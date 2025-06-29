@@ -17,7 +17,7 @@ export enum WebSocketState {
 // All messages follow this standardized format for consistency
 export interface WebSocketMessage {
   type: string;                 // Message type identifier (e.g., 'chat_message', 'ping')
-  data: any;                   // Message payload - can be any JSON-serializable data
+  data: unknown;               // Message payload - can be any JSON-serializable data
   timestamp: string;           // ISO timestamp when message was created
 }
 
@@ -47,7 +47,8 @@ export interface WebSocketHook {
   lastMessage: WebSocketMessage | null;
   
   // Actions
-  sendMessage: (type: string, data: any) => void;
+  sendMessage: (type: string, data: unknown) => void;
+  sendBinaryData: (type: string, metadata: Record<string, unknown>, binaryData: ArrayBuffer) => void;
   clearMessages: () => void;
   connect: () => void;
   disconnect: () => void;
@@ -106,7 +107,7 @@ export const useWebSocket = (config: WebSocketConfig): WebSocketHook => {
   } = config;
   
   // Debug logging function
-  const log = useCallback((message: string, data?: any) => {
+  const log = useCallback((message: string, data?: unknown) => {
     if (debug) {
       console.log(`[WebSocket] ${message}`, data || '');
     }
@@ -305,7 +306,7 @@ export const useWebSocket = (config: WebSocketConfig): WebSocketHook => {
   }, [log, stopHeartbeat]);
   
   // Send message through WebSocket
-  const sendMessage = useCallback((type: string, data: any) => {
+  const sendMessage = useCallback((type: string, data: unknown) => {
     if (websocketRef.current?.readyState === WebSocket.OPEN) {
       const message: WebSocketMessage = {
         type,
@@ -318,6 +319,32 @@ export const useWebSocket = (config: WebSocketConfig): WebSocketHook => {
     } else {
       log('Cannot send message: WebSocket not connected');
       setLastError('Cannot send message: not connected');
+    }
+  }, [log]);
+  
+  // Send binary data through WebSocket
+  const sendBinaryData = useCallback((type: string, metadata: Record<string, unknown>, binaryData: ArrayBuffer) => {
+    if (websocketRef.current?.readyState === WebSocket.OPEN) {
+      // First send metadata as JSON
+      const metadataMessage: WebSocketMessage = {
+        type: `${type}_metadata`,
+        data: {
+          ...metadata,
+          binarySize: binaryData.byteLength,
+          binaryType: type
+        },
+        timestamp: new Date().toISOString()
+      };
+      
+      log('Sending binary metadata:', metadataMessage);
+      websocketRef.current.send(JSON.stringify(metadataMessage));
+      
+      // Then send binary data directly
+      log(`Sending binary data: ${binaryData.byteLength} bytes`);
+      websocketRef.current.send(binaryData);
+    } else {
+      log('Cannot send binary data: WebSocket not connected');
+      setLastError('Cannot send binary data: not connected');
     }
   }, [log]);
   
@@ -364,6 +391,7 @@ export const useWebSocket = (config: WebSocketConfig): WebSocketHook => {
     
     // Actions
     sendMessage,
+    sendBinaryData,
     clearMessages,
     connect,
     disconnect,

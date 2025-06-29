@@ -3,15 +3,6 @@
 
 import React, { useState, useEffect } from 'react';
 
-interface ModelMetrics {
-  model_size: string;
-  processing_time_ms: number;
-  real_time_factor: number;
-  confidence_score: number;
-  memory_usage_mb: number;
-  gpu_memory_mb: number;
-}
-
 interface SystemMetrics {
   device: string;
   cuda_available: boolean;
@@ -109,7 +100,7 @@ export const TranscriptionMetrics: React.FC<TranscriptionMetricsProps> = ({
       ]);
       
       setLastUpdate(new Date());
-    } catch (err) {
+    } catch {
       // Individual errors are handled in each fetch function
     } finally {
       setLoading(false);
@@ -123,15 +114,6 @@ export const TranscriptionMetrics: React.FC<TranscriptionMetricsProps> = ({
     const interval = setInterval(fetchAllMetrics, refreshInterval);
     return () => clearInterval(interval);
   }, [sessionId, refreshInterval, showSystemInfo, showQueueStats]);
-
-  // Format bytes to human readable
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   // Format duration
   const formatDuration = (ms: number): string => {

@@ -1,39 +1,23 @@
 // Collaboration Playground
 // Testing environment for concurrent edits and collaboration features
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Play,
   Pause,
   RotateCcw,
-  Users,
   Zap,
-  Settings,
   Download,
-  Upload,
-  Copy,
-  Share,
   Bug,
   TestTube,
   Clock,
   Activity,
   AlertTriangle,
-  CheckCircle,
-  Info,
-  Circle,
-  TrendingUp,
-  FileText,
-  MessageSquare,
-  Mouse,
-  Eye,
-  Square,
-  GitBranch,
-  Shuffle
+  Circle
 } from 'lucide-react';
 
 import { AnnotationSystem } from './AnnotationSystem';
 import { ActionItemsBoard } from './ActionItemsBoard';
-import { PresenceSystem } from './PresenceSystem';
 
 interface SimulatedUser {
   id: string;
@@ -61,7 +45,7 @@ interface TestOperation {
   position?: number;
   content?: string;
   length?: number;
-  data?: any;
+  data?: unknown;
 }
 
 interface TestResult {
@@ -165,9 +149,9 @@ export const CollaborationPlayground: React.FC = () => {
   const [documentContent, setDocumentContent] = useState(SAMPLE_CONTENT);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [activeUsers, setActiveUsers] = useState<SimulatedUser[]>([]);
-  const [operations, setOperations] = useState<any[]>([]);
-  const [annotations, setAnnotations] = useState<any[]>([]);
-  const [actionItems, setActionItems] = useState<any[]>([]);
+  const [operations, setOperations] = useState<Array<{ id: string; type: string; data: unknown; timestamp: number }>>([]);
+  const [annotations, setAnnotations] = useState<Array<{ id: string; text: string; position: { x: number; y: number }; author: string }>>([]);
+  const [actionItems, setActionItems] = useState<Array<{ id: string; task: string; assignee: string; deadline?: string; completed: boolean }>>([]);
   const [conflicts, setConflicts] = useState<number>(0);
   const [showMetrics, setShowMetrics] = useState(true);
   const [showLogs, setShowLogs] = useState(false);
@@ -238,11 +222,11 @@ export const CollaborationPlayground: React.FC = () => {
             });
             break;
             
-          case 'chaotic':
+          case 'chaotic': {
             // Random operations
             const opTypes = ['insert', 'delete', 'replace', 'annotation', 'cursor_move'];
             operations.push({
-              type: opTypes[Math.floor(Math.random() * opTypes.length)] as any,
+              type: opTypes[Math.floor(Math.random() * opTypes.length)] as TestOperation['type'],
               delay,
               userId: user.id,
               position: Math.floor(Math.random() * contentLength),
@@ -251,6 +235,7 @@ export const CollaborationPlayground: React.FC = () => {
               data: { chaos: true }
             });
             break;
+          }
         }
       }
     });
@@ -290,7 +275,7 @@ export const CollaborationPlayground: React.FC = () => {
           addLog(`${operation.userId} replaced text`);
           break;
           
-        case 'annotation':
+        case 'annotation': {
           const newAnnotation = {
             id: `annotation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             type: operation.data?.type || 'comment',
@@ -308,8 +293,9 @@ export const CollaborationPlayground: React.FC = () => {
           setAnnotations(prev => [...prev, newAnnotation]);
           addLog(`${operation.userId} added annotation`);
           break;
+        }
           
-        case 'action_item':
+        case 'action_item': {
           const newActionItem = {
             id: `action-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             title: operation.data?.title || 'Simulated action item',
@@ -326,6 +312,7 @@ export const CollaborationPlayground: React.FC = () => {
           setActionItems(prev => [...prev, newActionItem]);
           addLog(`${operation.userId} created action item`);
           break;
+        }
           
         case 'cursor_move':
           // Simulate cursor movement (would update presence in real system)
@@ -406,7 +393,7 @@ export const CollaborationPlayground: React.FC = () => {
             avgResponseTime: performanceMetrics.current.operationTimes.reduce((a, b) => a + b, 0) / performanceMetrics.current.operationTimes.length || 0,
             maxResponseTime: Math.max(...performanceMetrics.current.operationTimes, 0),
             operationsPerSecond: operations.length / (elapsed / 1000),
-            memoryUsage: (performance as any).memory?.usedJSHeapSize || 0
+            memoryUsage: (performance as typeof performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0
           }
         };
         

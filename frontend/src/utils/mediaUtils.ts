@@ -17,12 +17,12 @@ export const BrowserSupport = {
 
   // Check if Web Audio API is supported
   webAudio: (): boolean => {
-    return typeof AudioContext !== 'undefined' || typeof (window as any).webkitAudioContext !== 'undefined';
+    return typeof AudioContext !== 'undefined' || typeof (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext !== 'undefined';
   },
 
   // Check if WebRTC is supported
   webRTC: (): boolean => {
-    return !!(window.RTCPeerConnection || (window as any).webkitRTCPeerConnection || (window as any).mozRTCPeerConnection);
+    return !!(window.RTCPeerConnection || (window as typeof window & { webkitRTCPeerConnection?: typeof RTCPeerConnection; mozRTCPeerConnection?: typeof RTCPeerConnection }).webkitRTCPeerConnection || (window as typeof window & { webkitRTCPeerConnection?: typeof RTCPeerConnection; mozRTCPeerConnection?: typeof RTCPeerConnection }).mozRTCPeerConnection);
   },
 
   // Check if File API is supported
@@ -162,7 +162,7 @@ export const FileUtils = {
 export const AudioUtils = {
   // Create AudioContext with browser compatibility
   createAudioContext: (): AudioContext => {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     return new AudioContextClass();
   },
 
@@ -232,7 +232,7 @@ export const AudioUtils = {
  */
 export const CacheUtils = {
   // Store data with expiration
-  setWithExpiry: (key: string, value: any, ttl: number): void => {
+  setWithExpiry: (key: string, value: unknown, ttl: number): void => {
     const now = new Date();
     const item = {
       value: value,
@@ -242,7 +242,7 @@ export const CacheUtils = {
   },
 
   // Get data if not expired
-  getWithExpiry: (key: string): any => {
+  getWithExpiry: (key: string): unknown => {
     const itemStr = localStorage.getItem(key);
     if (!itemStr) return null;
 
@@ -284,8 +284,8 @@ export const CacheUtils = {
   // Get cache size in bytes
   getCacheSize: (): number => {
     let total = 0;
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
+    for (const key in localStorage) {
+      if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
         total += localStorage[key].length + key.length;
       }
     }
@@ -413,7 +413,7 @@ export const URLUtils = {
  */
 export const PerformanceUtils = {
   // Debounce function calls
-  debounce: <T extends (...args: any[]) => any>(
+  debounce: <T extends (...args: unknown[]) => unknown>(
     func: T,
     delay: number
   ): ((...args: Parameters<T>) => void) => {
@@ -425,7 +425,7 @@ export const PerformanceUtils = {
   },
 
   // Throttle function calls
-  throttle: <T extends (...args: any[]) => any>(
+  throttle: <T extends (...args: unknown[]) => unknown>(
     func: T,
     delay: number
   ): ((...args: Parameters<T>) => void) => {

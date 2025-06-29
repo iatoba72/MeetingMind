@@ -108,7 +108,7 @@ export const useMeetingState = (options: UseMeetingStateOptions = {}): MeetingSt
         actual_end: meeting.actual_end,
         duration_minutes: meeting.duration_minutes,
         is_overdue: meeting.is_overdue,
-        participants_joined: meeting.participants?.filter((p: any) => p.status === 'joined').length || 0,
+        participants_joined: meeting.participants?.filter((p: { status: string }) => p.status === 'joined').length || 0,
         recording_status: meeting.is_recording ? 'recording' : 'stopped',
         transcription_active: meeting.is_transcription_enabled,
         ai_insights_enabled: meeting.is_ai_insights_enabled
@@ -333,7 +333,7 @@ export const useMeetingState = (options: UseMeetingStateOptions = {}): MeetingSt
   useEffect(() => {
     if (!websocket.isConnected || !enableRealTimeUpdates) return;
 
-    const handleMessage = (message: any) => {
+    const handleMessage = (message: { type: string; data?: unknown }) => {
       if (message.type === 'meeting_update' && message.data.meeting_id === meetingId) {
         setMeetingState(prev => prev ? {
           ...prev,

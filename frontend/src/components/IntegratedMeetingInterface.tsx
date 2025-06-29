@@ -1,12 +1,13 @@
 // Integrated Meeting Interface with AI-Powered Insights
 // Complete interface combining transcription, recording, and automatic insight generation
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
-  MicrophoneIcon, StopIcon, PlayIcon, PauseIcon,
-  LightBulbIcon, DocumentTextIcon, UserGroupIcon,
-  ChartBarIcon, CogIcon, SparklesIcon
+  // MicrophoneIcon, StopIcon, PlayIcon, PauseIcon,
+  LightBulbIcon, // DocumentTextIcon, UserGroupIcon,
+  // ChartBarIcon, CogIcon, SparklesIcon
 } from '@heroicons/react/24/outline';
+import { TranscriptionSegment } from '../store/types';
 import { RecordingControls } from './RecordingControls';
 import { MediaPlayback } from './MediaPlayback';
 import { AdvancedTranscriptDisplay } from './AdvancedTranscriptDisplay';
@@ -59,7 +60,7 @@ interface Meeting {
   startTime: Date;
   participants: string[];
   recordings: MeetingRecording[];
-  liveTranscript: any[];
+  liveTranscript: TranscriptionSegment[];
   insights: InsightData[];
   topics: TopicData[];
   analytics: MeetingAnalytics;
@@ -69,10 +70,10 @@ interface Meeting {
 interface MeetingRecording {
   id: string;
   url: string;
-  transcript: any[];
+  transcript: TranscriptionSegment[];
   duration: number;
   createdAt: Date;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 interface IntegratedMeetingInterfaceProps {
@@ -126,7 +127,7 @@ export const IntegratedMeetingInterface: React.FC<IntegratedMeetingInterfaceProp
   }, [meeting, onMeetingUpdate]);
 
   // Handle recording completion
-  const handleRecordingComplete = useCallback((sessionId: string, mediaFile: any) => {
+  const handleRecordingComplete = useCallback((sessionId: string, mediaFile: { id: string; filename: string; size: number; type: string; url: string }) => {
     const newRecording: MeetingRecording = {
       id: sessionId,
       url: mediaFile.url,
@@ -146,7 +147,7 @@ export const IntegratedMeetingInterface: React.FC<IntegratedMeetingInterfaceProp
   }, [meeting.recordings, updateMeeting]);
 
   // Generate insights from transcript segment
-  const generateInsightsFromSegment = useCallback((segment: any, timestamp: number) => {
+  const generateInsightsFromSegment = useCallback((segment: TranscriptionSegment, timestamp: number) => {
     const text = segment.text.toLowerCase();
     const newInsights: InsightData[] = [];
 
@@ -238,14 +239,14 @@ export const IntegratedMeetingInterface: React.FC<IntegratedMeetingInterfaceProp
   }, []);
 
   // Handle transcription updates with insight generation
-  const handleTranscriptionUpdate = useCallback((result: any) => {
+  const handleTranscriptionUpdate = useCallback((result: { segments: TranscriptionSegment[]; language: string; confidence: number }) => {
     const newSegments = result.segments || [];
     const updatedTranscript = [...meeting.liveTranscript, ...newSegments];
     
     // Generate insights from new segments if auto-generation is enabled
     let newInsights: InsightData[] = [];
     if (insightSettings.autoGenerate && meeting.status === 'live') {
-      newSegments.forEach((segment: any) => {
+      newSegments.forEach((segment: TranscriptionSegment) => {
         const timestamp = (Date.now() - meeting.startTime.getTime()) / 1000;
         const segmentInsights = generateInsightsFromSegment(segment, timestamp);
         newInsights = [...newInsights, ...segmentInsights];
@@ -371,7 +372,7 @@ export const IntegratedMeetingInterface: React.FC<IntegratedMeetingInterfaceProp
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setCurrentView(tab.id as any)}
+                onClick={() => setCurrentView(tab.id as 'transcript' | 'insights' | 'analytics' | 'recordings')}
                 disabled={tab.disabled}
                 className={`
                   flex-1 py-3 px-4 text-center border-b-2 transition-colors
@@ -565,7 +566,7 @@ export const IntegratedMeetingInterface: React.FC<IntegratedMeetingInterfaceProp
                   speaker,
                   startTime: 0,
                   endTime: meeting.analytics.duration,
-                  segmentCount: meeting.liveTranscript.filter((s: any) => s.speaker === speaker).length
+                  segmentCount: meeting.liveTranscript.filter((s: TranscriptionSegment) => s.speaker === speaker).length
                 }))}
                 onInsightSelect={(insight) => {
                   console.log('Selected insight:', insight);

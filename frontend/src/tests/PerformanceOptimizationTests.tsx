@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+// import userEvent from '@testing-library/user-event';
 import { act } from 'react-dom/test-utils';
 import { performance } from 'perf_hooks';
 
@@ -13,8 +13,8 @@ import { LazyMeetingHistory } from '../components/LazyMeetingHistory';
 import { PerformanceMonitoringDashboard } from '../components/PerformanceMonitoringDashboard';
 import { PerformanceClinic } from '../components/PerformanceClinic';
 import { OptimizedWebSocketService } from '../services/OptimizedWebSocketService';
-import { CacheManager, cacheManager } from '../utils/CacheManager';
-import { PerformanceProfiler, performanceProfiler } from '../utils/PerformanceProfiler';
+import { CacheManager } from '../utils/CacheManager';
+import { performanceProfiler } from '../utils/PerformanceProfiler';
 
 // Mock data generators
 const generateTranscriptSegments = (count: number) => {
@@ -26,7 +26,7 @@ const generateTranscriptSegments = (count: number) => {
     timestamp: Date.now() - (count - i) * 5000,
     confidence: 0.85 + Math.random() * 0.15,
     duration: 3 + Math.random() * 4,
-    sentiment: ['positive', 'negative', 'neutral'][i % 3] as any,
+    sentiment: ['positive', 'negative', 'neutral'][i % 3] as 'positive' | 'negative' | 'neutral',
     tags: ['important', 'action-item', 'decision'][i % 3] ? [['important', 'action-item', 'decision'][i % 3]] : []
   }));
 };
@@ -40,10 +40,10 @@ const generateMeetings = (count: number) => {
     endTime: new Date(Date.now() - (count - i) * 86400000 + 3600000).toISOString(),
     duration: 60,
     participants: [
-      { id: `user_${i}_1`, name: `User ${i}-1`, email: `user${i}1@test.com`, role: 'host' as any },
-      { id: `user_${i}_2`, name: `User ${i}-2`, email: `user${i}2@test.com`, role: 'attendee' as any }
+      { id: `user_${i}_1`, name: `User ${i}-1`, email: `user${i}1@test.com`, role: 'host' as 'host' },
+      { id: `user_${i}_2`, name: `User ${i}-2`, email: `user${i}2@test.com`, role: 'attendee' as 'attendee' }
     ],
-    status: 'completed' as any,
+    status: 'completed' as 'completed',
     tags: ['important'],
     isStarred: false,
     createdBy: `user_${i}_1`,
@@ -64,7 +64,7 @@ class PerformanceTestSuite {
     
     // Record memory baseline if available
     if ('memory' in performance) {
-      this.memoryBaselines.set(measurementId, (performance as any).memory.usedJSHeapSize);
+      this.memoryBaselines.set(measurementId, (performance as Performance & { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize);
     }
     
     return measurementId;
@@ -87,7 +87,7 @@ class PerformanceTestSuite {
     let memoryDelta: number | undefined;
     if ('memory' in performance && this.memoryBaselines.has(measurementId)) {
       const baseline = this.memoryBaselines.get(measurementId)!;
-      const current = (performance as any).memory.usedJSHeapSize;
+      const current = (performance as Performance & { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize;
       memoryDelta = current - baseline;
       this.memoryBaselines.delete(measurementId);
     }
@@ -117,7 +117,7 @@ class PerformanceTestSuite {
   }
 
   getAllResults() {
-    const results: { [key: string]: any } = {};
+    const results: { [key: string]: unknown } = {};
     for (const [testName] of this.measurements) {
       results[testName] = this.getTestResults(testName);
     }
@@ -348,7 +348,7 @@ describe('WebSocket Performance', () => {
       readyState: WebSocket.OPEN
     };
     
-    // @ts-ignore - Mock WebSocket
+    // @ts-expect-error - Mock WebSocket
     wsService.ws = mockWS;
     wsService.stats.isConnected = true;
 
@@ -408,7 +408,7 @@ describe('Performance Monitoring Dashboard', () => {
   });
 
   test('should collect metrics efficiently', async () => {
-    const { rerender } = render(<PerformanceMonitoringDashboard />);
+    render(<PerformanceMonitoringDashboard />);
     
     await waitFor(() => {
       expect(screen.getByText('Performance Monitor')).toBeInTheDocument();

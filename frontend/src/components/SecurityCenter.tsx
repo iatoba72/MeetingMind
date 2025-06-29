@@ -1,7 +1,7 @@
 // Security Center Dashboard for MeetingMind
 // Comprehensive security monitoring, data flow visualization, and encryption status
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield,
   ShieldCheck,
@@ -9,53 +9,23 @@ import {
   ShieldX,
   Key,
   Lock,
-  LockOpen,
   Eye,
-  EyeOff,
-  Database,
-  Server,
   Cloud,
   CloudOff,
-  Globe,
-  Monitor,
-  Smartphone,
-  Wifi,
-  WifiOff,
   Activity,
-  AlertTriangle,
   CheckCircle,
   XCircle,
   Info,
-  Settings,
-  Download,
-  Upload,
   FileText,
-  Users,
-  Clock,
-  BarChart3,
-  PieChart,
-  TrendingUp,
-  TrendingDown,
-  Zap,
   RefreshCw,
-  Filter,
-  Search,
-  Bell,
-  BellOff,
-  Fingerprint,
-  UserCheck,
   Archive,
-  Trash2,
-  Radio,
-  HardDrive,
-  Cpu,
   Network
 } from 'lucide-react';
 
 // Import security services
-import { encryptionService, useEncryption } from '../security/EncryptionService';
+import { useEncryption } from '../security/EncryptionService';
 import { keyManagementService } from '../security/KeyManagementService';
-import { localOnlyService, useLocalOnlyMode } from '../security/LocalOnlyService';
+import { useLocalOnlyMode } from '../security/LocalOnlyService';
 import { dataRetentionService } from '../security/DataRetentionService';
 import { auditLoggingService } from '../security/AuditLoggingService';
 import { privacyPreservingAnalytics } from '../security/PrivacyPreservingAnalytics';
@@ -127,11 +97,9 @@ interface EncryptionStatus {
 export const SecurityCenter: React.FC<{
   className?: string;
   onThreatSelect?: (threat: SecurityThreat) => void;
-  showAdvanced?: boolean;
 }> = ({
   className = '',
-  onThreatSelect,
-  showAdvanced = false
+  onThreatSelect
 }) => {
   // State
   const [activeTab, setActiveTab] = useState<'overview' | 'encryption' | 'dataflow' | 'privacy' | 'compliance' | 'audit'>('overview');
@@ -141,15 +109,6 @@ export const SecurityCenter: React.FC<{
   const [selectedThreat, setSelectedThreat] = useState<SecurityThreat | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [filter, setFilter] = useState<{
-    severity: string;
-    type: string;
-    status: string;
-  }>({
-    severity: 'all',
-    type: 'all',
-    status: 'all'
-  });
 
   // Hooks
   const { isInitialized: encryptionInitialized, status: encStatus } = useEncryption();
@@ -580,20 +539,6 @@ export const SecurityCenter: React.FC<{
     return recommendations;
   };
 
-  // Filtered data
-  const filteredThreats = useMemo(() => {
-    if (!securityStatus) return [];
-
-    return securityStatus.threats.filter(threat => {
-      if (filter.severity !== 'all' && threat.severity !== filter.severity) return false;
-      if (filter.type !== 'all' && threat.type !== filter.type) return false;
-      if (filter.status !== 'all') {
-        const statusMatch = filter.status === 'mitigated' ? threat.mitigated : !threat.mitigated;
-        if (!statusMatch) return false;
-      }
-      return true;
-    });
-  }, [securityStatus, filter]);
 
   // Render overview tab
   const renderOverview = () => {

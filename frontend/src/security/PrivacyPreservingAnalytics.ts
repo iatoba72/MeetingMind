@@ -573,20 +573,22 @@ export class PrivacyPreservingAnalytics {
           return sum + (typeof eventValue === 'number' ? eventValue : 0);
         }, 0);
         break;
-      case 'average':
+      case 'average': {
         const total = filteredEvents.reduce((sum, event) => {
           const eventValue = this.getNestedValue(event, metricName);
           return sum + (typeof eventValue === 'number' ? eventValue : 0);
         }, 0);
         value = total / filteredEvents.length;
         break;
-      case 'median':
+      }
+      case 'median': {
         const values = filteredEvents
           .map(event => this.getNestedValue(event, metricName))
           .filter(val => typeof val === 'number')
           .sort((a, b) => a - b);
         value = values.length > 0 ? values[Math.floor(values.length / 2)] : 0;
         break;
+      }
       default:
         value = filteredEvents.length;
     }

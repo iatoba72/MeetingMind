@@ -1,7 +1,7 @@
 // Database Relationship Visualizer Component
 // Interactive visualization of the MeetingMind database schema and relationships
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface Table {
   name: string;
@@ -318,7 +318,7 @@ export const DatabaseVisualizer: React.FC = () => {
           {/* View Mode Selector */}
           <select
             value={viewMode}
-            onChange={(e) => setViewMode(e.target.value as any)}
+            onChange={(e) => setViewMode(e.target.value as 'schema' | 'relationships' | 'performance')}
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="schema">Schema View</option>

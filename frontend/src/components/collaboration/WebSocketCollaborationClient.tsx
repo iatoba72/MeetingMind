@@ -162,23 +162,26 @@ export const WebSocketCollaborationProvider: React.FC<WebSocketCollaborationProv
       log(`Received message: ${message.type}`);
       
       switch (message.type) {
-        case 'user_join':
+        case 'user_join': {
           const joinedUser = message.data.user as UserPresence;
           setUsers(prev => [...prev.filter(u => u.userId !== joinedUser.userId), joinedUser]);
           userJoinCallbacks.current.forEach(callback => callback(joinedUser));
           break;
+        }
           
-        case 'user_leave':
+        case 'user_leave': {
           const leftUserId = message.data.user_id;
           setUsers(prev => prev.filter(u => u.userId !== leftUserId));
           userLeaveCallbacks.current.forEach(callback => callback(leftUserId));
           break;
+        }
           
-        case 'presence_update':
+        case 'presence_update': {
           const presenceUsers = message.data.users as UserPresence[];
           setUsers(presenceUsers);
           presenceUpdateCallbacks.current.forEach(callback => callback(presenceUsers));
           break;
+        }
           
         case 'document_state':
           log('Received document state');
@@ -192,11 +195,12 @@ export const WebSocketCollaborationProvider: React.FC<WebSocketCollaborationProv
           log(`Operation rejected: ${message.data.error}`, 'warn');
           break;
           
-        case 'pong':
+        case 'pong': {
           const now = Date.now();
           const latency = now - (message.data.timestamp ? new Date(message.data.timestamp).getTime() : now);
           setConnectionState(prev => ({ ...prev, lastPing: now, latency }));
           break;
+        }
           
         case 'error':
           log(`Server error: ${message.data.message}`, 'error');

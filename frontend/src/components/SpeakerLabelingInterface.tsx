@@ -7,10 +7,8 @@ import {
   MagnifyingGlassIcon, 
   PlusIcon, 
   CheckIcon, 
-  XMarkIcon,
   SpeakerWaveIcon,
-  ClockIcon,
-  IdentificationIcon
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 interface UnknownSpeaker {

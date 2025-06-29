@@ -7,7 +7,6 @@ import {
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
   ArrowsPointingOutIcon,
-  ChartBarIcon,
   InformationCircleIcon,
   SparklesIcon,
   BeakerIcon
@@ -68,7 +67,6 @@ interface ExplorerSettings {
 
 interface VectorExplorerProps {
   meetingIds?: string[];
-  selectedDocument?: string;
   searchQuery?: string;
   onPointSelect?: (pointId: string, point: EmbeddingPoint) => void;
   onSimilaritySearch?: (query: string, results: SimilarityResult[]) => void;
@@ -80,7 +78,6 @@ interface VectorExplorerProps {
 
 export const VectorExplorer: React.FC<VectorExplorerProps> = ({
   meetingIds = [],
-  selectedDocument,
   searchQuery: externalSearchQuery,
   onPointSelect,
   onSimilaritySearch,
@@ -515,7 +512,7 @@ export const VectorExplorer: React.FC<VectorExplorerProps> = ({
               ].map(mode => (
                 <button
                   key={mode.id}
-                  onClick={() => setViewMode(mode.id as any)}
+                  onClick={() => setViewMode(mode.id as 'explore' | 'similarity' | 'clusters' | 'analysis')}
                   className={`
                     flex items-center px-3 py-2 text-sm
                     ${viewMode === mode.id 
@@ -552,7 +549,7 @@ export const VectorExplorer: React.FC<VectorExplorerProps> = ({
                     {['2D', '3D'].map(dim => (
                       <button
                         key={dim}
-                        onClick={() => setSettings(prev => ({ ...prev, dimensionality: dim as any }))}
+                        onClick={() => setSettings(prev => ({ ...prev, dimensionality: dim as '2D' | '3D' }))}
                         className={`
                           flex-1 py-2 px-3 text-xs text-center
                           ${settings.dimensionality === dim 
@@ -572,7 +569,7 @@ export const VectorExplorer: React.FC<VectorExplorerProps> = ({
                   <label className="block text-xs font-medium text-gray-700 mb-2">Reduction Method</label>
                   <select
                     value={settings.reductionMethod}
-                    onChange={(e) => setSettings(prev => ({ ...prev, reductionMethod: e.target.value as any }))}
+                    onChange={(e) => setSettings(prev => ({ ...prev, reductionMethod: e.target.value as 'tsne' | 'umap' | 'pca' }))}
                     className="w-full text-xs border border-gray-300 rounded-md p-2"
                   >
                     <option value="tsne">t-SNE</option>
@@ -586,7 +583,7 @@ export const VectorExplorer: React.FC<VectorExplorerProps> = ({
                   <label className="block text-xs font-medium text-gray-700 mb-2">Color Mode</label>
                   <select
                     value={settings.colorMode}
-                    onChange={(e) => setSettings(prev => ({ ...prev, colorMode: e.target.value as any }))}
+                    onChange={(e) => setSettings(prev => ({ ...prev, colorMode: e.target.value as 'type' | 'cluster' | 'similarity' | 'confidence' | 'meeting' }))}
                     className="w-full text-xs border border-gray-300 rounded-md p-2"
                   >
                     <option value="type">Document Type</option>
@@ -602,7 +599,7 @@ export const VectorExplorer: React.FC<VectorExplorerProps> = ({
                   <label className="block text-xs font-medium text-gray-700 mb-2">Point Size</label>
                   <select
                     value={settings.pointSize}
-                    onChange={(e) => setSettings(prev => ({ ...prev, pointSize: e.target.value as any }))}
+                    onChange={(e) => setSettings(prev => ({ ...prev, pointSize: e.target.value as 'uniform' | 'confidence' | 'importance' }))}
                     className="w-full text-xs border border-gray-300 rounded-md p-2"
                   >
                     <option value="uniform">Uniform</option>

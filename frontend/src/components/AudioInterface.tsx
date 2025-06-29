@@ -2,7 +2,7 @@
 // Combines all audio functionality into a comprehensive interface
 // Demonstrates real-time audio capture, streaming, and visualization
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useAudioStreaming } from '../hooks/useAudioStreaming';
 import { AudioVisualizer } from './AudioVisualizer';
 import { AudioDeviceSelector } from './AudioDeviceSelector';
@@ -69,7 +69,7 @@ export const AudioInterface: React.FC<AudioInterfaceProps> = ({
   });
   
   // Handle audio configuration changes
-  const handleConfigChange = useCallback((key: string, value: any) => {
+  const handleConfigChange = useCallback((key: string, value: string | number | boolean) => {
     setAudioConfig(prev => ({
       ...prev,
       [key]: value

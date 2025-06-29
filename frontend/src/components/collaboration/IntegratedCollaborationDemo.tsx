@@ -100,9 +100,9 @@ const DEMO_USERS = [
 const DemoContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('notes');
   const [documentContent, setDocumentContent] = useState(DEMO_DOCUMENT_CONTENT);
-  const [annotations, setAnnotations] = useState<any[]>([]);
-  const [actionItems, setActionItems] = useState<any[]>([]);
-  const [cursors, setCursors] = useState<any[]>([]);
+  const [annotations, setAnnotations] = useState<Array<{ id: string; text: string; position: { x: number; y: number }; author: string }>>([]);
+  const [actionItems, setActionItems] = useState<Array<{ id: string; task: string; assignee: string; deadline?: string; completed: boolean }>>([]);
+  const [cursors, setCursors] = useState<Array<{ userId: string; position: { x: number; y: number }; color: string }>>([]);
   const [currentUser] = useState(DEMO_USERS[0]); // Simulate current user
   const [users, setUsers] = useState(DEMO_USERS);
   const [showSettings, setShowSettings] = useState(false);

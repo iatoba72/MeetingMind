@@ -1,11 +1,11 @@
 // Insight Studio - Custom Rule Creation Interface
 // Advanced interface for creating and managing custom insight rules and triggers
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PlusIcon, TrashIcon, DocumentDuplicateIcon, PlayIcon, 
   CogIcon, LightBulbIcon, BeakerIcon, CheckCircleIcon,
-  ExclamationTriangleIcon, InformationCircleIcon
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 // Enums matching backend types
@@ -63,8 +63,8 @@ interface CustomRule {
   phrases: string[];
   regexPatterns: string[];
   contextRequirements: string[];
-  speakerRequirements: Record<string, any>;
-  timingRequirements: Record<string, any>;
+  speakerRequirements: Record<string, { minParticipation?: number; role?: string; [key: string]: unknown }>;
+  timingRequirements: Record<string, { minDuration?: number; maxDuration?: number; phase?: string; [key: string]: unknown }>;
   confidenceThreshold: number;
   insightTemplate: string;
   insightType: InsightType;
@@ -116,7 +116,7 @@ export const InsightStudio: React.FC<InsightStudioProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [testMode, setTestMode] = useState(false);
-  const [testText, setTestText] = useState('');
+  // const [testText, setTestText] = useState('');
   const [testResults, setTestResults] = useState<TestResult[]>([]);
 
   // Initialize with sample rules

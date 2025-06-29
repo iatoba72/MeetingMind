@@ -6,6 +6,72 @@
 
 import { AudioCapture, AudioChunk, AudioMetrics, AudioCaptureConfig } from './AudioCapture';
 
+export interface AudioFeatures {
+  spectralCentroid: number;
+  spectralRolloff: number;
+  zeroCrossingRate: number;
+  mfcc?: number[];
+  pitch?: number;
+}
+
+export interface TranscriptionResult {
+  text: string;
+  confidence: number;
+  sourceId: string;
+  timestamp: number;
+  segments?: TranscriptionSegment[];
+}
+
+export interface TranscriptionSegment {
+  text: string;
+  start: number;
+  end: number;
+  confidence: number;
+}
+
+export interface WebSocketMessage {
+  type: 'network_audio' | 'source_status' | 'metrics_update' | 'transcription_result' | 'chunk_processed' | 'error' | string;
+  data?: NetworkAudioData | TranscriptionResult | Record<string, unknown>;
+  sourceId?: string;
+  status?: string;
+  metrics?: AudioMetrics;
+  message?: string;
+}
+
+export interface NetworkAudioData {
+  sourceId: string;
+  chunk: NetworkAudioChunk;
+  streamInfo: StreamInfo;
+}
+
+export interface NetworkAudioChunk {
+  chunk_id: string;
+  timestamp: number;
+  duration_ms: number;
+  sample_rate: number;
+  channels: number;
+  rms_level: number;
+  has_voice: boolean;
+}
+
+export interface StreamInfo {
+  bytes_received: number;
+  packets_received: number;
+  jitter: number;
+  latency: number;
+  state: string;
+}
+
+export interface ChunkProcessedMessage {
+  source_id: string;
+  result: {
+    processed: boolean;
+    timestamp: number;
+    features?: AudioFeatures;
+    error?: string;
+  };
+}
+
 export interface NetworkAudioSource {
   id: string;
   type: 'rtmp' | 'srt' | 'websocket';
@@ -44,13 +110,7 @@ export interface PipelineConfig {
 export interface ProcessedAudioChunk extends AudioChunk {
   sourceId: string;
   processedAt: number;
-  features: {
-    spectralCentroid: number;
-    spectralRolloff: number;
-    zeroCrossingRate: number;
-    mfcc?: number[];
-    pitch?: number;
-  };
+  features: AudioFeatures;
 }
 
 export class AudioPipeline {
@@ -73,7 +133,7 @@ export class AudioPipeline {
   private onSourceChangeCallback?: (sources: AudioSource[]) => void;
   private onMetricsCallback?: (sourceId: string, metrics: AudioMetrics) => void;
   private onErrorCallback?: (error: Error, sourceId?: string) => void;
-  private onTranscriptionCallback?: (result: any) => void;
+  private onTranscriptionCallback?: (result: TranscriptionResult) => void;
   
   constructor(config: Partial<PipelineConfig> = {}) {
     this.config = {
@@ -91,7 +151,7 @@ export class AudioPipeline {
   async initialize(): Promise<void> {
     try {
       // Initialize audio context for mixing and processing
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+      this.audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)({
         sampleRate: 44100,
         latencyHint: 'interactive'
       });
@@ -145,7 +205,7 @@ export class AudioPipeline {
     });
   }
 
-  private handleWebSocketMessage(message: any): void {
+  private handleWebSocketMessage(message: WebSocketMessage): void {
     switch (message.type) {
       case 'network_audio':
         this.handleNetworkAudio(message.data);
@@ -199,7 +259,7 @@ export class AudioPipeline {
     });
 
     audioCapture.onStateChange((state) => {
-      this.updateSourceStatus(sourceId, state as any);
+      this.updateSourceStatus(sourceId, state);
     });
 
     // Create audio source entry
@@ -436,7 +496,7 @@ export class AudioPipeline {
     }
   }
 
-  private calculateAudioFeatures(audioData: ArrayBuffer): any {
+  private calculateAudioFeatures(audioData: ArrayBuffer): AudioFeatures {
     // Convert ArrayBuffer to Float32Array for analysis
     const samples = new Float32Array(audioData);
     
@@ -513,7 +573,7 @@ export class AudioPipeline {
     }
   }
 
-  private handleNetworkAudio(data: any): void {
+  private handleNetworkAudio(data: NetworkAudioData): void {
     const { sourceId, chunk, streamInfo } = data;
     const source = this.sources.get(sourceId);
     
@@ -569,7 +629,7 @@ export class AudioPipeline {
   private updateSourceStatus(sourceId: string, status: string): void {
     const source = this.sources.get(sourceId);
     if (source) {
-      source.status = status as any;
+      source.status = status as AudioSource['status'];
       this.notifySourceChange();
     }
   }
@@ -584,13 +644,13 @@ export class AudioPipeline {
     }
   }
 
-  private handleTranscriptionResult(data: any): void {
+  private handleTranscriptionResult(data: TranscriptionResult): void {
     if (this.onTranscriptionCallback) {
       this.onTranscriptionCallback(data);
     }
   }
 
-  private handleChunkProcessed(message: any): void {
+  private handleChunkProcessed(message: ChunkProcessedMessage): void {
     console.log('Chunk processed:', message.source_id, message.result);
   }
 
@@ -710,7 +770,7 @@ export class AudioPipeline {
     this.onErrorCallback = callback;
   }
 
-  onTranscription(callback: (result: any) => void): void {
+  onTranscription(callback: (result: TranscriptionResult) => void): void {
     this.onTranscriptionCallback = callback;
   }
 

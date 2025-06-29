@@ -33,8 +33,15 @@ interface PlaygroundResponse {
   error?: string;
 }
 
+interface AIProvider {
+  name: string;
+  type: string;
+  enabled: boolean;
+  models: string[];
+}
+
 interface AIPlaygroundProps {
-  clientId: string;
+  className?: string;
 }
 
 /**
@@ -66,7 +73,7 @@ interface AIPlaygroundProps {
  * - Compare response quality and style
  * - Prototype AI integrations before implementation
  */
-export const AIPlayground: React.FC<AIPlaygroundProps> = ({ clientId }) => {
+export const AIPlayground: React.FC<AIPlaygroundProps> = () => {
   const [activeMode, setActiveMode] = useState<'single' | 'compare' | 'batch'>('single');
   const [prompt, setPrompt] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
@@ -79,7 +86,7 @@ export const AIPlayground: React.FC<AIPlaygroundProps> = ({ clientId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [responses, setResponses] = useState<Record<string, PlaygroundResponse>>({});
   const [requestHistory, setRequestHistory] = useState<PlaygroundRequest[]>([]);
-  const [availableProviders, setAvailableProviders] = useState<Record<string, any>>({});
+  const [availableProviders, setAvailableProviders] = useState<Record<string, AIProvider>>({});
   const [isLearningMode, setIsLearningMode] = useState(true);
 
   // Predefined prompt templates for common use cases
@@ -123,12 +130,12 @@ export const AIPlayground: React.FC<AIPlaygroundProps> = ({ clientId }) => {
     try {
       const response = await fetch('/ai/providers');
       if (response.ok) {
-        const providers = await response.json();
+        const providers: Record<string, AIProvider> = await response.json();
         setAvailableProviders(providers);
         
         // Set default provider if none selected
         if (!selectedProvider && Object.keys(providers).length > 0) {
-          const enabledProviders = Object.entries(providers).filter(([_, p]: [string, any]) => p.enabled);
+          const enabledProviders = Object.entries(providers).filter(([, p]) => p.enabled);
           if (enabledProviders.length > 0) {
             setSelectedProvider(enabledProviders[0][0]);
           }
@@ -169,7 +176,7 @@ export const AIPlayground: React.FC<AIPlaygroundProps> = ({ clientId }) => {
 
     try {
       let endpoint = '/ai/generate';
-      let body: any = {
+      let body: Record<string, unknown> = {
         prompt,
         provider_id: providerId || selectedProvider || undefined,
         model: selectedModel || undefined,
@@ -252,8 +259,8 @@ export const AIPlayground: React.FC<AIPlaygroundProps> = ({ clientId }) => {
     }
 
     const enabledProviders = Object.entries(availableProviders)
-      .filter(([_, provider]: [string, any]) => provider.enabled)
-      .map(([id, _]) => id);
+      .filter(([, provider]) => provider.enabled)
+      .map(([id]) => id);
 
     if (enabledProviders.length < 2) {
       alert('Need at least 2 enabled providers for comparison');
@@ -320,7 +327,7 @@ export const AIPlayground: React.FC<AIPlaygroundProps> = ({ clientId }) => {
           {modes.map((mode) => (
             <button
               key={mode.id}
-              onClick={() => setActiveMode(mode.id as any)}
+              onClick={() => setActiveMode(mode.id as 'single' | 'compare' | 'batch')}
               className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                 activeMode === mode.id
                   ? 'bg-white text-gray-900 shadow-sm'
@@ -360,11 +367,14 @@ export const AIPlayground: React.FC<AIPlaygroundProps> = ({ clientId }) => {
               </label>
               <select
                 value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value)}
+                onChange={(e) => {
+                  setSelectedProvider(e.target.value);
+                  setSelectedModel(''); // Reset model when provider changes
+                }}
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               >
                 <option value="">Auto-select best</option>
-                {Object.entries(availableProviders).map(([id, provider]: [string, any]) => (
+                {Object.entries(availableProviders).map(([id, provider]) => (
                   <option key={id} value={id} disabled={!provider.enabled}>
                     {provider.name} {!provider.enabled ? '(disabled)' : ''}
                   </option>

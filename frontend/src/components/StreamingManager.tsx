@@ -17,8 +17,7 @@ import {
   Loader,
   BarChart3,
   Monitor,
-  Key,
-  Trash2
+  Key
 } from 'lucide-react';
 
 interface StreamKey {
@@ -70,13 +69,11 @@ interface StreamingMetrics {
 interface StreamingManagerProps {
   meetingId: string;
   userId: string;
-  isHost?: boolean;
 }
 
 export const StreamingManager: React.FC<StreamingManagerProps> = ({
   meetingId,
-  userId,
-  isHost = false
+  userId
 }) => {
   const [streamKeys, setStreamKeys] = useState<StreamKey[]>([]);
   const [activeStreams, setActiveStreams] = useState<StreamStatus[]>([]);

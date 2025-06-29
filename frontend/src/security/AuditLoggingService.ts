@@ -777,11 +777,12 @@ export class AuditLoggingService {
           aValue = a.timestamp;
           bValue = b.timestamp;
           break;
-        case 'severity':
+        case 'severity': {
           const severityOrder = { low: 1, medium: 2, high: 3, critical: 4 };
           aValue = severityOrder[a.severity];
           bValue = severityOrder[b.severity];
           break;
+        }
         case 'eventType':
           aValue = a.eventType;
           bValue = b.eventType;

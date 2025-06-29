@@ -210,7 +210,7 @@ export const AudioStatistics: React.FC<AudioStatisticsProps> = ({
         {categories.map((category) => (
           <button
             key={category.id}
-            onClick={() => setSelectedCategory(category.id as any)}
+            onClick={() => setSelectedCategory(category.id as 'format' | 'quality' | 'performance' | 'network')}
             className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
               selectedCategory === category.id
                 ? 'bg-white text-gray-900 shadow-sm'

@@ -1,10 +1,11 @@
 // Comprehensive Recording Controls Component
 // Complete recording interface with device management, quality settings, and upload handling
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useMediaRecorder, RecordingConfig } from '../hooks/useMediaRecorder';
 import { useChunkedUpload, ChunkedUploadConfig } from '../hooks/useChunkedUpload';
 import { getStorageManager, StoragePolicies, UploadPolicy } from '../utils/mediaStorage';
+import { TranscriptionSegment } from '../utils/CacheManager';
 
 interface RecordingSession {
   id: string;
@@ -18,8 +19,8 @@ interface RecordingSession {
 }
 
 interface RecordingControlsProps {
-  onRecordingComplete?: (sessionId: string, mediaFile: any) => void;
-  onTranscriptionReady?: (sessionId: string, segments: any[]) => void;
+  onRecordingComplete?: (sessionId: string, mediaFile: File | Blob) => void;
+  onTranscriptionReady?: (sessionId: string, segments: TranscriptionSegment[]) => void;
   defaultConfig?: Partial<RecordingConfig>;
   enableVideo?: boolean;
   enableAutoUpload?: boolean;
@@ -78,8 +79,6 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
   const [showSessionDialog, setShowSessionDialog] = useState(false);
   const [showQualitySettings, setShowQualitySettings] = useState(false);
   const [showDeviceSettings, setShowDeviceSettings] = useState(false);
-  const [recordingName, setRecordingName] = useState('');
-  const [recordingType, setRecordingType] = useState<RecordingSession['type']>('meeting');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   

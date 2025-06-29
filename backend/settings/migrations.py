@@ -47,12 +47,12 @@ class BaseMigration(ABC):
     @abstractmethod
     async def migrate_up(self, settings: Dict[str, Any]) -> Dict[str, Any]:
         """Migrate settings up from old version to new version"""
-        pass
+        raise NotImplementedError("Subclasses must implement migrate_up method")
     
     @abstractmethod
     async def migrate_down(self, settings: Dict[str, Any]) -> Dict[str, Any]:
         """Migrate settings down from new version to old version (rollback)"""
-        pass
+        raise NotImplementedError("Subclasses must implement migrate_down method")
     
     def validate_settings(self, settings: Dict[str, Any]) -> List[str]:
         """Validate settings before migration"""

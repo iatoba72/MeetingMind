@@ -295,7 +295,7 @@ class BasePlugin(ABC):
     @abstractmethod
     def get_manifest(self) -> PluginManifest:
         """Return plugin manifest"""
-        pass
+        raise NotImplementedError("Subclasses must implement get_manifest method")
     
     async def initialize(self) -> bool:
         """Initialize plugin (called during plugin loading)"""

@@ -122,9 +122,9 @@ export interface AudioStreamingHook {
 export const useAudioStreaming = (config: AudioStreamingConfig): AudioStreamingHook => {
   const {
     websocketUrl,
-    clientId,
-    enableCompression = false,
-    bufferSize = 1024 * 1024, // 1MB buffer
+    clientId: _clientId,
+    enableCompression: _enableCompression = false,
+    bufferSize: _bufferSize = 1024 * 1024, // 1MB buffer
     maxRetries = 3,
     adaptiveQuality = true,
     minBitrate = 16000,       // 16kbps minimum
@@ -282,17 +282,8 @@ export const useAudioStreaming = (config: AudioStreamingConfig): AudioStreamingH
         }
       };
       
-      // Send metadata first
-      websocket.sendMessage('audio_chunk_metadata', audioMessage.data);
-      
-      // Then send binary data
-      // Note: In a real implementation, you'd send the binary data directly
-      // For this demo, we'll base64 encode it to send as text
-      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      websocket.sendMessage('audio_chunk_data', {
-        chunkId,
-        data: base64Data
-      });
+      // Send binary data directly with metadata
+      websocket.sendBinaryData('audio_chunk', audioMessage.data, arrayBuffer);
       
       // Track for latency measurement
       latencyMeasurementRef.current.set(chunkId, Date.now());

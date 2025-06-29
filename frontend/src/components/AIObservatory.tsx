@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
@@ -58,10 +58,12 @@ interface OrchestrationMetrics {
   timestamp: string;
 }
 
+type ActiveTab = 'overview' | 'models' | 'costs' | 'abtests' | 'performance';
+
 export const AIObservatory: React.FC = () => {
   const [metrics, setMetrics] = useState<OrchestrationMetrics | null>(null);
   const [abTests, setABTests] = useState<ABTestResult[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'models' | 'costs' | 'abtests' | 'performance'>('overview');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [timeRange, setTimeRange] = useState('24h');
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -379,7 +381,7 @@ export const AIObservatory: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as ActiveTab)}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
@@ -407,9 +409,9 @@ export const AIObservatory: React.FC = () => {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percentage }) => `${name}: ${percentage}%`}
+                  label={({ name, percentage }: { name: string, percentage: string }) => `${name}: ${percentage}%`}
                 >
-                  {complexityData.map((entry, index) => (
+                  {complexityData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -535,7 +537,7 @@ export const AIObservatory: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {test.variants.map((variant, index) => (
+                {test.variants.map((variant) => (
                   <div key={variant.name} className={`p-4 rounded border-2 ${
                     test.winner === variant.name ? 'border-green-300 bg-green-50' : 'border-gray-200'
                   }`}>

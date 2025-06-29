@@ -51,7 +51,11 @@ export const RTMPServerManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
-  const [instructions, setInstructions] = useState<any>(null);
+  const [instructions, setInstructions] = useState<{
+    streaming: string[];
+    recording: string[];
+    troubleshooting: string[];
+  } | null>(null);
 
   useEffect(() => {
     fetchServerStatus();

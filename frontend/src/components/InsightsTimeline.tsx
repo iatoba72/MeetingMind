@@ -1,11 +1,11 @@
 // Insights Timeline View Component
 // Interactive timeline visualization for meeting insights
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  LineChart, Line, AreaChart, Area, ScatterChart, Scatter,
+  ScatterChart, Scatter,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  ReferenceLine, ReferenceArea
+  ReferenceLine
 } from 'recharts';
 
 interface InsightData {
@@ -63,7 +63,7 @@ interface InsightsTimelineProps {
 }
 
 export const InsightsTimeline: React.FC<InsightsTimelineProps> = ({
-  meetingId,
+  // meetingId: _,
   insights: propInsights,
   topics: propTopics,
   speakers: propSpeakers,
@@ -86,12 +86,12 @@ export const InsightsTimeline: React.FC<InsightsTimelineProps> = ({
 
   const [selectedInsight, setSelectedInsight] = useState<InsightData | null>(null);
   const [timelineMode, setTimelineMode] = useState<'insights' | 'topics' | 'speakers' | 'combined'>('combined');
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [timelineOffset, setTimelineOffset] = useState(0);
+  // const [zoomLevel, setZoomLevel] = useState(1);
+  // const [timelineOffset, setTimelineOffset] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
 
-  const timelineRef = useRef<HTMLDivElement>(null);
+  // const timelineRef = useRef<HTMLDivElement>(null);
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sample data generation for demonstration
@@ -339,7 +339,7 @@ export const InsightsTimeline: React.FC<InsightsTimelineProps> = ({
   };
 
   // Custom tooltip for timeline
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: { insight: InsightData } }>; label?: number }) => {
     if (active && payload && payload.length) {
       const insight = payload[0].payload.insight;
       return (
@@ -373,7 +373,7 @@ export const InsightsTimeline: React.FC<InsightsTimelineProps> = ({
           <div className="flex items-center space-x-2">
             <select
               value={timelineMode}
-              onChange={(e) => setTimelineMode(e.target.value as any)}
+              onChange={(e) => setTimelineMode(e.target.value as 'insights' | 'topics' | 'speakers' | 'combined')}
               className="border border-gray-300 rounded px-3 py-1 text-sm"
             >
               <option value="combined">Combined View</option>

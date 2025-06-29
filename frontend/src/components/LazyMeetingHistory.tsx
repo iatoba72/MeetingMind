@@ -7,15 +7,10 @@ import {
   Clock, 
   Users, 
   FileText, 
-  Search, 
-  Filter,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
   MoreHorizontal,
   Eye,
   Download,
-  Trash2,
   Star,
   StarOff,
   PlayCircle,
@@ -64,7 +59,6 @@ interface LazyMeetingHistoryProps {
   sortBy?: 'date' | 'title' | 'duration' | 'participants';
   sortOrder?: 'asc' | 'desc';
   enableInfiniteScroll?: boolean;
-  showPreview?: boolean;
   className?: string;
 }
 
@@ -77,7 +71,7 @@ interface LoadingState {
 
 // Mock API service
 class MeetingHistoryService {
-  private static cache = new Map<string, any>();
+  private static cache = new Map<string, { meetings: Meeting[]; totalCount: number; hasMore: boolean }>();
   private static totalMeetings = 2500; // Simulate large dataset
 
   static async fetchMeetings(params: {
@@ -169,7 +163,7 @@ class MeetingHistoryService {
     // Sort
     if (params.sortBy) {
       filteredMeetings.sort((a, b) => {
-        let aValue: any, bValue: any;
+        let aValue: string | number, bValue: string | number;
         
         switch (params.sortBy) {
           case 'date':
@@ -222,7 +216,6 @@ export const LazyMeetingHistory: React.FC<LazyMeetingHistoryProps> = ({
   sortBy = 'date',
   sortOrder = 'desc',
   enableInfiniteScroll = true,
-  showPreview = true,
   className = ''
 }) => {
   // State
@@ -239,7 +232,6 @@ export const LazyMeetingHistory: React.FC<LazyMeetingHistoryProps> = ({
   
   // Refs
   const observerRef = useRef<IntersectionObserver>();
-  const lastMeetingElementRef = useRef<HTMLDivElement>(null);
 
   // Memoized fetch parameters
   const fetchParams = useMemo(() => ({

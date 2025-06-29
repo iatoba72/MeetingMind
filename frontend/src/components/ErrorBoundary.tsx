@@ -275,12 +275,12 @@ export function withErrorBoundary<P extends object>(
 // Hook for error boundary context
 export function useErrorHandler() {
   return {
-    captureError: (error: Error, errorInfo?: { [key: string]: any }) => {
+    captureError: (error: Error, errorInfo?: Record<string, unknown>) => {
       console.error('Manual error capture:', error, errorInfo);
       // In a real app, send to error reporting service
     },
     
-    reportIssue: (description: string, metadata?: { [key: string]: any }) => {
+    reportIssue: (description: string, metadata?: Record<string, unknown>) => {
       console.log('Issue reported:', description, metadata);
       // In a real app, send to issue tracking service
     },

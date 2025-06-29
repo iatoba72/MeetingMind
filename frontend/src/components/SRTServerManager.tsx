@@ -79,7 +79,11 @@ export const SRTServerManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
-  const [instructions, setInstructions] = useState<any>(null);
+  const [instructions, setInstructions] = useState<{
+    streaming: string[];
+    receiving: string[];
+    troubleshooting: string[];
+  } | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {

@@ -53,7 +53,7 @@ interface NetworkInterface {
 interface TestResult {
   test_id?: string;
   status: string;
-  result?: any;
+  result?: { latency?: number; bandwidth?: number; jitter?: number; packetLoss?: number; [key: string]: unknown };
   error?: string;
   progress?: number;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -6,23 +6,16 @@ import {
   Typography,
   Grid,
   Button,
-  TextField,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
   Chip,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Paper,
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
-  Divider,
   Alert,
   Accordion,
   AccordionSummary,
@@ -34,7 +27,6 @@ import {
   FormControlLabel,
   CircularProgress,
   LinearProgress,
-  Tooltip,
   Table,
   TableBody,
   TableCell,
@@ -44,23 +36,18 @@ import {
 } from '@mui/material';
 import {
   Upload as UploadIcon,
-  CameraAlt as CameraIcon,
   Screenshot as ScreenshotIcon,
   TextFields as TextIcon,
-  Image as ImageIcon,
   BarChart as ChartIcon,
   TableChart as TableIcon,
   Code as CodeIcon,
   Assignment as DocumentIcon,
   Settings as SettingsIcon,
   PlayArrow as ProcessIcon,
-  GetApp as DownloadIcon,
-  Compare as CompareIcon,
   ExpandMore as ExpandMoreIcon,
   Visibility as PreviewIcon,
   BugReport as TestIcon,
   Assessment as AnalyticsIcon,
-  Tune as TuneIcon,
   Speed as PerformanceIcon
 } from '@mui/icons-material';
 
@@ -146,87 +133,86 @@ const VisionLab: React.FC = () => {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [preprocessingPreview, setPreprocessingPreview] = useState<PreprocessingPreview | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [comparing, setComparing] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Initialize OCR service
   useEffect(() => {
-    initializeOCR();
-    loadDefaultTestCases();
-  }, []);
-
-  const initializeOCR = async () => {
-    try {
-      setLoading(true);
-      await ocrService.initialize();
-      setIsInitialized(true);
-    } catch (err) {
-      setError('Failed to initialize OCR service');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadDefaultTestCases = () => {
-    const defaultTestCases: TestCase[] = [
-      {
-        id: 'text_simple',
-        name: 'Simple Text',
-        description: 'Clean, high-contrast text document',
-        image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-        expectedText: 'This is a simple text document with clear, readable fonts.',
-        contentType: 'text',
-        difficulty: 'easy',
-        language: 'eng'
-      },
-      {
-        id: 'table_data',
-        name: 'Table with Data',
-        description: 'Structured table with numerical data',
-        image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-        expectedText: 'Name | Age | City\nJohn | 25 | New York\nJane | 30 | Los Angeles',
-        contentType: 'table',
-        difficulty: 'medium',
-        language: 'eng'
-      },
-      {
-        id: 'chart_complex',
-        name: 'Chart with Labels',
-        description: 'Bar chart with axis labels and legend',
-        image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-        expectedText: 'Sales Data\nQ1: 100\nQ2: 150\nQ3: 200\nQ4: 175',
-        contentType: 'chart',
-        difficulty: 'hard',
-        language: 'eng'
-      },
-      {
-        id: 'code_snippet',
-        name: 'Code Snippet',
-        description: 'Programming code with syntax highlighting',
-        image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-        expectedText: 'function calculate(a, b) {\n  return a + b;\n}',
-        contentType: 'code',
-        difficulty: 'medium',
-        language: 'eng'
-      },
-      {
-        id: 'mixed_content',
-        name: 'Mixed Content',
-        description: 'Document with text, images, and formatting',
-        image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-        expectedText: 'Title: Document Overview\nThis document contains mixed content including text and images.',
-        contentType: 'mixed',
-        difficulty: 'hard',
-        language: 'eng'
+    const initialize = async () => {
+      try {
+        setLoading(true);
+        await ocrService.initialize();
+        setIsInitialized(true);
+      } catch (err) {
+        setError('Failed to initialize OCR service');
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setTestCases(defaultTestCases);
-  };
+    const loadDefaults = () => {
+      const defaultTestCases: TestCase[] = [
+        {
+          id: 'text_simple',
+          name: 'Simple Text',
+          description: 'Clean, high-contrast text document',
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+          expectedText: 'This is a simple text document with clear, readable fonts.',
+          contentType: 'text',
+          difficulty: 'easy',
+          language: 'eng'
+        },
+        {
+          id: 'table_data',
+          name: 'Table with Data',
+          description: 'Structured table with numerical data',
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+          expectedText: 'Name | Age | City\nJohn | 25 | New York\nJane | 30 | Los Angeles',
+          contentType: 'table',
+          difficulty: 'medium',
+          language: 'eng'
+        },
+        {
+          id: 'chart_complex',
+          name: 'Chart with Labels',
+          description: 'Bar chart with axis labels and legend',
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+          expectedText: 'Sales Data\nQ1: 100\nQ2: 150\nQ3: 200\nQ4: 175',
+          contentType: 'chart',
+          difficulty: 'hard',
+          language: 'eng'
+        },
+        {
+          id: 'code_snippet',
+          name: 'Code Snippet',
+          description: 'Programming code with syntax highlighting',
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+          expectedText: 'function calculate(a, b) {\n  return a + b;\n}',
+          contentType: 'code',
+          difficulty: 'medium',
+          language: 'eng'
+        },
+        {
+          id: 'mixed_content',
+          name: 'Mixed Content',
+          description: 'Document with text, images, and formatting',
+          image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+          expectedText: 'Title: Document Overview\nThis document contains mixed content including text and images.',
+          contentType: 'mixed',
+          difficulty: 'hard',
+          language: 'eng'
+        }
+      ];
+
+      setTestCases(defaultTestCases);
+    };
+
+    initialize();
+    loadDefaults();
+  }, [ocrService]);
+
 
   // File upload handling
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,7 +244,7 @@ const VisionLab: React.FC = () => {
         screenCapture.stopCapture();
         setLoading(false);
       }, 1000);
-    } catch (err) {
+    } catch {
       setError('Failed to capture screen');
       setLoading(false);
     }

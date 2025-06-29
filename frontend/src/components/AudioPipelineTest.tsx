@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import AudioPipeline, { AudioSource, ProcessedAudioChunk, PipelineConfig } from '../utils/AudioPipeline';
-import { AudioMetrics } from '../utils/AudioCapture';
+import AudioPipeline, { AudioSource, ProcessedAudioChunk } from '../utils/AudioPipeline';
+// import { AudioMetrics } from '../utils/AudioCapture';
 import { AudioVisualizer } from './AudioVisualizer';
 
 interface AudioPipelineTestProps {
@@ -20,16 +20,17 @@ const AudioPipelineTest: React.FC<AudioPipelineTestProps> = ({ className }) => {
   const [primarySource, setPrimarySourceState] = useState<AudioSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
-  const [transcriptions, setTranscriptions] = useState<any[]>([]);
-  const [config, setConfig] = useState<PipelineConfig>({
-    enableAutoSwitching: true,
-    primarySourceTimeout: 5000,
-    bufferSize: 4096,
-    maxSources: 4,
-    enableRecording: false,
-    enableVisualization: true,
-    processingInterval: 100
-  });
+  const [transcriptions, setTranscriptions] = useState<Array<{ timestamp: number; text: string; speaker?: string }>>([]);
+  // Config state for future use
+  // const [config, setConfig] = useState<PipelineConfig>({
+  //   enableAutoSwitching: true,
+  //   primarySourceTimeout: 5000,
+  //   bufferSize: 4096,
+  //   maxSources: 4,
+  //   enableRecording: false,
+  //   enableVisualization: true,
+  //   processingInterval: 100
+  // });
 
   // Audio visualization
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -90,7 +91,7 @@ const AudioPipelineTest: React.FC<AudioPipelineTestProps> = ({ className }) => {
         addLog(`Sources updated: ${newSources.length} total, Primary: ${primary?.name || 'None'}`);
       });
 
-      newPipeline.onMetrics((sourceId: string, metrics: AudioMetrics) => {
+      newPipeline.onMetrics(() => {
         // Update source metrics in state if needed
       });
 
@@ -100,7 +101,7 @@ const AudioPipelineTest: React.FC<AudioPipelineTestProps> = ({ className }) => {
         addLog(errorMsg);
       });
 
-      newPipeline.onTranscription((result: any) => {
+      newPipeline.onTranscription((result: { timestamp: number; text: string; speaker?: string }) => {
         addLog(`Transcription received: ${JSON.stringify(result)}`);
         setTranscriptions(prev => [...prev.slice(-9), result]);
       });
@@ -536,7 +537,7 @@ const AudioPipelineTest: React.FC<AudioPipelineTestProps> = ({ className }) => {
           <AudioVisualizer
             sources={sources}
             primarySourceId={primarySource?.id}
-            getVisualizationData={(sourceId) => {
+            getVisualizationData={() => {
               // This would get actual visualization data from the pipeline
               return pipeline?.getVisualizationData();
             }}

@@ -8,10 +8,8 @@ import {
   Square3Stack3DIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-  InformationCircleIcon,
   SparklesIcon,
-  DocumentTextIcon,
-  BeakerIcon
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { KnowledgeGraphVisualization } from './KnowledgeGraphVisualization';
 import { VectorExplorer } from './VectorExplorer';
@@ -64,7 +62,7 @@ export const VectorSearchDashboard: React.FC<VectorSearchDashboardProps> = ({
     if (initialQuery) {
       performSearch(initialQuery);
     }
-  }, []);
+  }, [loadStatistics, performSearch, initialQuery]);
 
   // Load embedding statistics
   const loadStatistics = useCallback(async () => {

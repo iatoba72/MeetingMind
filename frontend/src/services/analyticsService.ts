@@ -117,19 +117,19 @@ export interface CustomMetric {
 export interface MetricFilter {
   field: string;
   operator: 'equals' | 'greater_than' | 'less_than' | 'contains' | 'not_equals';
-  value: any;
+  value: unknown;
 }
 
 export class AnalyticsService {
   private speechSegments: SpeechSegment[] = [];
-  private meetingMetadata: any = {};
+  private meetingMetadata: Record<string, unknown> = {};
   private customMetrics: CustomMetric[] = [];
 
   // Main analysis method
   async analyzeMeeting(
     meetingId: string,
     speechSegments: SpeechSegment[],
-    meetingMetadata: any
+    meetingMetadata: Record<string, unknown>
   ): Promise<MeetingAnalytics> {
     this.speechSegments = speechSegments;
     this.meetingMetadata = meetingMetadata;
@@ -255,7 +255,7 @@ export class AnalyticsService {
         .filter(s => s.speakerId === speaker.speakerId)
         .sort((a, b) => a.startTime - b.startTime);
 
-      let silences: number[] = [];
+      const silences: number[] = [];
       for (let i = 1; i < speakerSegments.length; i++) {
         const silence = speakerSegments[i].startTime - speakerSegments[i-1].endTime;
         if (silence > 5000) { // 5 second threshold
@@ -538,7 +538,7 @@ export class AnalyticsService {
   }
 
   // Custom Metrics
-  async calculateCustomMetric(metric: CustomMetric, data: any): Promise<number> {
+  async calculateCustomMetric(metric: CustomMetric, data: unknown): Promise<number> {
     try {
       // Simple formula evaluation (in production, use a safe expression parser)
       const context = this.prepareMetricContext(data, metric.dataSource);
@@ -879,15 +879,15 @@ export class AnalyticsService {
   }
 
   // Custom metric helpers
-  private prepareMetricContext(data: any, dataSources: string[]): any {
-    const context: any = {};
+  private prepareMetricContext(data: unknown, dataSources: string[]): Record<string, unknown> {
+    const context: Record<string, unknown> = {};
     dataSources.forEach(source => {
       context[source] = data[source] || 0;
     });
     return context;
   }
 
-  private evaluateFormula(formula: string, context: any): number {
+  private evaluateFormula(formula: string, context: Record<string, unknown>): number {
     // Simple formula evaluation (in production, use a proper expression parser)
     try {
       // Replace variables in formula with actual values
@@ -903,7 +903,7 @@ export class AnalyticsService {
     }
   }
 
-  private applyFilters(value: number, filters: MetricFilter[], context: any): number {
+  private applyFilters(value: number, filters: MetricFilter[], context: Record<string, unknown>): number {
     // Apply filters to the calculated value
     for (const filter of filters) {
       const fieldValue = context[filter.field];

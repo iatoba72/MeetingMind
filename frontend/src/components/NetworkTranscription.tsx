@@ -3,7 +3,7 @@
  * Real-time transcription interface with network stream support
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface TranscriptionSegment {
   id: string;
@@ -640,7 +640,7 @@ export const NetworkTranscription: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {transcriptionSegments.map((segment, index) => (
+                    {transcriptionSegments.map((segment) => (
                       <div key={segment.id} className="bg-white border rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">

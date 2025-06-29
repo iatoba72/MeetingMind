@@ -349,7 +349,7 @@ export class BusinessMetricsCollector {
   /**
    * Record meeting lifecycle events
    */
-  recordMeetingLifecycle(event: 'created' | 'started' | 'ended' | 'error', data: any): void {
+  recordMeetingLifecycle(event: 'created' | 'started' | 'ended' | 'error', data: Record<string, unknown>): void {
     switch (event) {
       case 'created':
         this.reporter.recordMeetingCreated({

@@ -1,7 +1,7 @@
 // Action Item Tracker Component
 // Comprehensive action item management with assignment, tracking, and automation
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -29,32 +29,15 @@ import {
   Select,
   MenuItem,
   Grid,
-  Avatar,
   Menu,
   MenuList,
-  CircularProgress,
-  Tabs,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Badge
 } from '@mui/material';
 import {
   Assignment as AssignmentIcon,
   Add as AddIcon,
   Edit as EditIcon,
-  Check as CheckIcon,
   Schedule as ScheduleIcon,
   Person as PersonIcon,
-  Flag as FlagIcon,
   Comment as CommentIcon,
   Timeline as TimelineIcon,
   Warning as WarningIcon,
@@ -64,8 +47,6 @@ import {
   Cancel as CancelIcon,
   MoreVert as MoreVertIcon,
   Notifications as NotificationsIcon,
-  TrendingUp as TrendingUpIcon,
-  ExpandMore as ExpandMoreIcon,
   FilterList as FilterIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
@@ -139,7 +120,6 @@ const ActionItemTracker: React.FC<ActionItemTrackerProps> = ({
   const [analytics, setAnalytics] = useState<ActionItemAnalytics | null>(null);
   
   // UI State
-  const [activeTab, setActiveTab] = useState(0);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ActionItem | null>(null);
@@ -170,30 +150,7 @@ const ActionItemTracker: React.FC<ActionItemTrackerProps> = ({
     new_status: ''
   });
 
-  useEffect(() => {
-    loadData();
-  }, [clientId, meetingId, filters]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      // Load action items and analytics
-      await Promise.all([
-        loadActionItems(),
-        loadAnalytics()
-      ]);
-
-    } catch (err) {
-      setError('Failed to load action items');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadActionItems = async () => {
+  const loadActionItems = useCallback(async () => {
     try {
       let url = `http://localhost:8000/action-items?user_id=${clientId}`;
       
@@ -217,9 +174,9 @@ const ActionItemTracker: React.FC<ActionItemTrackerProps> = ({
     } catch (err) {
       console.error('Error loading action items:', err);
     }
-  };
+  }, [clientId, meetingId, filters]);
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:8000/action-items/analytics?user_id=${clientId}`);
       
@@ -230,7 +187,30 @@ const ActionItemTracker: React.FC<ActionItemTrackerProps> = ({
     } catch (err) {
       console.error('Error loading analytics:', err);
     }
-  };
+  }, [clientId]);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Load action items and analytics
+      await Promise.all([
+        loadActionItems(),
+        loadAnalytics()
+      ]);
+
+    } catch (err) {
+      setError('Failed to load action items');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadActionItems, loadAnalytics]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCreateItem = async () => {
     try {

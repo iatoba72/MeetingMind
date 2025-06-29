@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 
 interface CreateMeetingModalProps {
   onClose: () => void;
-  onCreate: (meetingData: any) => Promise<any>;
+  onCreate: (meetingData: MeetingFormData) => Promise<{ id: string; success: boolean }>;
 }
 
 interface MeetingFormData {

@@ -2,7 +2,7 @@
 // Real-time meeting state management with status controls, recording, and participant tracking
 
 import React, { useState } from 'react';
-import { useMeetingState, MeetingState } from '../hooks/useMeetingState';
+import { useMeetingState } from '../hooks/useMeetingState';
 
 interface MeetingControlsProps {
   meetingId: string;

@@ -8,7 +8,6 @@ import { produce } from 'immer';
 import { 
   Meeting, 
   Participant, 
-  MeetingMetadata, 
   TranscriptionSegment,
   AppState,
   StoreActions 

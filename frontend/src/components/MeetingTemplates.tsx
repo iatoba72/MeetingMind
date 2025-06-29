@@ -201,31 +201,26 @@ export const MeetingTemplates: React.FC<MeetingTemplatesProps> = ({
   };
 
   // Create a new template
-  const createTemplate = async (templateData: any) => {
-    try {
-      const response = await fetch('http://localhost:8000/meeting-templates', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...templateData,
-          created_by: clientId
-        }),
-      });
+  const createTemplate = async (templateData: { name: string; description: string; category: string; [key: string]: unknown }) => {
+    const response = await fetch('http://localhost:8000/meeting-templates', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...templateData,
+        created_by: clientId
+      }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create template');
-      }
-
-      // Refresh templates list
-      await fetchTemplates();
-      setShowCreateModal(false);
-
-    } catch (err) {
-      throw err; // Re-throw to be handled by the modal
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to create template');
     }
+
+    // Refresh templates list
+    await fetchTemplates();
+    setShowCreateModal(false);
   };
 
   // Delete a template

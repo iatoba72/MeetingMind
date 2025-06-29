@@ -81,7 +81,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const message = websocket.lastMessage;
       
       switch (message.type) {
-        case 'chat_message':
+        case 'chat_message': {
           // Add new chat message to the list
           const chatMsg: ChatMessage = {
             id: message.data.message_id,
@@ -94,8 +94,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           
           setChatMessages(prev => [...prev, chatMsg]);
           break;
+        }
           
-        case 'user_typing':
+        case 'user_typing': {
           // Handle typing indicators from other users
           const { user, user_name, is_typing } = message.data;
           
@@ -114,8 +115,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             });
           }
           break;
+        }
           
-        case 'user_joined':
+        case 'user_joined': {
           // Add system message for user joining
           const joinMsg: ChatMessage = {
             id: `system-${Date.now()}`,
@@ -127,8 +129,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           };
           setChatMessages(prev => [...prev, joinMsg]);
           break;
+        }
           
-        case 'user_left':
+        case 'user_left': {
           // Add system message for user leaving
           const leaveMsg: ChatMessage = {
             id: `system-${Date.now()}`,
@@ -143,6 +146,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // Remove from typing users if they were typing
           setTypingUsers(prev => prev.filter(u => u.user !== message.data.client_id));
           break;
+        }
       }
     }
   }, [websocket.lastMessage, clientId]);

@@ -50,7 +50,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   height = 200,
   showWaveform = true,
   showSpectrum = true,
-  color = '#3b82f6'
+  // color: _color = '#3b82f6'
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
@@ -82,7 +82,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isActive, audioData, frequencyData, showWaveform, showSpectrum]);
+  }, [isActive, audioData, frequencyData, showWaveform, showSpectrum, draw]);
   
   // Main drawing function
   const draw = () => {
@@ -281,7 +281,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     ctx.textAlign = 'center';
     
     // Assuming 16kHz sample rate, Nyquist frequency is 8kHz
-    const nyquistFreq = 8000; // Hz
+    // const _nyquistFreq = 8000; // Hz
     const freqLabels = ['0', '2k', '4k', '6k', '8k'];
     
     freqLabels.forEach((label, index) => {

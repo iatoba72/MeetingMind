@@ -23,9 +23,9 @@
     "date-fns": "^2.30.0",
     "clsx": "^2.0.0",
     "tailwind-merge": "^2.0.0",
-    "lucide-react": "^0.294.0",
-    "@headlessui/react": "^1.7.17",
-    "framer-motion": "^10.16.15",
+    "lucide-react": "^0.525.0",
+    "@headlessui/react": "^2.2.4",
+    "framer-motion": "^12.19.2",
     "recharts": "^2.15.3",
     "react-virtualized-auto-sizer": "^1.0.20",
     "react-window": "^1.8.11",
@@ -44,7 +44,7 @@
     "@opentelemetry/instrumentation-user-interaction": "^0.34.0",
     "@opentelemetry/instrumentation-document-load": "^0.34.0",
     "@opentelemetry/exporter-jaeger": "^1.18.1",
-    "@opentelemetry/exporter-otlp-http": "^0.45.1",
+    "@opentelemetry/exporter-otlp-http": "^0.26.0",
     "@opentelemetry/exporter-prometheus": "^0.45.1"
   },
   "devDependencies": {

@@ -654,18 +654,97 @@ class WorkflowAutomationService:
     # Email action implementations
     async def _send_agenda_email(self, workflow: MeetingWorkflow):
         """Send agenda distribution email"""
-        # Implementation would use email service
-        pass
+        try:
+            email_service = EmailGenerationService()
+            
+            # Get meeting participants
+            participants = workflow.meeting.participants
+            if not participants:
+                logger.warning(f"No participants found for meeting {workflow.meeting.id}")
+                return
+            
+            # Generate agenda email content
+            email_content = await email_service.generate_agenda_email(
+                meeting=workflow.meeting,
+                template=workflow.meeting.template if hasattr(workflow.meeting, 'template') else None
+            )
+            
+            # Send to all participants
+            for participant in participants:
+                if participant.email:
+                    await email_service.send_email(
+                        to_email=participant.email,
+                        subject=f"Meeting Agenda: {workflow.meeting.title}",
+                        content=email_content,
+                        meeting_id=workflow.meeting.id
+                    )
+                    
+            logger.info(f"Agenda email sent for meeting {workflow.meeting.id} to {len(participants)} participants")
+            
+        except Exception as e:
+            logger.error(f"Failed to send agenda email for meeting {workflow.meeting.id}: {e}")
     
     async def _send_24h_reminder(self, workflow: MeetingWorkflow):
         """Send 24-hour reminder"""
-        # Implementation would use email service
-        pass
+        try:
+            email_service = EmailGenerationService()
+            
+            participants = workflow.meeting.participants
+            if not participants:
+                logger.warning(f"No participants found for meeting {workflow.meeting.id}")
+                return
+            
+            # Generate reminder email content
+            email_content = await email_service.generate_reminder_email(
+                meeting=workflow.meeting,
+                reminder_type="24_hour"
+            )
+            
+            # Send to all participants
+            for participant in participants:
+                if participant.email:
+                    await email_service.send_email(
+                        to_email=participant.email,
+                        subject=f"Reminder: Meeting tomorrow - {workflow.meeting.title}",
+                        content=email_content,
+                        meeting_id=workflow.meeting.id
+                    )
+                    
+            logger.info(f"24-hour reminder sent for meeting {workflow.meeting.id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send 24-hour reminder for meeting {workflow.meeting.id}: {e}")
     
     async def _send_1h_reminder(self, workflow: MeetingWorkflow):
         """Send 1-hour reminder"""
-        # Implementation would use email service
-        pass
+        try:
+            email_service = EmailGenerationService()
+            
+            participants = workflow.meeting.participants
+            if not participants:
+                logger.warning(f"No participants found for meeting {workflow.meeting.id}")
+                return
+            
+            # Generate urgent reminder email content
+            email_content = await email_service.generate_reminder_email(
+                meeting=workflow.meeting,
+                reminder_type="1_hour"
+            )
+            
+            # Send to all participants
+            for participant in participants:
+                if participant.email:
+                    await email_service.send_email(
+                        to_email=participant.email,
+                        subject=f"URGENT: Meeting in 1 hour - {workflow.meeting.title}",
+                        content=email_content,
+                        meeting_id=workflow.meeting.id
+                    )
+                    
+            logger.info(f"1-hour reminder sent for meeting {workflow.meeting.id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send 1-hour reminder for meeting {workflow.meeting.id}: {e}")
     
     async def _auto_start_meeting(self, workflow: MeetingWorkflow):
         """Auto-start meeting if configured"""
@@ -675,15 +754,132 @@ class WorkflowAutomationService:
     
     async def _generate_meeting_insights(self, workflow: MeetingWorkflow):
         """Generate meeting insights"""
-        # Integration with insight generation service
-        pass
+        try:
+            from insight_generation_service import InsightGenerationService
+            
+            insight_service = InsightGenerationService()
+            
+            # Check if meeting has recording or transcript data
+            if not hasattr(workflow.meeting, 'transcript') or not workflow.meeting.transcript:
+                logger.warning(f"No transcript available for meeting {workflow.meeting.id}, skipping insight generation")
+                return
+            
+            # Generate insights from meeting transcript
+            insights = await insight_service.generate_insights(
+                meeting_id=workflow.meeting.id,
+                transcript_data=workflow.meeting.transcript,
+                participants=workflow.meeting.participants
+            )
+            
+            # Store insights in database
+            if insights:
+                for insight in insights:
+                    # Save insight to database (would use database session)
+                    logger.info(f"Generated insight: {insight.get('title', 'Untitled')}")
+                
+                logger.info(f"Generated {len(insights)} insights for meeting {workflow.meeting.id}")
+            else:
+                logger.info(f"No insights generated for meeting {workflow.meeting.id}")
+                
+        except ImportError:
+            logger.warning("InsightGenerationService not available")
+        except Exception as e:
+            logger.error(f"Failed to generate insights for meeting {workflow.meeting.id}: {e}")
     
     async def _send_meeting_summary(self, workflow: MeetingWorkflow):
         """Send meeting summary"""
-        # Implementation would use email service
-        pass
+        try:
+            email_service = EmailGenerationService()
+            
+            participants = workflow.meeting.participants
+            if not participants:
+                logger.warning(f"No participants found for meeting {workflow.meeting.id}")
+                return
+            
+            # Generate meeting summary email content
+            email_content = await email_service.generate_summary_email(
+                meeting=workflow.meeting,
+                include_transcript=workflow.automation_config.get('include_transcript', False),
+                include_insights=workflow.automation_config.get('include_insights', True),
+                include_action_items=workflow.automation_config.get('include_action_items', True)
+            )
+            
+            # Send to all participants
+            for participant in participants:
+                if participant.email:
+                    await email_service.send_email(
+                        to_email=participant.email,
+                        subject=f"Meeting Summary: {workflow.meeting.title}",
+                        content=email_content,
+                        meeting_id=workflow.meeting.id
+                    )
+                    
+            logger.info(f"Meeting summary sent for meeting {workflow.meeting.id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send meeting summary for meeting {workflow.meeting.id}: {e}")
     
     async def _assign_action_items(self, workflow: MeetingWorkflow):
         """Assign action items to participants"""
-        # Implementation would create action item assignments
-        pass
+        try:
+            from action_item_service import ActionItemService
+            
+            action_service = ActionItemService()
+            
+            # Check if meeting has insights or action items extracted
+            if not hasattr(workflow.meeting, 'insights') or not workflow.meeting.insights:
+                logger.warning(f"No insights available for meeting {workflow.meeting.id}, cannot extract action items")
+                return
+            
+            # Extract action items from meeting insights
+            action_items = await action_service.extract_action_items(
+                meeting_id=workflow.meeting.id,
+                insights=workflow.meeting.insights,
+                participants=workflow.meeting.participants
+            )
+            
+            if not action_items:
+                logger.info(f"No action items found for meeting {workflow.meeting.id}")
+                return
+            
+            # Auto-assign action items to participants
+            for action_item in action_items:
+                # Try to assign to mentioned participant or default assignee
+                assignee = None
+                
+                # Look for participant mentions in action item
+                for participant in workflow.meeting.participants:
+                    if participant.name.lower() in action_item.get('description', '').lower():
+                        assignee = participant
+                        break
+                
+                # If no specific mention, assign to meeting organizer or first participant
+                if not assignee and workflow.meeting.participants:
+                    assignee = workflow.meeting.participants[0]  # Default to first participant
+                
+                if assignee:
+                    # Create action item assignment
+                    await action_service.create_action_item(
+                        meeting_id=workflow.meeting.id,
+                        title=action_item.get('title', 'Action Item'),
+                        description=action_item.get('description', ''),
+                        assignee_id=assignee.id,
+                        due_date=action_item.get('due_date'),
+                        priority=action_item.get('priority', 'medium')
+                    )
+                    
+                    # Send notification email to assignee
+                    if assignee.email and workflow.automation_config.get('notify_action_items', True):
+                        email_service = EmailGenerationService()
+                        await email_service.send_action_item_notification(
+                            assignee_email=assignee.email,
+                            action_item=action_item,
+                            meeting=workflow.meeting
+                        )
+            
+            logger.info(f"Assigned {len(action_items)} action items for meeting {workflow.meeting.id}")
+            
+        except ImportError:
+            logger.warning("ActionItemService not available")
+        except Exception as e:
+            logger.error(f"Failed to assign action items for meeting {workflow.meeting.id}: {e}")

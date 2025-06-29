@@ -1,14 +1,13 @@
 // Workflow State Machine Designer Component
 // Visual workflow designer for meeting automation and state management
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
   Button,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -19,7 +18,6 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
   Alert,
   TextField,
   FormControl,
@@ -30,14 +28,9 @@ import {
   Chip,
   Switch,
   FormControlLabel,
-  Tooltip,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
   Timeline,
   TimelineItem,
   TimelineSeparator,
@@ -46,29 +39,17 @@ import {
   TimelineDot
 } from '@mui/material';
 import {
-  AccountTree as WorkflowIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   PlayArrow as PlayIcon,
-  Pause as PauseIcon,
-  Stop as StopIcon,
   Settings as SettingsIcon,
   Save as SaveIcon,
-  Visibility as ViewIcon,
   Code as CodeIcon,
   Timeline as TimelineIcon,
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as PendingIcon,
-  Schedule as ScheduleIcon,
   Email as EmailIcon,
-  Assignment as AssignmentIcon,
-  Analytics as AnalyticsIcon,
   Notifications as NotificationsIcon,
-  AutoAwesome as AutoAwesomeIcon,
-  ExpandMore as ExpandMoreIcon,
-  DragIndicator as DragIcon,
-  Link as LinkIcon
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 
 // Types
@@ -99,7 +80,7 @@ interface WorkflowAction {
   id: string;
   name: string;
   type: 'email' | 'notification' | 'api_call' | 'delay' | 'condition';
-  config: any;
+  config: Record<string, unknown>;
   enabled: boolean;
 }
 
@@ -127,7 +108,7 @@ interface WorkflowExecution {
   workflow_id: string;
   meeting_id: string;
   current_state: string;
-  state_history: any[];
+  state_history: Array<Record<string, unknown>>;
   started_at: string;
   completed_at?: string;
   status: 'running' | 'paused' | 'completed' | 'failed';
@@ -152,11 +133,8 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
   
   // UI State
   const [selectedState, setSelectedState] = useState<WorkflowState | null>(null);
-  const [selectedTransition, setSelectedTransition] = useState<WorkflowTransition | null>(null);
   const [showStateDialog, setShowStateDialog] = useState(false);
-  const [showTransitionDialog, setShowTransitionDialog] = useState(false);
   const [showExecutionsDrawer, setShowExecutionsDrawer] = useState(false);
-  const [dragging, setDragging] = useState<string | null>(null);
   
   // Form State
   const [stateForm, setStateForm] = useState({
@@ -166,12 +144,6 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
     delay_minutes: 0,
     actions: [] as WorkflowAction[],
     notifications: [] as WorkflowNotification[]
-  });
-  
-  const [transitionForm, setTransitionForm] = useState({
-    trigger: '',
-    condition: '',
-    label: ''
   });
 
   // Predefined workflow states
@@ -232,6 +204,7 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
   const createDefaultWorkflow = () => {
     const states: WorkflowState[] = defaultStates.map((state, index) => ({
       ...state,
+      type: state.type as 'start' | 'process' | 'decision' | 'end',
       position: { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 200 },
       config: { auto_advance: true, delay_minutes: 0, actions: [], notifications: [] }
     }));
@@ -330,7 +303,7 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
         ? {
             ...state,
             name: stateForm.name,
-            type: stateForm.type,
+            type: stateForm.type as 'start' | 'process' | 'decision' | 'end',
             config: {
               ...state.config,
               auto_advance: stateForm.auto_advance,
@@ -347,22 +320,6 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
     setSelectedState(null);
   };
 
-  const handleAddTransition = (fromState: string, toState: string) => {
-    if (!workflow) return;
-
-    const newTransition: WorkflowTransition = {
-      id: `transition_${Date.now()}`,
-      from_state: fromState,
-      to_state: toState,
-      trigger: 'manual',
-      label: 'Manual Trigger'
-    };
-
-    setWorkflow({
-      ...workflow,
-      transitions: [...workflow.transitions, newTransition]
-    });
-  };
 
   const getStateIcon = (type: string) => {
     switch (type) {
@@ -689,7 +646,7 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
   return (
     <Box>
       {/* Header */}
-      <Box display="flex" justifyContent="between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
           <Typography variant="h5" gutterBottom>
             Workflow Designer: {workflow.name}

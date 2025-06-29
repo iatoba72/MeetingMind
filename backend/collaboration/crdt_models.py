@@ -78,18 +78,18 @@ class CRDT(ABC):
     @abstractmethod
     def merge(self, other: 'CRDT'):
         """Merge with another CRDT instance"""
-        pass
+        raise NotImplementedError("Subclasses must implement merge method")
     
     @abstractmethod
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary"""
-        pass
+        raise NotImplementedError("Subclasses must implement to_dict method")
     
     @classmethod
     @abstractmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'CRDT':
         """Deserialize from dictionary"""
-        pass
+        raise NotImplementedError("Subclasses must implement from_dict method")
 
 class GCounter(CRDT):
     """Grow-only counter CRDT"""

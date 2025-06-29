@@ -27,9 +27,9 @@ const ObservabilityDemo: React.FC<ObservabilityDemoProps> = ({ meetingId }) => {
   const {
     log,
     logError,
-    logUserAction,
+    logUserAction: _logUserAction,
     recordPerformance,
-    trace,
+    trace: _trace,
     componentName,
     isInitialized,
   } = useObservability('ObservabilityDemo');
@@ -54,7 +54,7 @@ const ObservabilityDemo: React.FC<ObservabilityDemoProps> = ({ meetingId }) => {
   // Business events
   const {
     trackMeetingEvent,
-    trackAudioEvent,
+    trackAudioEvent: _trackAudioEvent,
     trackAIEvent,
     trackUserEvent,
   } = useBusinessEvents();
@@ -83,7 +83,7 @@ const ObservabilityDemo: React.FC<ObservabilityDemoProps> = ({ meetingId }) => {
   const traceAsync = useAsyncOperation();
 
   // Local state
-  const [demoData, setDemoData] = useState<any>(null);
+  const [demoData, setDemoData] = useState<{ metrics: Record<string, number>; logs: Array<{ timestamp: number; level: string; message: string }>; traces: Array<{ id: string; duration: number; status: string }> } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

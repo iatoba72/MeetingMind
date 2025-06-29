@@ -79,7 +79,6 @@ interface KnowledgeGraphVisualizationProps {
   meetingIds?: string[];
   selectedNode?: string;
   onNodeSelect?: (nodeId: string, nodeData: Node) => void;
-  onEdgeSelect?: (edgeId: string, edgeData: Edge) => void;
   onClusterSelect?: (clusterId: string) => void;
   height?: number;
   width?: number;
@@ -91,7 +90,6 @@ export const KnowledgeGraphVisualization: React.FC<KnowledgeGraphVisualizationPr
   meetingIds = [],
   selectedNode,
   onNodeSelect,
-  onEdgeSelect,
   onClusterSelect,
   height = 600,
   width = 800,
@@ -445,7 +443,7 @@ export const KnowledgeGraphVisualization: React.FC<KnowledgeGraphVisualizationPr
               ].map(mode => (
                 <button
                   key={mode.id}
-                  onClick={() => setViewMode(mode.id as any)}
+                  onClick={() => setViewMode(mode.id as 'semantic' | 'timeline' | 'speakers' | 'topics')}
                   className={`
                     flex items-center px-3 py-2 text-sm
                     ${viewMode === mode.id 
@@ -480,7 +478,7 @@ export const KnowledgeGraphVisualization: React.FC<KnowledgeGraphVisualizationPr
                   <label className="block text-xs font-medium text-gray-700 mb-2">Layout</label>
                   <select
                     value={settings.layout}
-                    onChange={(e) => setSettings(prev => ({ ...prev, layout: e.target.value as any }))}
+                    onChange={(e) => setSettings(prev => ({ ...prev, layout: e.target.value as 'force' | 'hierarchical' | 'circular' | 'cluster' }))}
                     className="w-full text-xs border border-gray-300 rounded-md p-2"
                   >
                     <option value="force">Force Directed</option>
@@ -495,7 +493,7 @@ export const KnowledgeGraphVisualization: React.FC<KnowledgeGraphVisualizationPr
                   <label className="block text-xs font-medium text-gray-700 mb-2">Node Size</label>
                   <select
                     value={settings.nodeSize}
-                    onChange={(e) => setSettings(prev => ({ ...prev, nodeSize: e.target.value as any }))}
+                    onChange={(e) => setSettings(prev => ({ ...prev, nodeSize: e.target.value as 'uniform' | 'confidence' | 'connections' | 'importance' }))}
                     className="w-full text-xs border border-gray-300 rounded-md p-2"
                   >
                     <option value="uniform">Uniform</option>

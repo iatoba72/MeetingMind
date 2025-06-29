@@ -60,7 +60,7 @@ interface ClaudePlaygroundProps {
  * - Export functionality for analysis and documentation
  * - Integration with MeetingMind's AI provider system
  */
-export const ClaudePlayground: React.FC<ClaudePlaygroundProps> = ({ clientId }) => {
+export const ClaudePlayground: React.FC<ClaudePlaygroundProps> = () => {
   // Core state management
   const [apiKey, setApiKey] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
@@ -91,11 +91,11 @@ export const ClaudePlayground: React.FC<ClaudePlaygroundProps> = ({ clientId }) 
   const [debugInfo, setDebugInfo] = useState<PromptDebugInfo | null>(null);
   const [usageHistory, setUsageHistory] = useState<TokenUsage[]>([]);
   const [showDebugPanel, setShowDebugPanel] = useState(true);
-  const [showOptimizations, setShowOptimizations] = useState(true);
+  // const [_showOptimizations, _setShowOptimizations] = useState(true);
 
   // UI state
   const [activeTab, setActiveTab] = useState<'prompt' | 'templates' | 'history' | 'analytics'>('prompt');
-  const [isLearningMode, setIsLearningMode] = useState(true);
+  // const [_isLearningMode, _setIsLearningMode] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Refs for DOM manipulation
@@ -504,7 +504,7 @@ export const ClaudePlayground: React.FC<ClaudePlaygroundProps> = ({ clientId }) 
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'prompt' | 'templates' | 'history' | 'analytics')}
             className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               activeTab === tab.id
                 ? 'bg-white text-gray-900 shadow-sm'

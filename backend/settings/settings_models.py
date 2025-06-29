@@ -353,12 +353,12 @@ class SettingsMigration(ABC):
     @abstractmethod
     def migrate(self, settings: Dict[str, Any]) -> Dict[str, Any]:
         """Migrate settings from one version to another"""
-        pass
+        raise NotImplementedError("Subclasses must implement migrate method")
     
     @abstractmethod
     def rollback(self, settings: Dict[str, Any]) -> Dict[str, Any]:
         """Rollback migration"""
-        pass
+        raise NotImplementedError("Subclasses must implement rollback method")
     
     def can_migrate(self, current_version: str) -> bool:
         """Check if this migration can be applied"""

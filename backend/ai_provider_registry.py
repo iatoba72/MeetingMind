@@ -85,7 +85,7 @@ class BaseAIProvider(ABC):
         **kwargs
     ) -> Union[str, AsyncIterator[str]]:
         """Generate text response from the AI provider"""
-        pass
+        raise NotImplementedError("Subclasses must implement generate_text method")
     
     @abstractmethod
     async def chat_completion(
@@ -98,17 +98,17 @@ class BaseAIProvider(ABC):
         **kwargs
     ) -> Union[Dict[str, Any], AsyncIterator[Dict[str, Any]]]:
         """Generate chat completion response"""
-        pass
+        raise NotImplementedError("Subclasses must implement chat_completion method")
     
     @abstractmethod
     async def health_check(self) -> bool:
         """Perform provider health check"""
-        pass
+        raise NotImplementedError("Subclasses must implement health_check method")
     
     @abstractmethod
     def estimate_cost(self, input_tokens: int, output_tokens: int, model: str = None) -> float:
         """Estimate cost in cents for token usage"""
-        pass
+        raise NotImplementedError("Subclasses must implement estimate_cost method")
     
     def update_usage_metrics(self, input_tokens: int, output_tokens: int, latency_ms: float, cost_cents: float):
         """Update usage statistics"""

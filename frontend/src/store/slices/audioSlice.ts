@@ -170,7 +170,7 @@ export const createAudioSlice: StateCreator<
       }
       
       // Create audio context
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       const analyserNode = audioContext.createAnalyser();
       
       analyserNode.fftSize = 2048;
@@ -287,7 +287,7 @@ export const createAudioSlice: StateCreator<
       }));
       
       return true;
-    } catch (error) {
+    } catch {
       set(produce((state: AppState) => {
         state.devicePermissions.microphone = 'denied';
       }));

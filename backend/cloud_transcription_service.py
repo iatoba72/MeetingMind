@@ -133,7 +133,7 @@ class BaseTranscriptionProvider(ABC):
         language: Optional[str] = None
     ) -> TranscriptionResult:
         """Transcribe audio data and return result"""
-        pass
+        raise NotImplementedError("Subclasses must implement transcribe_audio method")
     
     @abstractmethod
     async def transcribe_realtime(
@@ -142,7 +142,7 @@ class BaseTranscriptionProvider(ABC):
         callback: Callable[[TranscriptionResult], None]
     ) -> None:
         """Real-time transcription with callback for results"""
-        pass
+        raise NotImplementedError("Subclasses must implement transcribe_realtime method")
     
     def calculate_cost(self, audio_duration: float) -> float:
         """Calculate cost for transcribing audio of given duration"""

@@ -82,21 +82,6 @@ export const MeetingStatistics: React.FC<MeetingStatisticsProps> = ({
 
   const stats = calculateStats();
 
-  // Get status color classes
-  const getStatusColor = (type: string) => {
-    switch (type) {
-      case 'active':
-        return 'bg-green-500';
-      case 'upcoming':
-        return 'bg-blue-500';
-      case 'ended':
-        return 'bg-gray-500';
-      case 'cancelled':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
 
   // Create stat cards data
   const statCards = [

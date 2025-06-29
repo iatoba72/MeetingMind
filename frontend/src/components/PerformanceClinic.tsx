@@ -4,41 +4,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   TrendingUp,
-  TrendingDown,
   Zap,
-  AlertTriangle,
-  CheckCircle,
   Target,
   BarChart3,
-  LineChart,
-  PieChart,
   Activity,
   Clock,
-  Cpu,
   HardDrive,
   Wifi,
   Download,
-  Upload,
-  Eye,
-  Settings,
   PlayCircle,
   StopCircle,
-  RotateCcw,
-  FileText,
-  Share,
   Filter,
-  Calendar,
   ArrowRight,
   ArrowUp,
   ArrowDown,
-  Info,
   Lightbulb,
   Gauge,
   Users
 } from 'lucide-react';
-import { performanceProfiler, PerformanceProfiler } from '../utils/PerformanceProfiler';
-import { optimizedWebSocketService } from '../services/OptimizedWebSocketService';
-import { cacheManager } from '../utils/CacheManager';
 
 interface OptimizationImpact {
   id: string;
@@ -98,12 +81,10 @@ interface PerformanceTest {
 export const PerformanceClinic: React.FC<{
   className?: string;
   onOptimizationSelect?: (optimization: OptimizationImpact) => void;
-  showAdvanced?: boolean;
 }> = ({
   className = '',
   onOptimizationSelect,
-  showAdvanced = false
-}) => {
+) => {
   // State
   const [activeTab, setActiveTab] = useState<'overview' | 'impacts' | 'scenarios' | 'tests'>('overview');
   const [optimizations, setOptimizations] = useState<OptimizationImpact[]>([]);

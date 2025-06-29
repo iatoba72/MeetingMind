@@ -6,7 +6,6 @@
 import { StateCreator } from 'zustand';
 import { produce } from 'immer';
 import { 
-  ObservabilityManager,
   ObservabilityConfig,
   initializeObservability,
   getObservabilityManager,
@@ -14,8 +13,8 @@ import {
 } from '../observability';
 import { MeetingMindTracer, TracedOperation } from '../observability/tracing';
 import { LoggerFactory, LogLevel } from '../observability/logging';
-import { healthMonitor, HealthCheckResult, SystemHealthSummary } from '../observability/health';
-import { getMetrics, BusinessMetricsCollector } from '../observability/metrics';
+import { healthMonitor, SystemHealthSummary } from '../observability/health';
+import { getMetrics } from '../observability/metrics';
 import { AppState, StoreActions } from '../types';
 
 export interface ObservabilityState {
@@ -61,17 +60,17 @@ export interface ObservabilitySlice {
   
   // Performance tracking
   updatePerformanceMetrics: (metrics: Partial<ObservabilityState['performanceMetrics']>) => void;
-  recordPerformanceEvent: (component: string, duration: number, context?: Record<string, any>) => void;
+  recordPerformanceEvent: (component: string, duration: number, context?: Record<string, unknown>) => void;
   
   // Tracing utilities
-  startTrace: (name: string, attributes?: Record<string, any>) => TracedOperation;
-  traceOperation: <T>(name: string, operation: () => Promise<T>, attributes?: Record<string, any>) => Promise<T>;
+  startTrace: (name: string, attributes?: Record<string, unknown>) => TracedOperation;
+  traceOperation: <T>(name: string, operation: () => Promise<T>, attributes?: Record<string, unknown>) => Promise<T>;
   
   // Logging utilities
-  logEvent: (level: LogLevel, message: string, context?: Record<string, any>) => void;
-  logError: (error: Error, context?: Record<string, any>) => void;
-  logUserAction: (action: string, component: string, context?: Record<string, any>) => void;
-  logBusinessEvent: (event: string, data: any, context?: Record<string, any>) => void;
+  logEvent: (level: LogLevel, message: string, context?: Record<string, unknown>) => void;
+  logError: (error: Error, context?: Record<string, unknown>) => void;
+  logUserAction: (action: string, component: string, context?: Record<string, unknown>) => void;
+  logBusinessEvent: (event: string, data: unknown, context?: Record<string, unknown>) => void;
   
   // Metrics utilities
   recordMetric: (metricName: string, value: number, labels?: Record<string, string>) => void;
@@ -79,14 +78,14 @@ export interface ObservabilitySlice {
   recordHistogram: (histogramName: string, value: number, labels?: Record<string, string>) => void;
   
   // Integration with store actions
-  traceStoreAction: <T>(actionName: string, action: () => T, context?: Record<string, any>) => T;
-  traceAsyncStoreAction: <T>(actionName: string, action: () => Promise<T>, context?: Record<string, any>) => Promise<T>;
+  traceStoreAction: <T>(actionName: string, action: () => T, context?: Record<string, unknown>) => T;
+  traceAsyncStoreAction: <T>(actionName: string, action: () => Promise<T>, context?: Record<string, unknown>) => Promise<T>;
   
   // Debugging utilities
   enableDebugMode: () => void;
   disableDebugMode: () => void;
-  getDebugInfo: () => Record<string, any>;
-  exportObservabilityData: () => Promise<any>;
+  getDebugInfo: () => Record<string, unknown>;
+  exportObservabilityData: () => Promise<unknown>;
 }
 
 const defaultObservabilityState: ObservabilityState = {
@@ -129,7 +128,7 @@ export const createObservabilitySlice: StateCreator<
   // Initialization
   initializeObservability: async (config) => {
     try {
-      const manager = await initializeObservability(config);
+      await initializeObservability(config);
       
       set(produce((state: AppState) => {
         state.observability.isInitialized = true;
@@ -141,7 +140,7 @@ export const createObservabilitySlice: StateCreator<
       }));
       
       // Start health monitoring
-      const summary = await get().runHealthCheck();
+      await get().runHealthCheck();
       
       // Set up periodic performance monitoring
       get().startPerformanceMonitoring();
@@ -400,7 +399,7 @@ export const createObservabilitySlice: StateCreator<
       health: healthMonitor.getLastResults(),
       metrics: getMetrics(),
       performance: {
-        memory: (performance as any).memory,
+        memory: (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory,
         timing: performance.timing,
         navigation: performance.navigation,
       },
@@ -432,7 +431,7 @@ export const createObservabilitySlice: StateCreator<
     
     // Monitor performance metrics every 5 seconds
     setInterval(() => {
-      const memory = (performance as any).memory;
+      const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
       if (memory) {
         get().updatePerformanceMetrics({
           memoryUsage: memory.usedJSHeapSize,
@@ -487,7 +486,7 @@ export function withObservabilityMiddleware<T extends object>(
     
     for (const [key, value] of Object.entries(store)) {
       if (typeof value === 'function') {
-        wrappedStore[key as keyof T] = (async (...args: any[]) => {
+        wrappedStore[key as keyof T] = (async (...args: unknown[]) => {
           const actionName = key;
           const isAsync = value.constructor.name === 'AsyncFunction';
           
@@ -514,7 +513,7 @@ export function withObservabilityMiddleware<T extends object>(
               throw error;
             }
           }
-        }) as any;
+        }) as T[keyof T];
       } else {
         wrappedStore[key as keyof T] = value;
       }

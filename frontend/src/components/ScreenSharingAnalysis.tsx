@@ -8,17 +8,10 @@ import {
   Button,
   Chip,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Paper,
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
-  Avatar,
-  Divider,
   Alert,
   Tabs,
   Tab,
@@ -26,26 +19,18 @@ import {
   FormControlLabel,
   CircularProgress,
   LinearProgress,
-  Tooltip,
   Fab,
   Snackbar
 } from '@mui/material';
 import {
   ScreenShare as ScreenShareIcon,
   StopScreenShare as StopIcon,
-  TextFields as TextIcon,
   Timeline as TimelineIcon,
   Science as LabIcon,
-  Settings as SettingsIcon,
   Visibility as ViewIcon,
   Download as DownloadIcon,
   Share as ShareIcon,
-  PlayArrow as PlayIcon,
-  Pause as PauseIcon,
-  RecordVoiceOver as SpeechIcon,
-  Assessment as AnalyticsIcon,
-  BugReport as DebugIcon,
-  Close as CloseIcon
+  Assessment as AnalyticsIcon
 } from '@mui/icons-material';
 
 // Services
@@ -228,9 +213,6 @@ const ScreenSharingAnalysis: React.FC = () => {
 
   const processFrameOCR = async (frame: CaptureFrame) => {
     try {
-      // Convert frame to image data
-      const imageData = frame.imageData;
-      
       // Process with OCR
       const ocrResult = await ocrService.extractTextFromSlide(frame.canvas);
       
@@ -411,7 +393,7 @@ const ScreenSharingAnalysis: React.FC = () => {
               control={
                 <Switch
                   checked={enableSlideDetection}
-                  onChange={(e) => setEnableSlideDetection(e.target.checked)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnableSlideDetection(e.target.checked)}
                   disabled={isActive}
                 />
               }
@@ -423,7 +405,7 @@ const ScreenSharingAnalysis: React.FC = () => {
               control={
                 <Switch
                   checked={enableOCR}
-                  onChange={(e) => setEnableOCR(e.target.checked)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnableOCR(e.target.checked)}
                   disabled={isActive}
                 />
               }
@@ -435,7 +417,7 @@ const ScreenSharingAnalysis: React.FC = () => {
               control={
                 <Switch
                   checked={autoSaveResults}
-                  onChange={(e) => setAutoSaveResults(e.target.checked)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAutoSaveResults(e.target.checked)}
                 />
               }
               label="Auto-save Results"
@@ -636,7 +618,7 @@ const ScreenSharingAnalysis: React.FC = () => {
         </Box>
       </Box>
 
-      <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
+      <Tabs value={activeTab} onChange={(_: React.SyntheticEvent, newValue: number) => setActiveTab(newValue)} sx={{ mb: 3 }}>
         <Tab 
           label="Dashboard" 
           icon={<ViewIcon />} 

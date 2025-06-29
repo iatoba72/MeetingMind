@@ -33,6 +33,8 @@ export interface UploadSession {
   uploadedChunks: Set<number>;
   createdAt: Date;
   lastActivity: Date;
+  fileFingerprint?: string; // SHA-256 hash of file for integrity
+  chunkHashes?: string[]; // Hash of each chunk for validation
 }
 
 export interface ChunkedUploadConfig {
@@ -65,8 +67,9 @@ export interface UseChunkedUploadReturn {
   retryFailedChunks: () => Promise<void>;
   
   // Session management
-  resumeSession: (sessionId: string, config: ChunkedUploadConfig) => Promise<void>;
+  resumeSession: (sessionId: string, file: File | Blob, config: ChunkedUploadConfig) => Promise<void>;
   clearSession: () => void;
+  getStoredSessions: () => UploadSession[];
   
   // Utilities
   clearError: () => void;
@@ -83,7 +86,9 @@ export interface UseChunkedUploadReturn {
  * 2. Upload Strategy:
  *    - Parallel uploads with configurable concurrency limits
  *    - Automatic retry logic with exponential backoff
- *    - Resume capability using stored session data
+ *    - Full resume capability with file integrity validation
+ *    - File fingerprinting to prevent resuming with wrong files
+ *    - Chunk hash validation for data integrity
  * 
  * 3. Server-Side Handling (Backend Requirements):
  *    - Endpoint should accept: sessionId, chunkIndex, chunkData, hash
@@ -95,6 +100,8 @@ export interface UseChunkedUploadReturn {
  *    - Failed chunks are tracked and can be retried individually
  *    - Network interruptions don't lose progress
  *    - Integrity validation ensures data consistency
+ *    - Session resumption with file integrity checks
+ *    - Automatic cleanup of old sessions (7 days)
  */
 
 export const useChunkedUpload = (): UseChunkedUploadReturn => {
@@ -113,14 +120,40 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
   const uploadStartTimeRef = useRef<number>(0);
   const lastProgressTimeRef = useRef<number>(0);
   const lastUploadedBytesRef = useRef<number>(0);
+  const originalFileRef = useRef<File | Blob | null>(null);
 
-  // Generate chunk hash for integrity validation
-  const generateChunkHash = useCallback(async (chunk: Blob): Promise<string> => {
-    const arrayBuffer = await chunk.arrayBuffer();
+  // Generate hash for integrity validation
+  const generateHash = useCallback(async (data: Blob | ArrayBuffer): Promise<string> => {
+    const arrayBuffer = data instanceof ArrayBuffer ? data : await data.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }, []);
+
+  // Generate file fingerprint for session validation
+  const generateFileFingerprint = useCallback(async (file: File | Blob): Promise<string> => {
+    // For large files, hash first 1MB + last 1MB + file size to create fingerprint
+    const fileSize = file.size;
+    const chunkSize = Math.min(1024 * 1024, fileSize); // 1MB or file size if smaller
+    
+    if (fileSize <= chunkSize * 2) {
+      // Small file, hash entire file
+      return await generateHash(file);
+    }
+    
+    // Large file, hash first chunk + last chunk + metadata
+    const firstChunk = file.slice(0, chunkSize);
+    const lastChunk = file.slice(fileSize - chunkSize, fileSize);
+    
+    const firstHash = await generateHash(firstChunk);
+    const lastHash = await generateHash(lastChunk);
+    const metadata = `${fileSize}_${file.type}_${file instanceof File ? file.name : 'blob'}`;
+    
+    // Combine hashes and metadata to create fingerprint
+    const combined = `${firstHash}_${lastHash}_${metadata}`;
+    const combinedBuffer = new TextEncoder().encode(combined);
+    return await generateHash(combinedBuffer);
+  }, [generateHash]);
 
   // Create upload chunks from file
   const createChunks = useCallback(async (
@@ -147,14 +180,14 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
       
       // Generate hash for validation if enabled
       if (validateChunks) {
-        chunk.hash = await generateChunkHash(chunkBlob);
+        chunk.hash = await generateHash(chunkBlob);
       }
       
       chunks.push(chunk);
     }
     
     return chunks;
-  }, [generateChunkHash]);
+  }, [generateHash]);
 
   // Calculate upload progress and speed
   const updateProgress = useCallback(() => {
@@ -255,10 +288,12 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
         
         // Save session to localStorage for resumability
         if (session) {
-          localStorage.setItem(`upload_session_${session.sessionId}`, JSON.stringify({
+          const sessionData = {
             ...session,
             uploadedChunks: Array.from(session.uploadedChunks),
-          }));
+            lastActivity: new Date().toISOString()
+          };
+          localStorage.setItem(`upload_session_${session.sessionId}`, JSON.stringify(sessionData));
         }
         
         return; // Success, exit retry loop
@@ -369,13 +404,20 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
       setIsUploading(true);
       setIsPaused(false);
       uploadConfigRef.current = config;
+      originalFileRef.current = file;
       
       const chunkSize = config.chunkSize || 1024 * 1024; // 1MB default
       const validateChunks = config.validateChunks || false;
       
+      // Generate file fingerprint for session validation
+      const fileFingerprint = await generateFileFingerprint(file);
+      
       // Create chunks
       const chunks = await createChunks(file, chunkSize, validateChunks);
       chunksRef.current = chunks;
+      
+      // Generate chunk hashes if validation is enabled
+      const chunkHashes = validateChunks ? chunks.map(chunk => chunk.hash!).filter(Boolean) : undefined;
       
       // Create upload session
       const sessionId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -389,6 +431,8 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
         uploadedChunks: new Set(),
         createdAt: new Date(),
         lastActivity: new Date(),
+        fileFingerprint,
+        chunkHashes,
       };
       
       setSession(newSession);
@@ -415,7 +459,7 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
     } finally {
       setIsUploading(false);
     }
-  }, [createChunks, updateProgress, uploadChunksConcurrently, finalizeUpload]);
+  }, [createChunks, updateProgress, uploadChunksConcurrently, finalizeUpload, generateFileFingerprint]);
 
   // Pause upload
   const pauseUpload = useCallback(() => {
@@ -497,6 +541,7 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
   // Resume from stored session
   const resumeSession = useCallback(async (
     sessionId: string,
+    file: File | Blob,
     config: ChunkedUploadConfig
   ): Promise<void> => {
     try {
@@ -513,17 +558,83 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
         lastActivity: new Date(sessionData.lastActivity),
       };
       
-      setSession(restoredSession);
+      // Validate file matches the original session
+      if (file.size !== restoredSession.fileSize) {
+        throw new Error('File size mismatch - cannot resume with different file');
+      }
+      
+      // Generate fingerprint for current file and compare
+      if (restoredSession.fileFingerprint) {
+        const currentFingerprint = await generateFileFingerprint(file);
+        if (currentFingerprint !== restoredSession.fileFingerprint) {
+          throw new Error('File fingerprint mismatch - cannot resume with different file');
+        }
+      }
+      
+      // Store original file reference
+      originalFileRef.current = file;
       uploadConfigRef.current = config;
       
-      // Note: Chunks would need to be recreated from the original file
-      // This is a limitation - we'd need to store chunk data or regenerate
-      console.warn('Session resumed, but chunks need to be recreated from original file');
+      // Recreate chunks from the original file
+      const validateChunks = config.validateChunks || false;
+      const chunks = await createChunks(file, restoredSession.chunkSize, validateChunks);
+      
+      // Validate chunk hashes if available
+      if (restoredSession.chunkHashes && validateChunks) {
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          const expectedHash = restoredSession.chunkHashes[i];
+          if (chunk.hash && expectedHash && chunk.hash !== expectedHash) {
+            throw new Error(`Chunk ${i} hash mismatch - file may have been modified`);
+          }
+        }
+      }
+      
+      chunksRef.current = chunks;
+      setSession(restoredSession);
+      setError(null);
+      
+      console.log(`Session ${sessionId} resumed successfully. ${restoredSession.uploadedChunks.size}/${restoredSession.totalChunks} chunks already uploaded.`);
       
     } catch (err) {
       setError(`Failed to resume session: ${(err as Error).message}`);
     }
+  }, [createChunks, generateFileFingerprint]);
+
+  // Get available stored sessions
+  const getStoredSessions = useCallback((): UploadSession[] => {
+    const sessions: UploadSession[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('upload_session_')) {
+        try {
+          const sessionData = JSON.parse(localStorage.getItem(key)!);
+          sessions.push({
+            ...sessionData,
+            uploadedChunks: new Set(sessionData.uploadedChunks),
+            createdAt: new Date(sessionData.createdAt),
+            lastActivity: new Date(sessionData.lastActivity),
+          });
+        } catch (e) {
+          // Invalid session data, remove it
+          localStorage.removeItem(key);
+        }
+      }
+    }
+    return sessions.sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
   }, []);
+
+  // Clean up old sessions (older than 7 days)
+  const cleanupOldSessions = useCallback(() => {
+    const cutoffDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+    const sessions = getStoredSessions();
+    
+    sessions.forEach(session => {
+      if (session.lastActivity < cutoffDate) {
+        localStorage.removeItem(`upload_session_${session.sessionId}`);
+      }
+    });
+  }, [getStoredSessions]);
 
   // Clear session
   const clearSession = useCallback(() => {
@@ -534,7 +645,11 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
     setProgress(null);
     chunksRef.current = [];
     failedChunksRef.current.clear();
-  }, [session]);
+    originalFileRef.current = null;
+    
+    // Cleanup old sessions periodically
+    cleanupOldSessions();
+  }, [session, cleanupOldSessions]);
 
   // Clear error
   const clearError = useCallback(() => {
@@ -559,6 +674,7 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
     // Session management
     resumeSession,
     clearSession,
+    getStoredSessions,
     
     // Utilities
     clearError,

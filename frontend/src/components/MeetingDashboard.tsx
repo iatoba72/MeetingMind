@@ -48,13 +48,13 @@ export const MeetingDashboard: React.FC<MeetingDashboardProps> = ({ clientId }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [, setSelectedMeeting] = useState<Meeting | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   
   // Filter and pagination state
   const [filters, setFilters] = useState<MeetingFilters>({});
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -99,37 +99,32 @@ export const MeetingDashboard: React.FC<MeetingDashboardProps> = ({ clientId }) 
   };
 
   // Create a new meeting
-  const createMeeting = async (meetingData: any) => {
-    try {
-      const response = await fetch('http://localhost:8000/meetings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...meetingData,
-          created_by: clientId
-        }),
-      });
+  const createMeeting = async (meetingData: { title: string; description: string; scheduled_start: string; scheduled_end: string; [key: string]: unknown }) => {
+    const response = await fetch('http://localhost:8000/meetings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...meetingData,
+        created_by: clientId
+      }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create meeting');
-      }
-
-      const newMeeting = await response.json();
-      
-      // Refresh the meetings list
-      await fetchMeetings(currentPage);
-      
-      // Close the modal
-      setShowCreateModal(false);
-      
-      return newMeeting;
-      
-    } catch (err) {
-      throw err; // Re-throw to be handled by the modal
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to create meeting');
     }
+
+    const newMeeting = await response.json();
+    
+    // Refresh the meetings list
+    await fetchMeetings(currentPage);
+    
+    // Close the modal
+    setShowCreateModal(false);
+    
+    return newMeeting;
   };
 
   // Delete a meeting
@@ -196,7 +191,7 @@ export const MeetingDashboard: React.FC<MeetingDashboardProps> = ({ clientId }) 
   // Load meetings on component mount and when dependencies change
   useEffect(() => {
     fetchMeetings(currentPage);
-  }, [filters, sortBy, sortOrder, pageSize]);
+  }, [filters, sortBy, sortOrder, pageSize, currentPage, fetchMeetings]);
 
   return (
     <div className="space-y-6">

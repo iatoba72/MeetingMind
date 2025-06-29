@@ -43,12 +43,10 @@ import {
   Download as DownloadIcon,
   Upload as UploadIcon,
   Template as TemplateIcon,
-  Code as CodeIcon,
   PlayArrow as PlayIcon,
   ExpandMore as ExpandMoreIcon,
   Help as HelpIcon,
-  Star as StarIcon,
-  StarBorder as StarBorderIcon
+  Star as StarIcon
 } from '@mui/icons-material';
 
 // Types
@@ -294,7 +292,7 @@ const SummaryWorkshop: React.FC = () => {
       ];
       
       setTemplates(mockTemplates);
-    } catch (err) {
+    } catch {
       setError('Failed to load templates');
     } finally {
       setLoading(false);
@@ -387,7 +385,7 @@ const SummaryWorkshop: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       setTemplates(prev => prev.filter(t => t.id !== template.id));
-    } catch (err) {
+    } catch {
       setError('Failed to delete template');
     } finally {
       setLoading(false);
@@ -514,7 +512,7 @@ const SummaryWorkshop: React.FC = () => {
           tags: importData.tags || []
         });
         setEditMode(true);
-      } catch (err) {
+      } catch {
         setError('Invalid template file format');
       }
     };
@@ -968,7 +966,7 @@ const SummaryWorkshop: React.FC = () => {
 
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="H6">Troubleshooting</Typography>
+              <Typography variant="h6">Troubleshooting</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Box>

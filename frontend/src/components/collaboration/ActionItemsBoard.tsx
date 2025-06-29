@@ -1,7 +1,7 @@
 // Shared Action Items Board with CRDT
 // Collaborative Kanban-style board for managing action items
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { 
   Plus, 
   Edit, 
@@ -13,12 +13,8 @@ import {
   CheckCircle, 
   Circle,
   MoreVertical,
-  Tag,
   MessageSquare,
-  Filter,
-  Search,
-  Users,
-  ArrowRight
+  Search
 } from 'lucide-react';
 
 interface ActionItem {

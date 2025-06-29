@@ -467,7 +467,7 @@ export const createStreamingSlice: StateCreator<
     const { streams } = get().streams;
     
     let totalUpload = 0;
-    let totalDownload = 0;
+    const totalDownload = 0;
     const byStream: Record<string, number> = {};
     
     Object.entries(streams).forEach(([id, stream]) => {

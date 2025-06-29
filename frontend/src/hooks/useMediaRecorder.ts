@@ -298,7 +298,7 @@ export const useMediaRecorder = (): UseMediaRecorderReturn => {
       };
       
       mediaRecorder.onerror = (event) => {
-        setError('MediaRecorder error: ' + (event as any).error);
+        setError('MediaRecorder error: ' + (event as Event & { error?: string }).error);
       };
       
       mediaRecorder.onstop = () => {

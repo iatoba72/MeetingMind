@@ -4,13 +4,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Activity,
-  Cpu,
-  HardDrive,
-  Wifi,
-  Zap,
-  Clock,
-  BarChart3,
-  LineChart,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -19,13 +12,10 @@ import {
   Monitor,
   Gauge,
   RefreshCw,
-  Download,
-  Settings,
   Eye,
   EyeOff,
   Maximize2,
   Minimize2,
-  Filter,
   Calendar,
   Info
 } from 'lucide-react';

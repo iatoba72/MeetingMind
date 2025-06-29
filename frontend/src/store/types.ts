@@ -3,8 +3,6 @@
  * Defines all types used across the Zustand store slices
  */
 
-import { ReactNode } from 'react';
-
 // ============================================================================
 // Core Application Types
 // ============================================================================
@@ -198,7 +196,7 @@ export interface StreamError {
   message: string;
   timestamp: Date;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface NetworkQuality {
@@ -253,13 +251,13 @@ export interface ProviderSettings {
   model?: string;
   temperature?: number;
   maxTokens?: number;
-  customParameters?: Record<string, any>;
+  customParameters?: Record<string, unknown>;
 }
 
 export interface AITask {
   id: string;
   type: AICapability['type'];
-  input: any;
+  input: Record<string, unknown>;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'queued' | 'processing' | 'completed' | 'error' | 'cancelled';
   createdAt: Date;
@@ -271,7 +269,7 @@ export interface AITask {
 export interface AIResult {
   taskId: string;
   type: AICapability['type'];
-  data: any;
+  data: Record<string, unknown>;
   confidence: number;
   processingTime: number;
   provider: string;
@@ -297,7 +295,7 @@ export interface MeetingInsight {
   timestamp: Date;
   tags?: string[];
   relatedSegments?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -399,7 +397,7 @@ export interface SidebarItem {
 
 export interface ModalState {
   activeModals: string[];
-  modalData: Record<string, any>;
+  modalData: Record<string, unknown>;
   modalHistory: string[];
 }
 
@@ -418,7 +416,7 @@ export interface AppNotification {
   isRead: boolean;
   isPersistent: boolean;
   actions?: NotificationAction[];
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface NotificationAction {
@@ -449,7 +447,7 @@ export interface LayoutConfig {
   id: string;
   name: string;
   description?: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   isDefault?: boolean;
 }
 
@@ -491,7 +489,7 @@ export interface AppError {
   details?: string;
   stack?: string;
   timestamp: Date;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   isResolved: boolean;
   resolution?: string;
 }
@@ -543,7 +541,7 @@ export interface StoreActions {
   setTheme: (theme: UIState['theme']) => void;
   toggleSidebar: () => void;
   setSidebarSection: (section: string) => void;
-  openModal: (modalId: string, data?: any) => void;
+  openModal: (modalId: string, data?: Record<string, unknown>) => void;
   closeModal: (modalId: string) => void;
   closeAllModals: () => void;
   
@@ -620,13 +618,13 @@ export type DeepPartial<T> = {
 export type StoreSlice<T> = (
   set: (partial: T | Partial<T> | ((state: T) => T | Partial<T>)) => void,
   get: () => T,
-  api: any
+  api: unknown
 ) => T;
 
-export interface AsyncAction<T = any> {
+export interface AsyncAction<T = unknown> {
   (args: T): Promise<void>;
 }
 
-export interface SyncAction<T = any> {
+export interface SyncAction<T = unknown> {
   (args: T): void;
 }

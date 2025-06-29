@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -16,24 +16,16 @@ import {
   List,
   ListItem,
   ListItemText,
-  Divider,
   Alert,
   Tabs,
   Tab,
   Switch,
   FormControlLabel,
-  CircularProgress,
   LinearProgress,
-  Tooltip,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
-  Slider,
-  TextField,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Table,
   TableBody,
   TableCell,
@@ -49,14 +41,9 @@ import {
   Group as GroupIcon,
   Timer as TimerIcon,
   Psychology as InsightIcon,
-  Download as DownloadIcon,
-  Share as ShareIcon,
-  Settings as SettingsIcon,
   Refresh as RefreshIcon,
-  PlayArrow as PlayIcon,
   FilterList as FilterIcon,
-  ExpandMore as ExpandMoreIcon,
-  Assessment as ReportIcon,
+  Report as ReportIcon,
   Science as ExperimentIcon,
   Visibility as ViewIcon,
   Edit as EditIcon,
@@ -65,8 +52,6 @@ import {
   SaveAlt as ExportIcon
 } from '@mui/icons-material';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,
@@ -91,13 +76,6 @@ import {
 
 import AnalyticsService, {
   MeetingAnalytics,
-  ParticipationMetrics,
-  SentimentMetrics,
-  EfficiencyMetrics,
-  TopicDistribution,
-  CollaborationPattern,
-  CustomMetric,
-  MetricFilter,
   SpeechSegment
 } from '../services/analyticsService';
 
@@ -108,12 +86,29 @@ interface AnalyticsPeriod {
   value: number; // days
 }
 
-interface DashboardFilter {
-  dateRange: [Date, Date];
-  participants: string[];
-  meetingTypes: string[];
-  minDuration: number;
-  maxDuration: number;
+// interface DashboardFilter {
+//   dateRange: [Date, Date];
+//   participants: string[];
+//   meetingTypes: string[];
+//   minDuration: number;
+//   maxDuration: number;
+// }
+
+interface CustomMetric {
+  id: string;
+  name: string;
+  description: string;
+  formula: string;
+  dataSource: string[];
+  aggregation: string;
+  filters: string[];
+  visualization: string;
+  thresholds: {
+    excellent: number;
+    good: number;
+    average: number;
+    poor: number;
+  };
 }
 
 interface MetricVisualization {
@@ -145,24 +140,15 @@ const AnalyticsDashboard: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<AnalyticsPeriod>(PERIODS[2]);
 
   // Data
-  const [meetingAnalytics, setMeetingAnalytics] = useState<MeetingAnalytics[]>([]);
   const [currentAnalytics, setCurrentAnalytics] = useState<MeetingAnalytics | null>(null);
-  const [aggregatedMetrics, setAggregatedMetrics] = useState<any>(null);
+  const [aggregatedMetrics, setAggregatedMetrics] = useState<Record<string, unknown> | null>(null);
 
   // UI State
   const [showFilters, setShowFilters] = useState(false);
   const [showPlayground, setShowPlayground] = useState(false);
-  const [dashboardFilter, setDashboardFilter] = useState<DashboardFilter>({
-    dateRange: [new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), new Date()],
-    participants: [],
-    meetingTypes: [],
-    minDuration: 0,
-    maxDuration: 180 // 3 hours
-  });
 
   // Custom metrics
   const [customMetrics, setCustomMetrics] = useState<CustomMetric[]>([]);
-  const [editingMetric, setEditingMetric] = useState<CustomMetric | null>(null);
 
   // Visualization settings
   const [visualizations, setVisualizations] = useState<MetricVisualization[]>([
@@ -172,35 +158,7 @@ const AnalyticsDashboard: React.FC = () => {
     { id: 'topics', type: 'pie', title: 'Topic Distribution', dataKey: 'duration', color: COLORS[3], enabled: true }
   ]);
 
-  // Initialize and load data
-  useEffect(() => {
-    loadAnalyticsData();
-  }, [selectedPeriod, dashboardFilter]);
-
-  const loadAnalyticsData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      // Mock data - in real implementation, this would fetch from API
-      const mockMeetings = await generateMockAnalytics();
-      setMeetingAnalytics(mockMeetings);
-
-      if (mockMeetings.length > 0) {
-        setCurrentAnalytics(mockMeetings[0]);
-        const aggregated = aggregateMetrics(mockMeetings);
-        setAggregatedMetrics(aggregated);
-      }
-
-    } catch (err) {
-      setError('Failed to load analytics data');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateMockAnalytics = async (): Promise<MeetingAnalytics[]> => {
+  const generateMockAnalytics = useCallback(async (): Promise<MeetingAnalytics[]> => {
     // Generate mock speech segments
     const mockSegments: SpeechSegment[] = [
       {
@@ -254,7 +212,7 @@ const AnalyticsDashboard: React.FC = () => {
 
     const analytics = await analyticsService.analyzeMeeting('meeting_1', mockSegments, mockMetadata);
     return [analytics];
-  };
+  }, [analyticsService]);
 
   const aggregateMetrics = (analytics: MeetingAnalytics[]) => {
     const totalMeetings = analytics.length;
@@ -300,6 +258,34 @@ const AnalyticsDashboard: React.FC = () => {
       .map(([type, count]) => ({ type, count }))
       .sort((a, b) => b.count - a.count);
   };
+
+  const loadAnalyticsData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Mock data - in real implementation, this would fetch from API
+      const mockMeetings = await generateMockAnalytics();
+      setMeetingAnalytics(mockMeetings);
+
+      if (mockMeetings.length > 0) {
+        setCurrentAnalytics(mockMeetings[0]);
+        const aggregated = aggregateMetrics(mockMeetings);
+        setAggregatedMetrics(aggregated);
+      }
+
+    } catch (err) {
+      setError('Failed to load analytics data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [generateMockAnalytics, aggregateMetrics]);
+
+  // Initialize and load data
+  useEffect(() => {
+    loadAnalyticsData();
+  }, [selectedPeriod, loadAnalyticsData]);
 
   // Render participation metrics
   const renderParticipationMetrics = () => {
@@ -530,7 +516,7 @@ const AnalyticsDashboard: React.FC = () => {
                 outerRadius={80}
                 dataKey="percentage"
                 nameKey="topic"
-                label={({ topic, percentage }) => `${topic}: ${percentage.toFixed(1)}%`}
+                label={({ topic, percentage }: { topic: string, percentage: number }) => `${topic}: ${percentage.toFixed(1)}%`}
               >
                 {topicData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />

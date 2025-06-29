@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 
 interface CreateTemplateModalProps {
   onClose: () => void;
-  onCreate: (templateData: any) => Promise<any>;
+  onCreate: (templateData: TemplateFormData) => Promise<{ id: string; success: boolean }>;
   categories: Array<{ value: string; label: string; icon: string }>;
 }
 

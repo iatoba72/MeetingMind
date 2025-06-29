@@ -1,5 +1,5 @@
 # Core FastAPI dependencies
-fastapi==0.104.1          # Modern, fast web framework for building APIs with Python
+fastapi==0.109.1          # Modern, fast web framework for building APIs with Python
 uvicorn[standard]==0.24.0 # ASGI server for running FastAPI applications
 websockets==12.0          # WebSocket support for real-time communication
 
@@ -17,7 +17,7 @@ pytest-asyncio==0.21.1  # Async testing support
 httpx==0.25.2           # HTTP client for testing FastAPI endpoints
 
 # CORS and security
-python-multipart==0.0.6 # File upload support
+python-multipart==0.0.18 # File upload support
 python-jose[cryptography]==3.3.0 # JWT token handling
 passlib[bcrypt]==1.7.4   # Password hashing
 

@@ -3,7 +3,7 @@
 // for learning and debugging purposes
 
 import { useState } from 'react';
-import { WebSocketHook, WebSocketMessage } from '../hooks/useWebSocket';
+import { WebSocketHook } from '../hooks/useWebSocket';
 
 interface DebugPanelProps {
   websocket: WebSocketHook;
@@ -97,7 +97,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ websocket }) => {
   
   // Send test message
   const sendTestMessage = (type: string) => {
-    const testMessages: Record<string, any> = {
+    const testMessages: Record<string, Record<string, unknown>> = {
       ping: { timestamp: new Date().toISOString() },
       chat_message: { 
         message: 'Test message from debug panel',

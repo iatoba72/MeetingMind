@@ -515,18 +515,228 @@ class CRMSyncPlugin(BasePlugin):
     
     async def _sync_insights_to_crm(self, sync_item: Dict[str, Any]):
         """Sync insights to CRM as notes or activities"""
-        # Implementation for syncing insights
-        pass
+        try:
+            meeting_id = sync_item.get('meeting_id')
+            insights_data = sync_item.get('insights_data', [])
+            
+            if not self.crm_provider:
+                self.context.log('warning', 'No CRM provider configured')
+                return
+            
+            # Get meeting participants to find CRM contacts
+            meeting_data = await self.context.get_meeting_data(meeting_id)
+            participants = meeting_data.get('participants', [])
+            
+            # For each insight, create activities in CRM
+            for insight in insights_data:
+                insight_text = f"Meeting Insight: {insight.get('title', 'Untitled')}\n"
+                insight_text += f"Description: {insight.get('description', '')}\n"
+                insight_text += f"Confidence: {insight.get('confidence', 0)}%\n"
+                insight_text += f"Generated: {insight.get('timestamp', '')}"
+                
+                # Find CRM contacts for participants
+                for participant in participants:
+                    email = participant.get('email')
+                    if email:
+                        contact = await self.crm_provider.get_contact_by_email(email)
+                        if contact:
+                            # Add insight as activity to the contact
+                            activity_data = {
+                                'subject': f"Meeting Insight: {insight.get('title', 'Untitled')}",
+                                'description': insight_text,
+                                'activity_type': 'Note',
+                                'meeting_id': meeting_id,
+                                'insight_id': insight.get('id'),
+                                'created_date': datetime.now().isoformat()
+                            }
+                            
+                            await self.crm_provider.add_activity(contact.crm_id, activity_data)
+                            self.context.log('info', f'Synced insight to CRM contact: {email}')
+                        
+        except Exception as e:
+            self.context.log('error', f'Error syncing insights to CRM: {e}')
     
     async def _sync_action_item_to_crm(self, sync_item: Dict[str, Any]):
         """Sync action items to CRM as tasks"""
-        # Implementation for syncing action items
-        pass
+        try:
+            action_item_data = sync_item.get('action_item_data', {})
+            meeting_id = sync_item.get('meeting_id')
+            
+            if not self.crm_provider:
+                self.context.log('warning', 'No CRM provider configured')
+                return
+            
+            # Extract action item details
+            title = action_item_data.get('title', 'Action Item')
+            description = action_item_data.get('description', '')
+            assignee_email = action_item_data.get('assignee_email')
+            due_date = action_item_data.get('due_date')
+            priority = action_item_data.get('priority', 'medium')
+            
+            # Find assignee contact in CRM
+            assignee_contact = None
+            if assignee_email:
+                assignee_contact = await self.crm_provider.get_contact_by_email(assignee_email)
+            
+            if assignee_contact:
+                # Create task/activity in CRM
+                task_data = {
+                    'subject': f"Action Item: {title}",
+                    'description': f"{description}\n\nFrom meeting: {meeting_id}",
+                    'activity_type': 'Task',
+                    'status': 'Open',
+                    'priority': priority.capitalize(),
+                    'due_date': due_date,
+                    'meeting_id': meeting_id,
+                    'action_item_id': action_item_data.get('id'),
+                    'created_date': datetime.now().isoformat()
+                }
+                
+                await self.crm_provider.add_activity(assignee_contact.crm_id, task_data)
+                self.context.log('info', f'Synced action item to CRM contact: {assignee_email}')
+            else:
+                # If no assignee contact found, log warning
+                self.context.log('warning', f'No CRM contact found for assignee: {assignee_email}')
+                
+                # Optionally sync to all meeting participants
+                meeting_data = await self.context.get_meeting_data(meeting_id)
+                participants = meeting_data.get('participants', [])
+                
+                for participant in participants[:1]:  # Just first participant as fallback
+                    email = participant.get('email')
+                    if email:
+                        contact = await self.crm_provider.get_contact_by_email(email)
+                        if contact:
+                            task_data = {
+                                'subject': f"Action Item (Unassigned): {title}",
+                                'description': f"{description}\n\nOriginal assignee: {assignee_email}\nFrom meeting: {meeting_id}",
+                                'activity_type': 'Task',
+                                'status': 'Open',
+                                'priority': priority.capitalize(),
+                                'due_date': due_date,
+                                'meeting_id': meeting_id,
+                                'action_item_id': action_item_data.get('id'),
+                                'created_date': datetime.now().isoformat()
+                            }
+                            
+                            await self.crm_provider.add_activity(contact.crm_id, task_data)
+                            self.context.log('info', f'Synced unassigned action item to participant: {email}')
+                            break
+                        
+        except Exception as e:
+            self.context.log('error', f'Error syncing action item to CRM: {e}')
     
     async def _create_opportunity_from_meeting(self, meeting_data: Dict[str, Any]):
         """Create CRM opportunity from meeting data"""
-        # Implementation for creating opportunities
-        pass
+        try:
+            if not self.crm_provider:
+                self.context.log('warning', 'No CRM provider configured')
+                return
+            
+            meeting_id = meeting_data.get('id')
+            meeting_title = meeting_data.get('title', 'Untitled Meeting')
+            participants = meeting_data.get('participants', [])
+            
+            # Check if meeting has indicators for sales opportunity
+            # Look for keywords in meeting content that suggest sales opportunity
+            meeting_summary = meeting_data.get('summary', '')
+            insights = meeting_data.get('insights', [])
+            
+            # Keywords that suggest this might be a sales opportunity
+            opportunity_keywords = [
+                'proposal', 'quote', 'pricing', 'budget', 'purchase', 'buy', 'sell',
+                'contract', 'deal', 'negotiation', 'decision', 'timeline', 'next steps',
+                'investment', 'cost', 'value', 'solution', 'requirements'
+            ]
+            
+            # Check if meeting content suggests an opportunity
+            content_text = f"{meeting_title} {meeting_summary}".lower()
+            has_opportunity_indicators = any(keyword in content_text for keyword in opportunity_keywords)
+            
+            # Also check insights for sales-related content
+            for insight in insights:
+                insight_text = f"{insight.get('title', '')} {insight.get('description', '')}".lower()
+                if any(keyword in insight_text for keyword in opportunity_keywords):
+                    has_opportunity_indicators = True
+                    break
+            
+            if not has_opportunity_indicators:
+                self.context.log('info', f'Meeting {meeting_id} does not appear to be sales-related')
+                return
+            
+            # Find primary contact (first external participant)
+            primary_contact = None
+            contact_ids = []
+            
+            for participant in participants:
+                email = participant.get('email')
+                if email:
+                    contact = await self.crm_provider.get_contact_by_email(email)
+                    if contact:
+                        contact_ids.append(contact.crm_id)
+                        if not primary_contact:
+                            primary_contact = contact
+            
+            if not primary_contact:
+                self.context.log('warning', f'No CRM contacts found for meeting participants')
+                return
+            
+            # Extract opportunity details from meeting
+            opportunity_name = f"{meeting_title} - {primary_contact.company or primary_contact.name}"
+            
+            # Estimate opportunity value based on meeting content (simplified logic)
+            estimated_value = None
+            if 'enterprise' in content_text or 'large' in content_text:
+                estimated_value = 50000
+            elif 'small' in content_text or 'startup' in content_text:
+                estimated_value = 10000
+            else:
+                estimated_value = 25000  # Default estimate
+            
+            # Determine stage based on meeting content
+            stage = 'Qualification'
+            if 'proposal' in content_text or 'quote' in content_text:
+                stage = 'Proposal'
+            elif 'negotiation' in content_text or 'contract' in content_text:
+                stage = 'Negotiation'
+            elif 'decision' in content_text or 'close' in content_text:
+                stage = 'Closing'
+            
+            # Set close date (30-90 days from now based on stage)
+            from datetime import timedelta
+            days_to_close = {'Qualification': 90, 'Proposal': 60, 'Negotiation': 30, 'Closing': 14}
+            close_date = datetime.now() + timedelta(days=days_to_close.get(stage, 60))
+            
+            # Create opportunity
+            opportunity_data = {
+                'name': opportunity_name,
+                'stage': stage,
+                'value': estimated_value,
+                'close_date': close_date.isoformat(),
+                'contact_ids': contact_ids,
+                'meeting_id': meeting_id,
+                'description': f"Opportunity created from meeting: {meeting_title}\n\nSummary: {meeting_summary}",
+                'source': 'Meeting',
+                'created_date': datetime.now().isoformat()
+            }
+            
+            opportunity = await self.crm_provider.create_opportunity(opportunity_data)
+            self.context.log('info', f'Created CRM opportunity: {opportunity.name} (ID: {opportunity.crm_id})')
+            
+            # Add meeting summary as activity to the opportunity
+            activity_data = {
+                'subject': f"Meeting Notes: {meeting_title}",
+                'description': f"Meeting Summary:\n{meeting_summary}\n\nParticipants: {', '.join([p.get('name', p.get('email', 'Unknown')) for p in participants])}",
+                'activity_type': 'Meeting',
+                'meeting_id': meeting_id,
+                'created_date': datetime.now().isoformat()
+            }
+            
+            # Add activity to primary contact
+            await self.crm_provider.add_activity(primary_contact.crm_id, activity_data)
+            
+        except Exception as e:
+            self.context.log('error', f'Error creating opportunity from meeting: {e}')
     
     def get_api_routes(self) -> List[Dict[str, Any]]:
         """Get API routes provided by this plugin"""

@@ -171,8 +171,32 @@ class AudioPipelineManager:
     async def _stop_network_source(self, source_id: str):
         """Stop a specific network source"""
         logger.info(f"Stopping network source: {source_id}")
-        # Implementation would stop the specific network stream
-        pass
+        
+        if not self.network_audio_server:
+            logger.warning("Network audio server not available")
+            return
+        
+        # Remove the stream from active streams
+        active_streams = self.network_audio_server.get_active_streams()
+        if source_id in active_streams:
+            # Get stream info before removal
+            stream_info = active_streams[source_id]
+            logger.info(f"Stopping stream {source_id} ({stream_info.protocol.value})")
+            
+            # Remove from active streams
+            if hasattr(self.network_audio_server, 'active_streams'):
+                self.network_audio_server.active_streams.pop(source_id, None)
+            
+            # Stop any recording for this stream
+            if hasattr(self.network_audio_server, 'recorded_streams') and source_id in self.network_audio_server.recorded_streams:
+                self.network_audio_server.recorded_streams.pop(source_id, None)
+                
+            # Remove from pipeline processor
+            await pipeline_processor.remove_source(source_id)
+            
+            logger.info(f"Successfully stopped network source: {source_id}")
+        else:
+            logger.warning(f"Network source {source_id} not found in active streams")
     
     async def _handle_audio_chunks(self, client_id: str, message: Dict[str, Any]):
         """Handle audio chunks from frontend"""

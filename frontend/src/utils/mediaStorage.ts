@@ -220,8 +220,7 @@ class MediaStorageManager {
    */
   async uploadFile(
     file: File,
-    policy: UploadPolicy,
-    _onProgress?: (progress: number) => void
+    policy: UploadPolicy
   ): Promise<MediaFile> {
     // Validate file
     this.validateFile(file, policy);
@@ -445,7 +444,7 @@ class MediaStorageManager {
   /**
    * Get transcription for media file
    */
-  async getTranscription(fileId: string): Promise<any[]> {
+  async getTranscription(fileId: string): Promise<Array<{ timestamp: number; text: string; speaker?: string }>> {
     const response = await fetch(`${this.baseUrl}/media/${fileId}/transcription`, {
       headers: this.getAuthHeaders(),
     });

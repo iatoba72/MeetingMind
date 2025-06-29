@@ -399,9 +399,42 @@ class PluginSecurityManager:
     
     def load_malware_signatures(self):
         """Load known malware signatures"""
+        # Initialize with known malicious patterns and hashes
         # In production, this would load from a security database
-        # For now, just initialize empty set
-        pass
+        
+        # Known malicious code patterns (simplified examples)
+        malicious_patterns = [
+            # Remote code execution attempts
+            r"eval\s*\(\s*input\s*\(\s*\)\s*\)",
+            r"exec\s*\(\s*input\s*\(\s*\)\s*\)",
+            r"__import__\s*\(\s*[\"']os[\"']\s*\)",
+            
+            # File system manipulation
+            r"open\s*\(\s*[\"']/etc/passwd[\"']",
+            r"os\.system\s*\(\s*[\"']rm\s+-rf",
+            r"subprocess\.call\s*\(\s*[\"']rm\s+-rf",
+            
+            # Network exploitation
+            r"socket\.socket\s*\(\s*socket\.AF_INET\s*,\s*socket\.SOCK_RAW",
+            r"urllib\.request\.urlopen\s*\(\s*[\"']http://.*malware",
+            
+            # Privilege escalation
+            r"os\.setuid\s*\(\s*0\s*\)",
+            r"os\.setgid\s*\(\s*0\s*\)",
+            
+            # Data exfiltration
+            r"pickle\.loads\s*\(",
+            r"marshal\.loads\s*\(",
+        ]
+        
+        self.malicious_patterns = [re.compile(pattern) for pattern in malicious_patterns]
+        
+        # Known malware file hashes (examples - in production these would be from threat intel)
+        self.known_malware_hashes = {
+            # Example hashes of known malicious files
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",  # Empty file (placeholder)
+            "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",   # Known bad pattern
+        }
     
     def validate_plugin(self, plugin_path: Path) -> SecurityValidationResult:
         """Comprehensive security validation of plugin"""
@@ -508,9 +541,13 @@ class PluginSecurityManager:
                             recommendation="Remove binary files or justify their necessity"
                         ))
                     
-                except Exception:
-                    # Skip files that can't be accessed
-                    pass
+                except Exception as e:
+                    # Log error and continue with other files
+                    result.add_issue(SecurityIssue(
+                        violation_type=SecurityViolationType.RESOURCE_ABUSE,
+                        severity="warning",
+                        description=f"Could not access file {file_path.name}: {str(e)}"
+                    ))
     
     def _check_malware_signatures(self, plugin_path: Path, result: SecurityValidationResult):
         """Check for known malware signatures"""
@@ -545,9 +582,13 @@ class PluginSecurityManager:
                             f"Suspicious pattern '{pattern}' found in {file_path.name}"
                         )
                 
-            except Exception:
-                # Skip files that can't be read
-                pass
+            except Exception as e:
+                # Log error but continue scanning other files
+                result.add_issue(SecurityIssue(
+                    violation_type=SecurityViolationType.RESOURCE_ABUSE,
+                    severity="warning", 
+                    description=f"Could not scan file {file_path.name} for malware: {str(e)}"
+                ))
     
     def create_policy(self, manifest: PluginManifest) -> SecurityPolicy:
         """Create security policy from manifest"""
@@ -556,8 +597,103 @@ class PluginSecurityManager:
     
     def validate_runtime_access(self, plugin_id: str, capability: PluginCapability, context: Dict[str, Any] = None) -> bool:
         """Validate runtime access request"""
-        # This would check against the plugin's security policy
-        # and current runtime context
+        try:
+            # Check if plugin is registered and trusted
+            if plugin_id not in self.trusted_plugins:
+                logger.warning(f"Access denied: Plugin {plugin_id} not in trusted list")
+                return False
+            
+            # Get plugin's security policy
+            plugin_policy = self.plugin_policies.get(plugin_id)
+            if not plugin_policy:
+                logger.warning(f"Access denied: No security policy found for plugin {plugin_id}")
+                return False
+            
+            # Check if capability is allowed by policy
+            if capability not in plugin_policy.allowed_capabilities:
+                logger.warning(f"Access denied: Capability {capability.value} not allowed for plugin {plugin_id}")
+                return False
+            
+            # Validate resource limits if specified
+            if context:
+                # Check memory usage limit
+                memory_usage = context.get('memory_usage', 0)
+                if memory_usage > plugin_policy.max_memory_mb * 1024 * 1024:
+                    logger.warning(f"Access denied: Plugin {plugin_id} exceeded memory limit")
+                    return False
+                
+                # Check file access permissions
+                file_path = context.get('file_path')
+                if file_path and not self._validate_file_access(plugin_id, file_path, plugin_policy):
+                    logger.warning(f"Access denied: Plugin {plugin_id} not allowed to access {file_path}")
+                    return False
+                
+                # Check network access permissions
+                network_host = context.get('network_host')
+                if network_host and not self._validate_network_access(plugin_id, network_host, plugin_policy):
+                    logger.warning(f"Access denied: Plugin {plugin_id} not allowed to access {network_host}")
+                    return False
+            
+            logger.debug(f"Access granted: Plugin {plugin_id} for capability {capability.value}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating runtime access for plugin {plugin_id}: {e}")
+            return False
+    
+    def _validate_file_access(self, plugin_id: str, file_path: str, policy: SecurityPolicy) -> bool:
+        """Validate file access permissions"""
+        from pathlib import Path
+        
+        # Convert to Path object for easier manipulation
+        path = Path(file_path).resolve()
+        
+        # Check against allowed paths
+        for allowed_path in policy.allowed_file_paths:
+            if path.is_relative_to(Path(allowed_path).resolve()):
+                return True
+        
+        # Check against blocked paths
+        for blocked_path in policy.blocked_file_paths:
+            if path.is_relative_to(Path(blocked_path).resolve()):
+                return False
+        
+        # Default deny for sensitive system paths
+        sensitive_paths = ['/etc', '/sys', '/proc', '/dev', '/root']
+        for sensitive in sensitive_paths:
+            if path.is_relative_to(Path(sensitive)):
+                return False
+        
+        return True
+    
+    def _validate_network_access(self, plugin_id: str, host: str, policy: SecurityPolicy) -> bool:
+        """Validate network access permissions"""
+        import ipaddress
+        
+        # Check against allowed hosts/domains
+        for allowed_host in policy.allowed_network_hosts:
+            if host == allowed_host or host.endswith(f".{allowed_host}"):
+                return True
+        
+        # Check against blocked hosts
+        for blocked_host in policy.blocked_network_hosts:
+            if host == blocked_host or host.endswith(f".{blocked_host}"):
+                return False
+        
+        # Block access to local network by default
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback:
+                return False
+        except ValueError:
+            # Not an IP address, continue with hostname checks
+            pass
+        
+        # Block localhost variants
+        localhost_variants = ['localhost', '127.0.0.1', '::1', '0.0.0.0']
+        if host.lower() in localhost_variants:
+            return False
+        
         return True
 
 class SecurityError(Exception):

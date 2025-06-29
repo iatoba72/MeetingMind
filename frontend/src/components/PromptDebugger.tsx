@@ -168,7 +168,7 @@ export const PromptDebugger: React.FC<PromptDebuggerProps> = ({
     const suggestions = generateDetailedOptimizations(currentPrompt, tokenCount, estimatedCost, metrics);
     setOptimizationSuggestions(suggestions);
 
-  }, [currentPrompt, selectedModel, maxTokens, temperature]);
+  }, [currentPrompt, selectedModel, maxTokens, temperature, calculatePromptMetrics, generateDetailedOptimizations, generateOptimizationSuggestions]);
 
   /**
    * Calculate comprehensive prompt metrics
@@ -670,7 +670,7 @@ export const PromptDebugger: React.FC<PromptDebuggerProps> = ({
               <button
                 onClick={() => {
                   const sections = currentPrompt.split('\n').filter(line => line.trim());
-                  const structured = sections.map((line, index) => 
+                  const structured = sections.map((line) => 
                     line.startsWith('•') || line.match(/^\d+\./) ? line : `• ${line}`
                   ).join('\n');
                   handlePromptChange(structured);

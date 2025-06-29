@@ -136,7 +136,7 @@ export class ObservabilityManager {
   getStatus(): {
     initialized: boolean;
     config: ObservabilityConfig;
-    systemHealth?: any;
+    systemHealth?: Record<string, unknown>;
   } {
     return {
       initialized: this.isInitialized,

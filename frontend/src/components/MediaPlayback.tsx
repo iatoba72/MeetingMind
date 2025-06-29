@@ -146,11 +146,9 @@ export const MediaPlayback: React.FC<MediaPlaybackProps> = React.memo(({
   const [studyMode, setStudyMode] = useState(enableStudyMode);
   
   // UI state
-  const [showControls, setShowControls] = useState(true);
   const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const [showAnnotationDialog, setShowAnnotationDialog] = useState(false);
-  const [selectedText, setSelectedText] = useState('');
   
   // Refs
   const mediaElementRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
@@ -337,10 +335,6 @@ export const MediaPlayback: React.FC<MediaPlaybackProps> = React.memo(({
     onBookmarkAdd?.(bookmark);
     setShowBookmarkDialog(false);
   }, [currentTime, onBookmarkAdd]);
-  
-  const removeBookmark = useCallback((bookmarkId: string) => {
-    setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
-  }, []);
   
   // Annotation functionality
   const addAnnotation = useCallback((text: string, type: Annotation['type'] = 'note') => {

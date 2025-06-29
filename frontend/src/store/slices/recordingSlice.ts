@@ -10,7 +10,6 @@ import {
   RecordingData, 
   RecordingSettings,
   RecordingChapter,
-  RecordingMetadata,
   AppState,
   StoreActions 
 } from '../types';

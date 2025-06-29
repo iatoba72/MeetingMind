@@ -333,7 +333,7 @@ export const createAISlice: StateCreator<
       
       // Mock result based on task type
       let resultData: any;
-      let confidence = 0.8 + Math.random() * 0.2;
+      const confidence = 0.8 + Math.random() * 0.2;
       
       switch (task.type) {
         case 'transcription':

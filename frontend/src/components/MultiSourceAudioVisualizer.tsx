@@ -8,7 +8,6 @@ import { AudioSource } from '../utils/AudioPipeline';
 
 interface MultiSourceAudioVisualizerProps {
   sources: AudioSource[];
-  primarySourceId?: string | null;
   getVisualizationData?: (sourceId: string) => { frequency: Uint8Array; time: Uint8Array } | null;
   width?: number;
   height?: number;
@@ -17,7 +16,6 @@ interface MultiSourceAudioVisualizerProps {
 
 export const MultiSourceAudioVisualizer: React.FC<MultiSourceAudioVisualizerProps> = ({
   sources,
-  primarySourceId,
   getVisualizationData,
   width = 800,
   height = 600,
@@ -299,7 +297,7 @@ export const MultiSourceAudioVisualizer: React.FC<MultiSourceAudioVisualizerProp
           <span className="text-sm font-medium">View Mode:</span>
           <select
             value={viewMode}
-            onChange={(e) => setViewMode(e.target.value as any)}
+            onChange={(e) => setViewMode(e.target.value as 'grid' | 'stacked' | 'overlay')}
             className="px-3 py-1 border border-gray-300 rounded text-sm"
           >
             <option value="grid">Grid</option>

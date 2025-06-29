@@ -25,9 +25,9 @@ export interface ErrorSlice {
   clearResolvedErrors: () => void;
   
   // Error reporting
-  reportError: (error: Error, context?: Record<string, any>) => string;
+  reportError: (error: Error, context?: Record<string, unknown>) => string;
   reportNetworkError: (url: string, status: number, message: string) => string;
-  reportAPIError: (endpoint: string, error: any) => string;
+  reportAPIError: (endpoint: string, error: unknown) => string;
   reportUIError: (component: string, error: Error) => string;
   
   // Error analysis
@@ -125,7 +125,7 @@ const defaultErrorState: ErrorState = {
 const generateErrorId = () => `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 // Console monkey patch for debug mode
-let originalConsole: any = {};
+let originalConsole: Record<string, (...args: unknown[]) => void> = {};
 let consoleHistory: string[] = [];
 
 const setupConsoleCapture = () => {
@@ -138,7 +138,7 @@ const setupConsoleCapture = () => {
     };
     
     ['log', 'warn', 'error', 'info'].forEach(method => {
-      (console as any)[method] = (...args: any[]) => {
+      (console as Record<string, (...args: unknown[]) => void>)[method] = (...args: unknown[]) => {
         const message = args.map(arg => 
           typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
         ).join(' ');
@@ -350,7 +350,7 @@ export const createErrorSlice: StateCreator<
   },
   
   getDebugInfo: () => {
-    const memory = (performance as any).memory || { usedJSHeapSize: 0, totalJSHeapSize: 0, jsHeapSizeLimit: 0 };
+    const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory || { usedJSHeapSize: 0, totalJSHeapSize: 0, jsHeapSizeLimit: 0 };
     
     return {
       userAgent: navigator.userAgent,
@@ -429,7 +429,7 @@ export const createErrorSlice: StateCreator<
     let score = 100;
     
     // Check memory usage
-    const memory = (performance as any).memory;
+    const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
     if (memory) {
       const memoryUsage = memory.usedJSHeapSize / memory.jsHeapSizeLimit;
       if (memoryUsage > 0.9) {
@@ -489,7 +489,7 @@ export const createErrorSlice: StateCreator<
   },
   
   monitorMemoryUsage: () => {
-    const memory = (performance as any).memory;
+    const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
     if (!memory) return;
     
     const usage = memory.usedJSHeapSize;

@@ -65,7 +65,7 @@ const tracer = trace.getTracer('meetingmind-frontend', '1.0.0');
 export interface SpanOptions {
   kind?: SpanKind;
   attributes?: Record<string, string | number | boolean>;
-  links?: any[];
+  links?: Array<Record<string, unknown>>;
   startTime?: Date;
 }
 
@@ -358,17 +358,17 @@ export class MeetingMindTracer {
  */
 export function Traced(
   spanName?: string,
-  attributes?: Record<string, any>
+  attributes?: Record<string, unknown>
 ) {
   return function (
-    target: any,
+    target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
     const finalSpanName = spanName || `${target.constructor.name}.${propertyKey}`;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const operation = new TracedOperation(finalSpanName, {
         attributes: {
           'method.class': target.constructor.name,

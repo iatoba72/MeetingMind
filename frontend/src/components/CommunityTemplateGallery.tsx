@@ -24,12 +24,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider,
   Alert,
   LinearProgress,
   Tabs,
   Tab,
-  Badge,
   Tooltip,
   Menu,
   MenuList,
@@ -39,13 +37,11 @@ import {
   AccordionSummary,
   AccordionDetails,
   InputAdornment,
-  CircularProgress,
   Pagination
 } from '@mui/material';
 import {
   Public as PublicIcon,
   Star as StarIcon,
-  StarBorder as StarBorderIcon,
   ThumbUp as ThumbUpIcon,
   ThumbDown as ThumbDownIcon,
   Download as DownloadIcon,
@@ -53,21 +49,10 @@ import {
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   Visibility as ViewIcon,
-  TrendingUp as TrendingUpIcon,
-  FilterList as FilterIcon,
   Search as SearchIcon,
-  Sort as SortIcon,
   MoreVert as MoreVertIcon,
   Flag as FlagIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
   ExpandMore as ExpandMoreIcon,
-  Category as CategoryIcon,
-  Person as PersonIcon,
-  CalendarToday as CalendarIcon,
-  AccessTime as TimeIcon,
-  Group as GroupIcon,
   Verified as VerifiedIcon
 } from '@mui/icons-material';
 
@@ -85,7 +70,7 @@ interface CommunityTemplate {
   
   // Template details
   default_duration_minutes: number;
-  default_settings: any;
+  default_settings: { is_recording: boolean; is_transcription_enabled: boolean; [key: string]: unknown };
   agenda_template: string;
   
   // Community features
@@ -149,7 +134,7 @@ const CommunityTemplateGallery: React.FC<CommunityTemplateGalleryProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState<CommunityTemplate | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [showShareDialog, setShowShareDialog] = useState(false);
+  // const [_showShareDialog, _setShowShareDialog] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -190,7 +175,7 @@ const CommunityTemplateGallery: React.FC<CommunityTemplateGalleryProps> = ({
     if (showMyTemplates) {
       loadMyTemplates();
     }
-  }, [filters, page]);
+  }, [filters, page, loadMyTemplates, loadTemplates, showMyTemplates]);
 
   const loadTemplates = async () => {
     try {
@@ -459,7 +444,7 @@ const CommunityTemplateGallery: React.FC<CommunityTemplateGalleryProps> = ({
               <InputLabel>Sort By</InputLabel>
               <Select
                 value={filters.sort_by}
-                onChange={(e) => setFilters({...filters, sort_by: e.target.value as any})}
+                onChange={(e) => setFilters({...filters, sort_by: e.target.value as 'popular' | 'recent' | 'rating' | 'downloads'})}
               >
                 <MenuItem value="popular">Most Popular</MenuItem>
                 <MenuItem value="newest">Newest</MenuItem>

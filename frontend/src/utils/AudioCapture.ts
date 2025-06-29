@@ -125,7 +125,7 @@ export class AudioCapture {
       }
       
       // Create audio context
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+      this.audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)({
         sampleRate: this.config.sampleRate,
         latencyHint: 'interactive'
       });
@@ -133,7 +133,7 @@ export class AudioCapture {
       // Load audio worklet for advanced processing
       try {
         await this.audioContext.audioWorklet.addModule('/audio-processor-worklet.js');
-      } catch (error) {
+      } catch {
         console.warn('AudioWorklet not available, falling back to ScriptProcessorNode');
       }
       
@@ -211,7 +211,7 @@ export class AudioCapture {
           chromeMediaSource: 'desktop',
           chromeMediaSourceId: 'screen'
         }
-      } as any : {
+      } as MediaStreamConstraints : {
         sampleRate: this.config.sampleRate,
         channelCount: this.config.channelCount,
         echoCancellation: this.config.enableEchoCancellation,
@@ -340,7 +340,6 @@ export class AudioCapture {
   private async handleRecordedChunk(blob: Blob): Promise<void> {
     try {
       const arrayBuffer = await blob.arrayBuffer();
-      const chunkData = new Uint8Array(arrayBuffer);
       
       // Get current audio metrics
       const currentRMS = this.volumeHistory.length > 0 ? 
@@ -532,10 +531,9 @@ export class AudioCapture {
     }
   }
   
-  async switchAudioDevice(deviceId: string): Promise<void> {
+  async switchAudioDevice(): Promise<void> {
     if (this.isCapturing) {
       // Need to restart capture with new device
-      const wasCapturing = true;
       this.stopCapture();
       
       // Update constraints to use specific device

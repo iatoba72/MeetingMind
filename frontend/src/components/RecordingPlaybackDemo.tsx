@@ -6,6 +6,7 @@ import { RecordingControls } from './RecordingControls';
 import { MediaPlayback } from './MediaPlayback';
 import { StudyMode } from './StudyMode';
 import { WaveformVisualization } from './WaveformVisualization';
+import { TranscriptionSegment } from '../store/types';
 
 // Sample data for demonstration
 const sampleTranscript = [
@@ -120,12 +121,12 @@ export const RecordingPlaybackDemo: React.FC<RecordingPlaybackDemoProps> = ({
   className = ''
 }) => {
   const [currentTab, setCurrentTab] = useState<'recording' | 'playback' | 'study' | 'waveform'>('recording');
-  const [recordings, setRecordings] = useState<any[]>([]);
-  const [selectedRecording, setSelectedRecording] = useState<any>(null);
+  const [recordings, setRecordings] = useState<Array<{ id: string; name: string; url: string; duration: number; transcription?: TranscriptionSegment[] }>>([]);
+  const [selectedRecording, setSelectedRecording] = useState<{ id: string; name: string; url: string; duration: number; transcription?: TranscriptionSegment[] } | null>(null);
   const [studySession, setStudySession] = useState(sampleStudySession);
 
   // Handle recording completion
-  const handleRecordingComplete = useCallback((sessionId: string, mediaFile: any) => {
+  const handleRecordingComplete = useCallback((sessionId: string, mediaFile: { url: string; duration: number }) => {
     const newRecording = {
       id: sessionId,
       ...mediaFile,
@@ -141,7 +142,7 @@ export const RecordingPlaybackDemo: React.FC<RecordingPlaybackDemoProps> = ({
   }, []);
 
   // Handle transcription ready
-  const handleTranscriptionReady = useCallback((sessionId: string, segments: any[]) => {
+  const handleTranscriptionReady = useCallback((sessionId: string, segments: TranscriptionSegment[]) => {
     setRecordings(prev => prev.map(recording => 
       recording.id === sessionId 
         ? { ...recording, transcript: segments }
@@ -180,7 +181,7 @@ export const RecordingPlaybackDemo: React.FC<RecordingPlaybackDemoProps> = ({
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setCurrentTab(tab.id as any)}
+            onClick={() => setCurrentTab(tab.id as 'record' | 'playback' | 'analysis')}
             className={`
               flex-1 py-4 px-6 text-center border-b-2 transition-colors
               ${currentTab === tab.id 

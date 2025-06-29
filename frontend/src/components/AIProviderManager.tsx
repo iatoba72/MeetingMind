@@ -3,7 +3,6 @@
 // Demonstrates provider management, cost tracking, and health monitoring
 
 import { useState, useEffect, useCallback } from 'react';
-import { useWebSocket } from '../hooks/useWebSocket';
 
 interface AIProvider {
   id: string;
@@ -37,8 +36,16 @@ interface UsageSummary {
   providers_count: number;
 }
 
+interface TestResult {
+  success: boolean;
+  error?: string;
+  latency_ms?: number;
+  cost_cents?: number;
+  response?: string;
+}
+
 interface AIProviderManagerProps {
-  clientId: string;
+  className?: string;
 }
 
 /**
@@ -70,15 +77,14 @@ interface AIProviderManagerProps {
  * - Provider testing and validation
  * - Configuration management and persistence
  */
-export const AIProviderManager: React.FC<AIProviderManagerProps> = ({ clientId }) => {
+export const AIProviderManager: React.FC<AIProviderManagerProps> = () => {
   const [providers, setProviders] = useState<Record<string, AIProvider>>({});
   const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'status' | 'usage' | 'testing' | 'config'>('status');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [testPrompt, setTestPrompt] = useState('Hello, how are you?');
-  const [testResults, setTestResults] = useState<Record<string, any>>({});
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [isLearningMode, setIsLearningMode] = useState(true);
 
   // Fetch provider status from API
@@ -301,7 +307,7 @@ export const AIProviderManager: React.FC<AIProviderManagerProps> = ({ clientId }
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'status' | 'usage' | 'testing' | 'config')}
             className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               activeTab === tab.id
                 ? 'bg-white text-gray-900 shadow-sm'

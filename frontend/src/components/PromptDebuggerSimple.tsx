@@ -15,7 +15,7 @@ export const PromptDebuggerSimple: React.FC<PromptDebuggerSimpleProps> = ({
   onPromptChange,
 }) => {
   const [currentPrompt, setCurrentPrompt] = useState(prompt);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<{ requestId: string; tokens: number; processingTime: number; cacheHit: boolean; [key: string]: unknown } | null>(null);
   const [selectedModel, setSelectedModel] = useState('claude-3-5-sonnet-20241022');
 
   // Update debug info when prompt changes

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -13,16 +13,9 @@ import {
   Settings, 
   Download, 
   Play,
-  Pause,
   RefreshCw,
   Monitor,
-  Mic,
-  Volume2,
-  Wifi,
-  HardDrive,
   Cpu,
-  Camera,
-  Headphones,
   Zap,
   FileText,
   ExternalLink
@@ -81,7 +74,7 @@ export const OBSSetupWizard: React.FC = () => {
     password: '',
     connected: false
   });
-  const [generatedConfig, setGeneratedConfig] = useState<any>(null);
+  const [generatedConfig, setGeneratedConfig] = useState<{ videoSettings: Record<string, unknown>; audioSettings: Record<string, unknown>; scenes: Array<{ name: string; sources: Array<{ type: string; settings: Record<string, unknown> }> }> } | null>(null);
   const [testProgress, setTestProgress] = useState(0);
 
   const steps: WizardStep[] = [
@@ -152,7 +145,7 @@ export const OBSSetupWizard: React.FC = () => {
 
         // Mock test results based on typical scenarios
         switch (tests[i].name) {
-          case 'CPU Performance':
+          case 'CPU Performance': {
             const cpuCores = 8; // Mock data
             updatedTests[i] = {
               ...updatedTests[i],
@@ -163,8 +156,9 @@ export const OBSSetupWizard: React.FC = () => {
               recommendation: cpuCores < 4 ? 'Consider upgrading to a CPU with more cores for better performance' : undefined
             };
             break;
+          }
 
-          case 'Memory Available':
+          case 'Memory Available': {
             const ramGb = 16; // Mock data
             updatedTests[i] = {
               ...updatedTests[i],
@@ -175,8 +169,9 @@ export const OBSSetupWizard: React.FC = () => {
               recommendation: ramGb < 8 ? 'Upgrade to at least 8GB RAM for optimal performance' : undefined
             };
             break;
+          }
 
-          case 'GPU Hardware Encoding':
+          case 'GPU Hardware Encoding': {
             const hasHwEncoder = true; // Mock data
             updatedTests[i] = {
               ...updatedTests[i],
@@ -185,8 +180,9 @@ export const OBSSetupWizard: React.FC = () => {
               recommendation: !hasHwEncoder ? 'Consider a GPU with hardware encoding support' : undefined
             };
             break;
+          }
 
-          case 'Network Upload Speed':
+          case 'Network Upload Speed': {
             const uploadMbps = 25; // Mock data
             updatedTests[i] = {
               ...updatedTests[i],
@@ -197,8 +193,9 @@ export const OBSSetupWizard: React.FC = () => {
               recommendation: uploadMbps < 10 ? 'Upgrade internet for higher quality streaming' : undefined
             };
             break;
+          }
 
-          case 'Disk Space':
+          case 'Disk Space': {
             const diskGb = 500; // Mock data
             updatedTests[i] = {
               ...updatedTests[i],
@@ -209,8 +206,9 @@ export const OBSSetupWizard: React.FC = () => {
               recommendation: diskGb < 50 ? 'Free up disk space for recordings' : undefined
             };
             break;
+          }
 
-          case 'Webcam Detection':
+          case 'Webcam Detection': {
             const webcamFound = true; // Mock data
             updatedTests[i] = {
               ...updatedTests[i],
@@ -219,8 +217,9 @@ export const OBSSetupWizard: React.FC = () => {
               recommendation: !webcamFound ? 'Connect a webcam for video streaming' : undefined
             };
             break;
+          }
 
-          case 'Audio Device Detection':
+          case 'Audio Device Detection': {
             const audioFound = true; // Mock data
             updatedTests[i] = {
               ...updatedTests[i],
@@ -229,6 +228,7 @@ export const OBSSetupWizard: React.FC = () => {
               recommendation: !audioFound ? 'Connect audio devices for meeting participation' : undefined
             };
             break;
+          }
         }
 
         setTestResults([...updatedTests]);
@@ -278,7 +278,7 @@ export const OBSSetupWizard: React.FC = () => {
           ...obsConnection,
           connected: true,
           version: result.version?.obsVersion,
-          scenes: result.scenes?.map((s: any) => s.name) || [],
+          scenes: result.scenes?.map((s: { name: string }) => s.name) || [],
           sources: result.sources || []
         });
       }
@@ -668,7 +668,7 @@ export const OBSSetupWizard: React.FC = () => {
                 
                 <TabsContent value="scenes">
                   <div className="space-y-2">
-                    {generatedConfig.scene_collection?.scenes?.map((scene: any, index: number) => (
+                    {generatedConfig.scene_collection?.scenes?.map((scene: { name: string; sources: unknown[] }, index: number) => (
                       <div key={index} className="flex items-center justify-between p-2 border rounded">
                         <span className="font-medium">{scene.name}</span>
                         <Badge variant="outline">{scene.sources?.length || 0} sources</Badge>

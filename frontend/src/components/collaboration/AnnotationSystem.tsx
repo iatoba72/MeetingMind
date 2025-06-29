@@ -3,17 +3,13 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
-  Highlight, 
-  Comment, 
-  Tag, 
+  Highlighter, 
   MessageCircle, 
   Edit, 
   Trash2, 
   Plus,
   Eye,
-  EyeOff,
-  Filter,
-  Users
+  EyeOff
 } from 'lucide-react';
 
 interface AnnotationData {
@@ -71,7 +67,7 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
   documentContent,
   annotations,
   currentUser,
-  users,
+  users: _users, // eslint-disable-line @typescript-eslint/no-unused-vars
   onAddAnnotation,
   onUpdateAnnotation,
   onDeleteAnnotation,
@@ -91,7 +87,6 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
 
   const contentRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Available annotation colors
   const annotationColors = [
@@ -159,7 +154,7 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
     let totalOffset = 0;
     let currentNode;
 
-    while (currentNode = walker.nextNode()) {
+    while ((currentNode = walker.nextNode())) {
       if (currentNode === node) {
         return totalOffset + offset;
       }
@@ -310,7 +305,7 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
                 className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
                 title="Add Highlight"
               >
-                <Highlight size={16} />
+                <Highlighter size={16} />
                 Highlight
               </button>
               
@@ -463,7 +458,7 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
 
       {/* Sidebar */}
       {showSidebar && (
-        <div ref={sidebarRef} className="w-80 border-l bg-gray-50 flex flex-col">
+        <div className="w-80 border-l bg-gray-50 flex flex-col">
           {/* Sidebar header */}
           <div className="p-4 border-b bg-white">
             <div className="flex items-center justify-between mb-3">
@@ -480,7 +475,7 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
             <div className="flex gap-2 mb-3">
               <select
                 value={filterBy}
-                onChange={(e) => setFilterBy(e.target.value as any)}
+                onChange={(e) => setFilterBy(e.target.value as 'all' | 'unresolved' | 'mine')}
                 className="text-sm border rounded px-2 py-1"
               >
                 <option value="all">All</option>

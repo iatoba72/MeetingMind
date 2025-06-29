@@ -648,8 +648,8 @@ class AIOrchestrator:
         3. If still fails, try most reliable model (Claude Haiku)
         4. If all fail, return error
         """
-        # Prepare the prompt
-        messages = [HumanMessage(content=request.prompt)]
+        # Prepare the prompt with context management
+        messages = await self._prepare_messages_with_context(request)
         
         # Try primary model first
         try:
@@ -771,6 +771,169 @@ class AIOrchestrator:
             "output_tokens": output_tokens,
             "total_tokens": input_tokens + output_tokens
         }
+    
+    async def _prepare_messages_with_context(self, request: TaskRequest) -> List[BaseMessage]:
+        """
+        Prepare messages with intelligent context management and summarization
+        
+        This method handles:
+        1. Message history from context
+        2. Token limit management
+        3. Automatic summarization of older messages when needed
+        4. System message injection for better context
+        """
+        messages = []
+        
+        # Extract message history from context
+        message_history = request.context.get('message_history', [])
+        system_prompt = request.context.get('system_prompt')
+        
+        # Add system message if provided
+        if system_prompt:
+            messages.append(SystemMessage(content=system_prompt))
+        
+        # Handle message history with token management
+        if message_history:
+            # Estimate tokens (rough estimation: 4 chars per token)
+            estimated_tokens = len(request.prompt) // 4
+            
+            # Reserve tokens for current prompt and response
+            available_tokens = request.max_tokens - 1000  # Reserve 1000 for response
+            token_budget = available_tokens - estimated_tokens
+            
+            # If we have enough budget, include all history
+            total_history_chars = sum(len(str(msg.get('content', ''))) for msg in message_history)
+            estimated_history_tokens = total_history_chars // 4
+            
+            if estimated_history_tokens <= token_budget:
+                # Include all message history
+                for msg in message_history:
+                    msg_type = msg.get('type', 'human')
+                    content = msg.get('content', '')
+                    
+                    if msg_type == 'human':
+                        messages.append(HumanMessage(content=content))
+                    elif msg_type == 'ai' or msg_type == 'assistant':
+                        messages.append(AIMessage(content=content))
+                    elif msg_type == 'system':
+                        messages.append(SystemMessage(content=content))
+            else:
+                # Need to summarize older messages
+                self.logger.info(f"Summarizing message history: {estimated_history_tokens} tokens > {token_budget} budget")
+                
+                # Keep recent messages (last 5-10) and summarize the rest
+                recent_count = min(10, len(message_history))
+                recent_messages = message_history[-recent_count:]
+                older_messages = message_history[:-recent_count] if len(message_history) > recent_count else []
+                
+                if older_messages:
+                    # Create summary of older messages
+                    summary_content = await self._summarize_message_history(older_messages)
+                    if summary_content:
+                        messages.append(SystemMessage(content=f"Previous conversation summary: {summary_content}"))
+                
+                # Add recent messages
+                for msg in recent_messages:
+                    msg_type = msg.get('type', 'human')
+                    content = msg.get('content', '')
+                    
+                    if msg_type == 'human':
+                        messages.append(HumanMessage(content=content))
+                    elif msg_type == 'ai' or msg_type == 'assistant':
+                        messages.append(AIMessage(content=content))
+                    elif msg_type == 'system':
+                        messages.append(SystemMessage(content=content))
+        
+        # Add current prompt
+        messages.append(HumanMessage(content=request.prompt))
+        
+        return messages
+    
+    async def _summarize_message_history(self, older_messages: List[Dict]) -> str:
+        """
+        Create a concise summary of older message history
+        
+        This reduces token usage while preserving important context
+        """
+        try:
+            # Create a summary prompt
+            history_text = "\n".join([
+                f"{msg.get('type', 'unknown')}: {msg.get('content', '')}" 
+                for msg in older_messages
+            ])
+            
+            summary_prompt = f"""Please provide a concise summary of this conversation history, focusing on:
+1. Key topics and decisions discussed
+2. Important context for understanding the current conversation
+3. Any unresolved issues or ongoing concerns
+
+Conversation history:
+{history_text}
+
+Summary:"""
+            
+            # Use the fastest, cheapest model for summarization
+            summary_request = TaskRequest(
+                id=f"summary_{uuid.uuid4()}",
+                task_type="message_summarization",
+                prompt=summary_prompt,
+                context={},
+                complexity=TaskComplexity.SIMPLE,
+                max_tokens=500,
+                cache_enabled=False  # Don't cache summaries
+            )
+            
+            # Use Claude Haiku for fast, cost-effective summarization
+            model = self.models.get(ModelType.CLAUDE_HAIKU)
+            if not model:
+                # Fallback to any available model
+                model = next(iter(self.models.values()), None)
+            
+            if model:
+                response = await model.ainvoke([HumanMessage(content=summary_prompt)])
+                return response.content
+            else:
+                # Fallback: create a simple summary without AI
+                return self._create_simple_summary(older_messages)
+                
+        except Exception as e:
+            self.logger.warning(f"Error creating message summary: {e}")
+            # Fallback to simple summary
+            return self._create_simple_summary(older_messages)
+    
+    def _create_simple_summary(self, messages: List[Dict]) -> str:
+        """Create a simple fallback summary without AI"""
+        if not messages:
+            return ""
+        
+        # Extract key information
+        topics = set()
+        participants = set()
+        
+        for msg in messages:
+            content = msg.get('content', '').lower()
+            msg_type = msg.get('type', 'unknown')
+            
+            # Extract potential topics (simple keyword extraction)
+            words = content.split()
+            for word in words:
+                if len(word) > 5 and word.isalpha():  # Potential topic words
+                    topics.add(word)
+            
+            # Track participants
+            if msg_type in ['human', 'user']:
+                participants.add('user')
+            elif msg_type in ['ai', 'assistant']:
+                participants.add('assistant')
+        
+        summary_parts = []
+        summary_parts.append(f"Previous conversation with {len(messages)} messages between {', '.join(participants)}.")
+        
+        if topics:
+            topic_list = list(topics)[:5]  # Limit to top 5 topics
+            summary_parts.append(f"Topics discussed: {', '.join(topic_list)}.")
+        
+        return " ".join(summary_parts)
     
     def _calculate_cost(self, token_usage: Dict[str, int], model: ModelType) -> float:
         """Calculate cost in cents based on token usage and model"""

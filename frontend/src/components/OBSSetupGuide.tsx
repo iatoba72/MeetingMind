@@ -22,12 +22,12 @@ interface OBSGuide {
     keyframe_interval: number;
     audio_sample_rate: number;
     audio_channels: number;
-    advanced_settings: Record<string, any>;
+    advanced_settings: Record<string, string | number | boolean>;
   };
   setup_steps: string[];
   troubleshooting: Record<string, string>;
   performance_tips: string[];
-  advanced_configuration: Record<string, any>;
+  advanced_configuration: Record<string, string | number | boolean>;
   scene_setup: string[];
   audio_setup: string[];
   plugin_recommendations: Array<{
@@ -118,7 +118,7 @@ export const OBSSetupGuide: React.FC = () => {
       
       // Add custom settings if any are provided
       const customParams = Object.entries(customSettings)
-        .filter(([_, value]) => value.trim() !== '')
+        .filter(([, value]) => value.trim() !== '')
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
         .join('&');
       

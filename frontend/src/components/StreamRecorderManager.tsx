@@ -77,7 +77,7 @@ export const StreamRecorderManager: React.FC = () => {
   const [recorders, setRecorders] = useState<Record<string, RecorderStats>>({});
   const [recordingFiles, setRecordingFiles] = useState<RecordingFile[]>([]);
   const [statistics, setStatistics] = useState<RecordingStatistics | null>(null);
-  const [supportedFormats, setSupportedFormats] = useState<any>(null);
+  const [supportedFormats, setSupportedFormats] = useState<{ codecs: string[]; containers: string[]; profiles: string[] } | null>(null);
   const [newRecorderSource, setNewRecorderSource] = useState<string>('');
   const [config, setConfig] = useState<RecordingConfig>({
     output_directory: './recordings',
@@ -453,7 +453,7 @@ export const StreamRecorderManager: React.FC = () => {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as 'status' | 'settings' | 'recordings' | 'analytics')}
                   className={`py-4 px-6 text-sm font-medium border-b-2 ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'

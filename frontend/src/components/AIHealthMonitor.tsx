@@ -25,6 +25,9 @@ interface ProviderHealth {
   };
 }
 
+// Type for the provider data coming from the API
+type ApiProvider = Omit<ProviderHealth, 'id'>;
+
 interface HealthAlert {
   id: string;
   provider_id: string;
@@ -46,6 +49,9 @@ interface HealthMetric {
 interface AIHealthMonitorProps {
   refreshInterval?: number; // milliseconds
 }
+
+type TimeRange = '1h' | '6h' | '24h' | '7d';
+type AlertFilter = 'all' | 'critical' | 'warning' | 'unacknowledged';
 
 /**
  * AIHealthMonitor Component
@@ -84,64 +90,24 @@ export const AIHealthMonitor: React.FC<AIHealthMonitorProps> = ({
   const [healthHistory, setHealthHistory] = useState<HealthMetric[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [selectedTimeRange, setSelectedTimeRange] = useState<'1h' | '6h' | '24h' | '7d'>('1h');
-  const [alertFilter, setAlertFilter] = useState<'all' | 'critical' | 'warning' | 'unacknowledged'>('all');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('1h');
+  const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
   const [isLearningMode, setIsLearningMode] = useState(true);
 
-  // Fetch current health status
-  const fetchHealthStatus = useCallback(async () => {
-    try {
-      const response = await fetch('/ai/providers');
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Transform data for health monitoring
-        const healthData: Record<string, ProviderHealth> = {};
-        Object.entries(data).forEach(([id, provider]: [string, any]) => {
-          healthData[id] = {
-            id,
-            name: provider.name,
-            type: provider.type,
-            enabled: provider.enabled,
-            health: provider.health,
-            usage: {
-              total_requests: provider.usage.total_requests,
-              success_rate: provider.usage.success_rate,
-              average_latency_ms: provider.usage.average_latency_ms
-            }
-          };
-        });
+  const generateAlert = useCallback((providerId: string, providerName: string, severity: 'critical' | 'warning' | 'info', message: string) => {
+    const alert: HealthAlert = {
+      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider_id: providerId,
+      provider_name: providerName,
+      severity,
+      message,
+      timestamp: new Date().toISOString(),
+      acknowledged: false
+    };
+    
+    setAlerts(prev => [alert, ...prev.slice(0, 99)]); // Keep last 100 alerts
+  }, []);
 
-        // Check for health changes and generate alerts
-        checkForHealthChanges(providers, healthData);
-        
-        setProviders(healthData);
-        setLastUpdate(new Date());
-        
-        // Add to health history
-        const timestamp = new Date().toISOString();
-        const newMetrics: HealthMetric[] = Object.values(healthData).map(provider => ({
-          timestamp,
-          provider_id: provider.id,
-          response_time_ms: provider.health.response_time_ms,
-          status: provider.health.status,
-          success: provider.health.status === 'healthy'
-        }));
-        
-        setHealthHistory(prev => {
-          const combined = [...prev, ...newMetrics];
-          // Keep last 1000 metrics (roughly 8-10 hours at 30s intervals per provider)
-          return combined.slice(-1000);
-        });
-        
-      }
-    } catch (error) {
-      console.error('Failed to fetch health status:', error);
-      generateAlert('system', 'Health Monitor', 'critical', 'Failed to fetch provider health status');
-    }
-  }, [providers]);
-
-  // Check for health changes and generate alerts
   const checkForHealthChanges = useCallback((oldProviders: Record<string, ProviderHealth>, newProviders: Record<string, ProviderHealth>) => {
     Object.entries(newProviders).forEach(([id, newProvider]) => {
       const oldProvider = oldProviders[id];
@@ -184,22 +150,52 @@ export const AIHealthMonitor: React.FC<AIHealthMonitorProps> = ({
         generateAlert(id, newProvider.name, 'warning', `Low success rate: ${newProvider.usage.success_rate.toFixed(1)}%`);
       }
     });
-  }, []);
+  }, [generateAlert]);
 
-  // Generate health alert
-  const generateAlert = useCallback((providerId: string, providerName: string, severity: 'critical' | 'warning' | 'info', message: string) => {
-    const alert: HealthAlert = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      provider_id: providerId,
-      provider_name: providerName,
-      severity,
-      message,
-      timestamp: new Date().toISOString(),
-      acknowledged: false
-    };
-    
-    setAlerts(prev => [alert, ...prev.slice(0, 99)]); // Keep last 100 alerts
-  }, []);
+  // Fetch current health status
+  const fetchHealthStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/ai/providers');
+      if (response.ok) {
+        const data: Record<string, ApiProvider> = await response.json();
+        
+        // Transform data for health monitoring
+        const healthData: Record<string, ProviderHealth> = {};
+        Object.entries(data).forEach(([id, provider]) => {
+          healthData[id] = {
+            id,
+            ...provider
+          };
+        });
+
+        // Check for health changes and generate alerts
+        checkForHealthChanges(providers, healthData);
+        
+        setProviders(healthData);
+        setLastUpdate(new Date());
+        
+        // Add to health history
+        const timestamp = new Date().toISOString();
+        const newMetrics: HealthMetric[] = Object.values(healthData).map(provider => ({
+          timestamp,
+          provider_id: provider.id,
+          response_time_ms: provider.health.response_time_ms,
+          status: provider.health.status,
+          success: provider.health.status === 'healthy'
+        }));
+        
+        setHealthHistory(prev => {
+          const combined = [...prev, ...newMetrics];
+          // Keep last 1000 metrics (roughly 8-10 hours at 30s intervals per provider)
+          return combined.slice(-1000);
+        });
+        
+      }
+    } catch (error) {
+      console.error('Failed to fetch health status:', error);
+      generateAlert('system', 'Health Monitor', 'critical', 'Failed to fetch provider health status');
+    }
+  }, [providers, checkForHealthChanges, generateAlert]);
 
   // Acknowledge alert
   const acknowledgeAlert = useCallback((alertId: string) => {
@@ -388,7 +384,7 @@ export const AIHealthMonitor: React.FC<AIHealthMonitorProps> = ({
           <h3 className="text-lg font-semibold text-gray-900">Provider Status</h3>
           <select
             value={selectedTimeRange}
-            onChange={(e) => setSelectedTimeRange(e.target.value as any)}
+            onChange={(e) => setSelectedTimeRange(e.target.value as TimeRange)}
             className="border border-gray-300 rounded px-3 py-1 text-sm"
           >
             <option value="1h">Last Hour</option>
@@ -476,7 +472,7 @@ export const AIHealthMonitor: React.FC<AIHealthMonitorProps> = ({
           <div className="flex items-center space-x-3">
             <select
               value={alertFilter}
-              onChange={(e) => setAlertFilter(e.target.value as any)}
+              onChange={(e) => setAlertFilter(e.target.value as AlertFilter)}
               className="border border-gray-300 rounded px-3 py-1 text-sm"
             >
               <option value="all">All Alerts</option>
