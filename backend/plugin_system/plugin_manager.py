@@ -24,7 +24,8 @@ from plugin_api import (
     BasePlugin, PluginManifest, PluginContext, PluginCapability, 
     PluginEventType, PluginEvent, PluginResult, plugin_api
 )
-from plugin_system.plugin_security import PluginSandbox, SecurityPolicy, PluginSecurityManager\n\nfrom enum import Enum
+from plugin_system.plugin_security import PluginSandbox, SecurityPolicy, PluginSecurityManager
+from enum import Enum
 
 class PluginState(Enum):
     """Plugin lifecycle states"""

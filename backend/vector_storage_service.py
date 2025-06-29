@@ -546,7 +546,8 @@ class VectorStorageService:
                             )
                             documents.append(doc)
                             break
-                    except:
+                    except (KeyError, AttributeError, ValueError) as e:
+                        logger.warning(f"Error retrieving document {doc_id}: {e}")
                         continue
         else:
             # Get sample of documents
@@ -634,7 +635,8 @@ class VectorStorageService:
                 tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, len(embeddings)-1))
                 tsne_coords = tsne.fit_transform(embeddings_array)
                 dimensionality_reduction['tsne'] = [(float(x), float(y)) for x, y in tsne_coords]
-            except:
+            except (ValueError, RuntimeError, ImportError) as e:
+                logger.warning(f"t-SNE dimensionality reduction failed: {e}")
                 dimensionality_reduction['tsne'] = [(0, 0)] * len(embeddings)
             
             # UMAP reduction (if available)
@@ -642,7 +644,8 @@ class VectorStorageService:
                 umap_reducer = umap.UMAP(n_components=2, random_state=42)
                 umap_coords = umap_reducer.fit_transform(embeddings_array)
                 dimensionality_reduction['umap'] = [(float(x), float(y)) for x, y in umap_coords]
-            except:
+            except (ValueError, RuntimeError, ImportError) as e:
+                logger.warning(f"UMAP dimensionality reduction failed: {e}")
                 dimensionality_reduction['umap'] = [(0, 0)] * len(embeddings)
         
         return SimilarityMatrix(
@@ -660,7 +663,8 @@ class VectorStorageService:
             try:
                 count = collection.count()
                 collection_stats[doc_type.value] = count
-            except:
+            except (AttributeError, RuntimeError) as e:
+                logger.warning(f"Error getting collection count for {doc_type.value}: {e}")
                 collection_stats[doc_type.value] = 0
         
         return {

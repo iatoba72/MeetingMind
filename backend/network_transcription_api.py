@@ -102,7 +102,8 @@ class TranscriptionConnectionManager:
             for connection in self.active_connections[stream_id]:
                 try:
                     await connection.send_text(json.dumps(message))
-                except:
+                except (ConnectionResetError, BrokenPipeError, WebSocketDisconnect) as e:
+                    logger.warning(f"WebSocket connection error during broadcast: {e}")
                     disconnected.append(connection)
             
             # Remove disconnected clients
@@ -529,13 +530,15 @@ async def health_check():
         try:
             service = await get_network_transcription_service()
             is_transcription_healthy = service.is_running
-        except:
+        except (AttributeError, RuntimeError, ImportError) as e:
+            logger.error(f"Error checking transcription service health: {e}")
             is_transcription_healthy = False
         
         try:
             sync_service = await get_video_transcription_sync_service()
             is_sync_healthy = sync_service.is_running
-        except:
+        except (AttributeError, RuntimeError, ImportError) as e:
+            logger.error(f"Error checking sync service health: {e}")
             is_sync_healthy = False
         
         overall_health = is_transcription_healthy and is_sync_healthy

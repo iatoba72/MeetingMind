@@ -390,7 +390,8 @@ class NetworkDiagnostics:
                                 total_bytes += len(data)
                             else:
                                 break
-                    except:
+                    except (OSError, TimeoutError, ConnectionError) as e:
+                        logger.warning(f"Network error during speed test: {e}")
                         break
             
             elapsed_time = time.time() - start_time

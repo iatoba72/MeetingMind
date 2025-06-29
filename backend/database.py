@@ -4,7 +4,7 @@
 
 import os
 import logging
-from typing import Generator, Optional
+from typing import Generator, Optional, Dict, Any
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -28,7 +28,7 @@ DATABASE_POOL_TIMEOUT = int(os.getenv("DATABASE_POOL_TIMEOUT", "30"))
 is_sqlite = DATABASE_URL.startswith("sqlite")
 is_postgresql = DATABASE_URL.startswith("postgresql")
 
-def get_engine_config():
+def get_engine_config() -> Dict[str, Any]:
     """
     Get database engine configuration based on database type
     
@@ -84,7 +84,7 @@ SessionLocal = sessionmaker(
 
 # Database event listeners for monitoring and optimization
 @event.listens_for(Engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
+def set_sqlite_pragma(dbapi_connection: Any, connection_record: Any) -> None:
     """
     Configure SQLite for optimal performance and data integrity
     
@@ -104,13 +104,39 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor.close()
 
 @event.listens_for(Engine, "before_cursor_execute")
-def receive_before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-    """Log slow queries for performance monitoring"""
+def receive_before_cursor_execute(conn: Any, cursor: Any, statement: str, parameters: Any, context: Any, executemany: bool) -> None:
+    """
+    Record query start time for performance monitoring.
+    
+    This event listener is triggered before every SQL query executes,
+    allowing us to measure query execution time for performance analysis.
+    
+    Args:
+        conn: Database connection object
+        cursor: Database cursor object
+        statement: SQL statement being executed
+        parameters: Parameters for the SQL statement
+        context: Execution context object
+        executemany: Whether this is a bulk operation
+    """
     context._query_start_time = time.time()
 
 @event.listens_for(Engine, "after_cursor_execute")
-def receive_after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-    """Log and monitor query execution time"""
+def receive_after_cursor_execute(conn: Any, cursor: Any, statement: str, parameters: Any, context: Any, executemany: bool) -> None:
+    """
+    Calculate and log query execution time for performance monitoring.
+    
+    This event listener is triggered after every SQL query completes,
+    calculating the total execution time and logging slow queries.
+    
+    Args:
+        conn: Database connection object
+        cursor: Database cursor object
+        statement: SQL statement that was executed
+        parameters: Parameters used in the SQL statement
+        context: Execution context object with start time
+        executemany: Whether this was a bulk operation
+    """
     total = time.time() - context._query_start_time
     
     # Log slow queries (> 1 second)
@@ -268,7 +294,7 @@ def get_db() -> Generator[Session, None, None]:
     """
     return db_manager.get_session_for_dependency()
 
-def init_database():
+def init_database() -> None:
     """
     Initialize database with tables and basic configuration
     
@@ -297,8 +323,22 @@ class DatabaseUtils:
     """Utility functions for common database operations"""
     
     @staticmethod
-    def execute_sql_file(file_path: str, session: Session):
-        """Execute SQL commands from a file"""
+    def execute_sql_file(file_path: str, session: Session) -> None:
+        """
+        Execute SQL commands from a file with security validation.
+        
+        This method reads SQL commands from a file and executes them within
+        a database session. It includes security checks to prevent dangerous
+        operations and directory traversal attacks.
+        
+        Args:
+            file_path: Path to the SQL file to execute
+            session: Database session to use for execution
+            
+        Raises:
+            ValueError: If file path is invalid or contains dangerous patterns
+            Exception: If SQL execution fails
+        """
         import os.path
         
         # Validate file path to prevent directory traversal
@@ -340,8 +380,19 @@ class DatabaseUtils:
             raise
     
     @staticmethod
-    def backup_database(backup_path: str):
-        """Create database backup (SQLite only)"""
+    def backup_database(backup_path: str) -> None:
+        """
+        Create a backup of the database (SQLite only).
+        
+        This method creates a physical copy of the SQLite database file.
+        For other database types, this operation is not supported.
+        
+        Args:
+            backup_path: Path where the backup file will be created
+            
+        Raises:
+            Exception: If backup operation fails
+        """
         if is_sqlite:
             import shutil
             try:
@@ -356,8 +407,20 @@ class DatabaseUtils:
             logger.warning("Database backup not implemented for non-SQLite databases")
     
     @staticmethod
-    def get_table_row_counts(session: Session) -> dict:
-        """Get row counts for all tables"""
+    def get_table_row_counts(session: Session) -> Dict[str, int]:
+        """
+        Get row counts for all tables in the database.
+        
+        This method queries each table defined in the SQLAlchemy metadata
+        to get the current row count, providing useful statistics for
+        monitoring and debugging.
+        
+        Args:
+            session: Database session to use for queries
+            
+        Returns:
+            Dict[str, int]: Mapping of table names to their row counts
+        """
         row_counts = {}
         
         try:

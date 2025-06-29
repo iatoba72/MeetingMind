@@ -12,6 +12,7 @@ import uvicorn
 import asyncio
 from datetime import datetime
 import uuid
+import logging
 from audio_processor import audio_processor, cleanup_audio_sessions
 from ai_provider_registry import registry, initialize_registry, get_registry, ProviderStatus
 from transcription_service import (
@@ -44,7 +45,7 @@ try:
     from obs_integration import get_obs_client, get_obs_automation, get_obs_monitor
     OBS_INTEGRATION_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ OBS integration not available: {e}")
+    logger.warning("OBS integration not available: %s", e)
     OBS_INTEGRATION_AVAILABLE = False
 from models import Meeting, MeetingStatus, ParticipantRole, ParticipantStatus
 from sqlalchemy.orm import Session
@@ -53,6 +54,9 @@ from rate_limiter import websocket_rate_limit, api_rate_limit, audio_upload_rate
 from error_handler import safe_error_response, safe_http_exception
 from security_middleware import SecurityHeadersMiddleware, RateLimitMiddleware
 import time
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Import audio pipeline WebSocket handler
 from audio_pipeline_ws import handle_audio_pipeline_websocket
@@ -63,7 +67,7 @@ try:
     from rtmp_server import get_rtmp_server, start_rtmp_server, RTMPServerConfig
     RTMP_SERVER_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ RTMP server not available: {e}")
+    logger.warning("RTMP server not available: %s", e)
     RTMP_SERVER_AVAILABLE = False
 
 # Import SRT server
@@ -72,7 +76,7 @@ try:
     from srt_server import get_srt_server, start_srt_server, SRTServerConfig
     SRT_SERVER_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ SRT server not available: {e}")
+    logger.warning("SRT server not available: %s", e)
     SRT_SERVER_AVAILABLE = False
 
 # Import Source Switcher
@@ -81,7 +85,7 @@ try:
     from source_switcher import get_source_switcher, SwitchingConfig
     SOURCE_SWITCHER_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Source switcher not available: {e}")
+    logger.warning("Source switcher not available: %s", e)
     SOURCE_SWITCHER_AVAILABLE = False
 
 # Import Jitter Buffer
@@ -90,7 +94,7 @@ try:
     from jitter_buffer import get_jitter_buffer_manager, JitterBufferConfig
     JITTER_BUFFER_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Jitter buffer not available: {e}")
+    logger.warning("Jitter buffer not available: %s", e)
     JITTER_BUFFER_AVAILABLE = False
 
 # Import Stream Recorder
@@ -99,7 +103,7 @@ try:
     from stream_recorder import get_recording_manager, RecordingConfig
     STREAM_RECORDER_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Stream recorder not available: {e}")
+    logger.warning("Stream recorder not available: %s", e)
     STREAM_RECORDER_AVAILABLE = False
 
 # Import startup services
@@ -144,7 +148,7 @@ try:
     app.include_router(obs_setup_router, prefix="/api")
     OBS_SETUP_GUIDE_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ OBS Setup Guide not available: {e}")
+    logger.warning("OBS Setup Guide not available: %s", e)
     OBS_SETUP_GUIDE_AVAILABLE = False
 
 # Import and include Network Diagnostics
@@ -153,7 +157,7 @@ try:
     app.include_router(network_diagnostics_router, prefix="/api")
     NETWORK_DIAGNOSTICS_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Network Diagnostics not available: {e}")
+    logger.warning("Network Diagnostics not available: %s", e)
     NETWORK_DIAGNOSTICS_AVAILABLE = False
 
 # Import and include Network Transcription
@@ -162,7 +166,7 @@ try:
     app.include_router(network_transcription_router, prefix="/api")
     NETWORK_TRANSCRIPTION_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Network Transcription not available: {e}")
+    logger.warning("Network Transcription not available: %s", e)
     NETWORK_TRANSCRIPTION_AVAILABLE = False
 
 # Add security middleware
@@ -269,7 +273,7 @@ class ConnectionManager:
         }
         await self.broadcast_except(json.dumps(connection_event), connection_id)
         
-        print(f"✅ Client {client_id} connected with connection ID: {connection_id}")
+        logger.info("Client %s connected with connection ID: %s", client_id, connection_id)
         return connection_id
 
     def disconnect(self, connection_id: str):
@@ -289,7 +293,7 @@ class ConnectionManager:
             # Remove from active connections
             del self.active_connections[connection_id]
             
-            print(f"❌ Client {client_id} disconnected (Connection ID: {connection_id})")
+            logger.info("Client %s disconnected (Connection ID: %s)", client_id, connection_id)
             
             # Notify remaining clients about disconnection
             disconnection_event = {
@@ -315,7 +319,7 @@ class ConnectionManager:
         try:
             await websocket.send_text(message)
         except Exception as e:
-            print(f"❌ Error sending personal message: {e}")
+            logger.error("Error sending personal message: %s", e)
             # Find and remove the broken connection
             for conn_id, conn_info in list(self.active_connections.items()):
                 if conn_info["websocket"] == websocket:
@@ -507,7 +511,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 message_type = message.get("type", "unknown")
                 message_data = message.get("data", {})
                 
-                print(f"📨 Received {message_type} from {client_id}: {message_data}")
+                logger.debug("Received %s from %s: %s", message_type, client_id, message_data)
                 
                 # Process different message types
                 if message_type == "chat_message":
@@ -692,13 +696,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             
     except WebSocketDisconnect:
         # Handle normal disconnection (user closes browser, network issue, etc.)
-        print(f"🔌 WebSocket disconnected for client {client_id}")
+        logger.info("WebSocket disconnected for client %s", client_id)
         if connection_id:
             manager.disconnect(connection_id)
             
     except Exception as e:
         # Handle unexpected errors
-        print(f"💥 Unexpected error in WebSocket for client {client_id}: {e}")
+        logger.error("Unexpected error in WebSocket for client %s: %s", client_id, e)
         if connection_id:
             manager.disconnect(connection_id)
 

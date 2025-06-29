@@ -322,7 +322,8 @@ class StreamVAD:
                         if is_speech:
                             speech_frames += 1
                         total_frames += 1
-                    except:
+                    except (ValueError, OSError, RuntimeError) as e:
+                        logger.warning(f"VAD frame processing error: {e}")
                         continue
             
             if total_frames == 0:

@@ -19,6 +19,8 @@ import zipfile
 import tempfile
 from contextlib import asynccontextmanager
 
+logger = logging.getLogger(__name__)
+
 from .settings_models import SettingsScope, SettingsDefinition, SettingsValue, settings_registry
 from .settings_manager import get_settings_manager
 from ..file_security import safe_open, validate_file_path, safe_extract_zip, ALLOWED_SETTINGS_EXTENSIONS, MAX_SETTINGS_FILE_SIZE
@@ -691,7 +693,8 @@ class SettingsImportExport:
                     value = int(value)
                 elif row.get('type') == 'float':
                     value = float(value)
-            except:
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Could not convert value '{value}' to expected type: {e}")
                 pass  # Keep as string
             
             settings[key] = value
@@ -818,7 +821,8 @@ class SettingsImportExport:
                 elif value.startswith(('{', '[')):
                     try:
                         value = json.loads(value)
-                    except:
+                    except (json.JSONDecodeError, ValueError) as e:
+                        logger.debug(f"Could not parse JSON value '{value}': {e}")
                         pass
                 
                 settings[key] = value
@@ -870,7 +874,8 @@ class SettingsImportExport:
                 elif value.startswith(('{', '[')):
                     try:
                         value = json.loads(value)
-                    except:
+                    except (json.JSONDecodeError, ValueError) as e:
+                        logger.debug(f"Could not parse JSON value '{value}': {e}")
                         pass
                 
                 settings[key] = value

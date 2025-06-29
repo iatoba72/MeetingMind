@@ -875,7 +875,8 @@ class SummarizationEngine:
             flesch_score = flesch_reading_ease(text)
             # Convert to 0-1 scale (higher is better)
             return min(1.0, max(0.0, flesch_score / 100.0))
-        except:
+        except (ValueError, TypeError, ZeroDivisionError) as e:
+            logger.warning(f"Readability calculation failed: {e}")
             return 0.5  # Default if calculation fails
     
     def _calculate_confidence_score(self, quality_metrics: Dict[QualityMetric, float], request: SummarizationRequest) -> float:
@@ -958,7 +959,8 @@ class SummarizationEngine:
             # Get top 5 sentences
             top_indices = np.argsort(scores)[-5:][::-1]
             return [sentences[i] for i in top_indices]
-        except:
+        except (ValueError, AttributeError, ImportError) as e:
+            logger.warning(f"TF-IDF summarization failed, using fallback: {e}")
             # Fallback to first few sentences
             return sentences[:5]
     

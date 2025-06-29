@@ -597,7 +597,8 @@ class SemanticSearchService:
             # This would use the vector similarity to find related documents
             # For now, return empty list as placeholder
             return []
-        except:
+        except (AttributeError, ValueError, IndexError) as e:
+            logger.warning(f"Error finding related documents: {e}")
             return []
     
     def _generate_snippet(self, content: str, query: str, max_length: int = 200) -> str:

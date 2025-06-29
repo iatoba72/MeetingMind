@@ -78,8 +78,8 @@ class TranscriptionConfig:
     vad_filter: bool = True  # Voice Activity Detection
     vad_parameters: Dict[str, Any] = None
     word_timestamps: bool = True
-    prepend_punctuations: str = "\"'"¿([{-"
-    append_punctuations: str = "\"'.。,，!！?？:：")]}、"
+    prepend_punctuations: str = "\"'¿([{-"
+    append_punctuations: str = "\"'.。,，!！?？:：\"】）]}、"
 
     def __post_init__(self):
         if self.vad_parameters is None:
@@ -523,7 +523,8 @@ class WhisperTranscriptionService:
             import psutil
             process = psutil.Process()
             return process.memory_info().rss / 1024 / 1024
-        except:
+        except (ImportError, OSError, AttributeError) as e:
+            logger.warning(f"Failed to get memory usage: {e}")
             return 0.0
 
     def _get_gpu_memory_usage(self) -> float:
@@ -532,7 +533,8 @@ class WhisperTranscriptionService:
             if torch.cuda.is_available():
                 return torch.cuda.memory_allocated() / 1024 / 1024
             return 0.0
-        except:
+        except (RuntimeError, AttributeError) as e:
+            logger.warning(f"Failed to get GPU memory usage: {e}")
             return 0.0
 
     async def get_session_metrics(self, session_id: str) -> Dict[str, Any]:

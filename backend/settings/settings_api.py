@@ -338,8 +338,8 @@ async def delete_setting_value(
     scope: str,
     scope_id: str,
     key: str,
-    deleted_by: str = Query("api", description="Who deleted the setting"),
     background_tasks: BackgroundTasks,
+    deleted_by: str = Query("api", description="Who deleted the setting"),
     settings: SettingsManager = Depends(get_settings),
     versioning: SettingsVersionManager = Depends(get_versioning)
 ):
@@ -438,8 +438,8 @@ async def get_snapshots(
 @router.post("/snapshots/{snapshot_id}/restore")
 async def restore_snapshot(
     snapshot_id: str,
-    restored_by: str = Query("api", description="Who restored the snapshot"),
     background_tasks: BackgroundTasks,
+    restored_by: str = Query("api", description="Who restored the snapshot"),
     settings: SettingsManager = Depends(get_settings),
     versioning: SettingsVersionManager = Depends(get_versioning)
 ):
@@ -580,8 +580,8 @@ async def validate_settings(
 async def clear_scope_settings(
     scope: str,
     scope_id: str,
-    cleared_by: str = Query("api", description="Who cleared the settings"),
     background_tasks: BackgroundTasks,
+    cleared_by: str = Query("api", description="Who cleared the settings"),
     settings: SettingsManager = Depends(get_settings),
     versioning: SettingsVersionManager = Depends(get_versioning)
 ):
@@ -718,9 +718,9 @@ async def get_version(
 @router.post("/versions/{version_id}/rollback")
 async def rollback_to_version(
     version_id: str,
+    background_tasks: BackgroundTasks,
     create_backup: bool = Query(True, description="Create backup before rollback"),
     rolled_back_by: str = Query("api", description="Who performed the rollback"),
-    background_tasks: BackgroundTasks,
     versioning: SettingsVersionManager = Depends(get_versioning)
 ):
     """Rollback settings to a specific version"""

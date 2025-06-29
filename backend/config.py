@@ -300,7 +300,21 @@ class Config:
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary for debugging"""
-        def convert_value(value):
+        def convert_value(value: Any) -> Any:
+            """
+            Recursively convert configuration objects to basic Python types.
+            
+            This function handles nested configuration objects by converting:
+            - Objects with __dict__ to dictionaries
+            - Lists by converting each item recursively
+            - Other values are returned as-is
+            
+            Args:
+                value: The value to convert (object, list, or primitive)
+                
+            Returns:
+                Any: Converted value as basic Python type (dict, list, or primitive)
+            """
             if hasattr(value, '__dict__'):
                 return {k: convert_value(v) for k, v in value.__dict__.items()}
             elif isinstance(value, list):
