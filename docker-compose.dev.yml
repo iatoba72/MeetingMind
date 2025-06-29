@@ -103,7 +103,8 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend.dev
+      dockerfile: Dockerfile.frontend
+      target: development
     container_name: meetingmind-frontend-dev
     restart: unless-stopped
     depends_on:

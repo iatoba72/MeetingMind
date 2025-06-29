@@ -110,15 +110,17 @@ electron/build/
 # Docker volumes
 docker-data/
 
-# Export reports and generated files
+# Export scripts and generated files
+export_codebase.*
+run_export.*
+*_export.*
+*_codebase_*
 gemini_codebase_context_full.txt
 *_codebase_export.txt
 *_export_report.txt
 *_analysis_report.txt
-codebase_export_*.txt
-codebase_export_*.json
+codebase_export_*
 export_reports/
 exports/
 *_context_full.txt
 *_full_export.txt
-run_export.sh

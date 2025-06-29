@@ -1,16 +1,57 @@
 # MeetingMind Frontend Dockerfile
-# Multi-stage build for optimal production deployment
+# Multi-stage build with development and production targets
 
-# Build stage
-FROM node:18-alpine AS builder
+FROM node:18-alpine AS base
 
 # Set working directory
 WORKDIR /app
 
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    bash \
+    vim
+
+# Create non-root user
+RUN addgroup -g 1001 -S meetingmind && \
+    adduser -S meetingmind -u 1001 -G meetingmind
+
 # Copy package files
 COPY frontend/package*.json ./
 
-# Install dependencies with cache optimization
+# Install dependencies (all dependencies for flexibility)
+RUN npm install
+
+# Change ownership to non-root user
+RUN chown -R meetingmind:meetingmind /app
+
+# Development stage
+FROM base AS development
+
+# Copy source code
+COPY frontend/ ./
+
+# Ensure correct ownership
+RUN chown -R meetingmind:meetingmind /app
+
+# Switch to non-root user
+USER meetingmind
+
+# Expose development ports
+EXPOSE 3000 3001
+
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
+# Start development server with hot reload
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# Build stage for production
+FROM base AS builder
+
+# Install production dependencies only for building
 RUN npm ci --only=production --silent
 
 # Copy source code
@@ -49,8 +90,8 @@ RUN addgroup -g 1001 -S meetingmind && \
     adduser -S meetingmind -u 1001 -G meetingmind
 
 # Copy custom nginx configuration
-COPY deployment/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY deployment/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY deployment/nginx/nginx.conf /etc/nginx/nginx.conf 2>/dev/null || true
+COPY deployment/nginx/default.conf /etc/nginx/conf.d/default.conf 2>/dev/null || true
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -64,21 +105,21 @@ RUN mkdir -p /var/log/nginx && \
     chown -R meetingmind:meetingmind /var/log/nginx
 
 # Security headers script
-COPY deployment/scripts/security-headers.sh /docker-entrypoint.d/
-RUN chmod +x /docker-entrypoint.d/security-headers.sh
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:80/health || exit 1
+COPY deployment/scripts/security-headers.sh /docker-entrypoint.d/ 2>/dev/null || true
+RUN chmod +x /docker-entrypoint.d/security-headers.sh 2>/dev/null || true
 
 # Create health check endpoint
 RUN echo '<!DOCTYPE html><html><head><title>Health Check</title></head><body><h1>OK</h1></body></html>' \
     > /usr/share/nginx/html/health
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:80/health || exit 1
+
 # Switch to non-root user
 USER meetingmind
 
-# Expose port
+# Expose ports
 EXPOSE 80 443
 
 # Start nginx

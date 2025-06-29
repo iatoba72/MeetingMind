@@ -117,6 +117,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      target: production
       args:
         - NODE_ENV=${NODE_ENV:-production}
         - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
