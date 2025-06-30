@@ -107,7 +107,7 @@ export const PerformanceClinic: React.FC<{
     loadOptimizationData();
     initializeScenarios();
     initializeTests();
-  }, []);
+  }, [loadOptimizationData, initializeScenarios, initializeTests]);
 
   const loadOptimizationData = useCallback(() => {
     // Simulated optimization impacts based on the components we've implemented
@@ -747,7 +747,7 @@ export const PerformanceClinic: React.FC<{
             <div className="bg-white rounded-lg border p-6">
               <h2 className="text-lg font-semibold mb-4">Performance Improvement Timeline</h2>
               <div className="h-64 flex items-end justify-center space-x-2">
-                {optimizations.filter(o => o.status === 'measured').map((opt, index) => (
+                {optimizations.filter(o => o.status === 'measured').map((opt) => (
                   <div key={opt.id} className="flex flex-col items-center">
                     <div
                       className="bg-blue-500 rounded-t"

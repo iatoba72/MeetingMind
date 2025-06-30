@@ -40,10 +40,10 @@ const generateMeetings = (count: number) => {
     endTime: new Date(Date.now() - (count - i) * 86400000 + 3600000).toISOString(),
     duration: 60,
     participants: [
-      { id: `user_${i}_1`, name: `User ${i}-1`, email: `user${i}1@test.com`, role: 'host' as 'host' },
-      { id: `user_${i}_2`, name: `User ${i}-2`, email: `user${i}2@test.com`, role: 'attendee' as 'attendee' }
+      { id: `user_${i}_1`, name: `User ${i}-1`, email: `user${i}1@test.com`, role: 'host' as const },
+      { id: `user_${i}_2`, name: `User ${i}-2`, email: `user${i}2@test.com`, role: 'attendee' as const }
     ],
-    status: 'completed' as 'completed',
+    status: 'completed' as const,
     tags: ['important'],
     isStarred: false,
     createdBy: `user_${i}_1`,

@@ -86,7 +86,13 @@ export const StreamingManager: React.FC<StreamingManagerProps> = ({
   const [newKeyExpiry, setNewKeyExpiry] = useState('24h');
   
   // Configuration URLs
-  const [serverConfig, setServerConfig] = useState<any>(null);
+  const [serverConfig, setServerConfig] = useState<{
+    rtmpUrl?: string;
+    srtUrl?: string;
+    webrtcUrl?: string;
+    dashUrl?: string;
+    hlsUrl?: string;
+  } | null>(null);
 
   useEffect(() => {
     loadStreamData();
@@ -95,7 +101,7 @@ export const StreamingManager: React.FC<StreamingManagerProps> = ({
     // Set up periodic refresh
     const interval = setInterval(loadStreamData, 10000); // Every 10 seconds
     return () => clearInterval(interval);
-  }, [meetingId]);
+  }, [meetingId, loadStreamData, loadServerConfig]);
 
   const loadStreamData = async () => {
     try {

@@ -157,12 +157,19 @@ export class ScreenCaptureService {
       // Extract metadata
       const track = this.mediaStream.getVideoTracks()[0];
       const settings = track.getSettings();
-      const capabilities = track.getCapabilities?.() || {};
+      
+      // Type-safe access to screen capture settings
+      interface ScreenCaptureSettings extends MediaTrackSettings {
+        displaySurface?: 'application' | 'browser' | 'monitor' | 'window';
+        logicalSurface?: boolean;
+        cursor?: 'always' | 'motion' | 'never';
+      }
 
+      const screenSettings = settings as ScreenCaptureSettings;
       const metadata: ScreenShareMetadata = {
-        displaySurface: (settings as any).displaySurface || 'monitor',
-        logicalSurface: (settings as any).logicalSurface || false,
-        cursor: (settings as any).cursor || 'motion',
+        displaySurface: screenSettings.displaySurface || 'monitor',
+        logicalSurface: screenSettings.logicalSurface || false,
+        cursor: screenSettings.cursor || 'motion',
         aspectRatio: settings.width! / settings.height!,
         frameRate: settings.frameRate || this.settings.frameRate
       };

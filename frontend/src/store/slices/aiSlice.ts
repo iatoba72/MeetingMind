@@ -13,7 +13,6 @@ import {
   AISettings,
   MeetingInsight,
   ProviderUsage,
-  ProviderSettings,
   AppState,
   StoreActions 
 } from '../types';
@@ -476,8 +475,17 @@ export const createAISlice: StateCreator<
     const provider = get().ai.providers.find(p => p.id === providerId);
     if (!provider) return 0;
     
-    // For now, return today's cost (would implement proper period filtering)
-    return provider.usage.costToday;
+    // Return cost based on period
+    switch (period) {
+      case 'day':
+        return provider.usage.costToday;
+      case 'week':
+        return provider.usage.costToday * 7; // Approximate
+      case 'month':
+        return provider.usage.costToday * 30; // Approximate
+      default:
+        return provider.usage.costToday;
+    }
   },
   
   resetProviderUsage: (providerId) => {
@@ -504,7 +512,7 @@ export const createAISlice: StateCreator<
       { type: 'insight' as const, input: meetingId, priority: 'medium' as const }
     ];
     
-    const taskIds = await get().batchProcess(tasks);
+    await get().batchProcess(tasks);
     
     // Wait for results (simplified - would implement proper async handling)
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -539,7 +547,7 @@ export const createAISlice: StateCreator<
   },
   
   analyzeSentiment: async (text) => {
-    const taskId = get().queueTask({
+    get().queueTask({
       type: 'sentiment',
       input: { text },
       priority: 'medium'

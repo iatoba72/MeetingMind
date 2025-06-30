@@ -17,14 +17,31 @@ interface StudyNote {
   segmentId?: string;
 }
 
+interface TranscriptSegment {
+  id: string;
+  text: string;
+  startTime: number;
+  endTime: number;
+  speaker?: string;
+  confidence?: number;
+}
+
+interface Bookmark {
+  id: string;
+  timestamp: number;
+  title: string;
+  description?: string;
+  color?: string;
+}
+
 interface StudySession {
   id: string;
   name: string;
   mediaUrl: string;
   mediaType: 'audio' | 'video';
-  transcript: any[];
+  transcript: TranscriptSegment[];
   notes: StudyNote[];
-  bookmarks: any[];
+  bookmarks: Bookmark[];
   loopSections: LoopSection[];
   totalStudyTime: number; // in minutes
   completionPercentage: number;
@@ -422,7 +439,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'notes' | 'loops' | 'goals' | 'analytics')}
                 className={`
                   flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors
                   ${activeTab === tab.id 

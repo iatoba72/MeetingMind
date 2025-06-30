@@ -80,9 +80,14 @@ interface EmbeddingStatistics {
   totalSearches: number;
 }
 
+interface CachedResult<T> {
+  data: T;
+  timestamp: number;
+}
+
 class VectorSearchService {
   private baseUrl: string;
-  private cache: Map<string, any> = new Map();
+  private cache: Map<string, CachedResult<EnhancedSearchResult[] | SimilarityMatrix | EmbeddingStatistics>> = new Map();
   private cacheTTL: number = 5 * 60 * 1000; // 5 minutes
 
   constructor(baseUrl: string = '/api') {
@@ -160,7 +165,14 @@ class VectorSearchService {
     } = {}
   ): Promise<SearchResult[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/vector/similar-meetings/${meetingId}`, {
+      const params = new URLSearchParams();
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.similarityThreshold) params.append('threshold', options.similarityThreshold.toString());
+      
+      const queryString = params.toString();
+      const url = `${this.baseUrl}/vector/similar-meetings/${meetingId}${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

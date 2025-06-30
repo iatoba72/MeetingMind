@@ -39,13 +39,28 @@ interface SecurityStatus {
   recommendations: string[];
 }
 
+interface SecurityComponentDetails {
+  // Common audit/statistics fields
+  totalEvents?: number;
+  recentEvents?: number;
+  activeKeys?: number;
+  complianceScore?: number;
+  percentage?: number;
+  // Encryption status fields
+  algorithm?: string;
+  keySize?: number;
+  status?: string;
+  // Any other dynamic properties
+  [key: string]: string | number | boolean | undefined;
+}
+
 interface SecurityComponent {
   id: string;
   name: string;
   status: 'active' | 'warning' | 'error' | 'disabled';
   description: string;
-  details: any;
-  icon: React.ComponentType<any>;
+  details: SecurityComponentDetails;
+  icon: React.ComponentType<{ className?: string; size?: number | string }>;
   lastChecked: number;
 }
 
@@ -102,7 +117,8 @@ export const SecurityCenter: React.FC<{
   onThreatSelect
 }) => {
   // State
-  const [activeTab, setActiveTab] = useState<'overview' | 'encryption' | 'dataflow' | 'privacy' | 'compliance' | 'audit'>('overview');
+  type TabKey = 'overview' | 'encryption' | 'dataflow' | 'privacy' | 'compliance' | 'audit';
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [securityStatus, setSecurityStatus] = useState<SecurityStatus | null>(null);
   const [dataFlows, setDataFlows] = useState<DataFlow[]>([]);
   const [encryptionStatus, setEncryptionStatus] = useState<EncryptionStatus | null>(null);
@@ -1024,7 +1040,7 @@ export const SecurityCenter: React.FC<{
             ].map(tab => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
+                onClick={() => setActiveTab(tab.key as TabKey)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                   activeTab === tab.key
                     ? 'bg-blue-100 text-blue-700'

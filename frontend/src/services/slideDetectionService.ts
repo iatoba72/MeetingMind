@@ -340,9 +340,6 @@ export class SlideDetectionService {
       for (let x = 1; x < canvas.width - 1; x++) {
         const idx = (y * canvas.width + x) * 4;
         
-        // Get grayscale value
-        const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-        
         // Get neighboring pixels
         const grayLeft = 0.299 * data[idx - 4] + 0.587 * data[idx - 3] + 0.114 * data[idx - 2];
         const grayRight = 0.299 * data[idx + 4] + 0.587 * data[idx + 5] + 0.114 * data[idx + 6];
@@ -684,7 +681,8 @@ export class SlideDetectionService {
       aspectRatio: canvas.width / canvas.height,
       complexity,
       textDensity,
-      brightness: averageBrightness / 255
+      brightness: averageBrightness / 255,
+      dominantColors: dominantColors.slice(0, 3).map(c => c.color) // Top 3 dominant colors
     };
   }
 

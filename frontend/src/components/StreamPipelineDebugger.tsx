@@ -92,7 +92,7 @@ interface DebugInfo {
   state: string;
   inputFormat?: StreamFormat;
   stages: ProcessingStage[];
-  outputFormats: any[];
+  outputFormats: StreamFormat[];
   metrics: PipelineMetrics;
   errors: Array<{
     timestamp: Date;

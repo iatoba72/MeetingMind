@@ -147,7 +147,7 @@ class ConfigMigrator:
                                             current_config[new_key] = int(value_part)
                                     else:
                                         current_config[new_key] = value_part.strip('\'"')
-                                except:
+                                except (ValueError, TypeError, AttributeError):
                                     # Use default if parsing fails
                                     current_config[new_key] = self.defaults.get(new_key)
                                 break

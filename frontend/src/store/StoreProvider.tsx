@@ -84,7 +84,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({
     if (autoInitialize && !isInitialized && !isInitializing) {
       initialize();
     }
-  }, [autoInitialize, isInitialized, isInitializing]);
+  }, [autoInitialize, isInitialized, isInitializing, initialize]);
 
   // Cleanup on unmount
   useEffect(() => {
