@@ -175,7 +175,7 @@ export const WaveformVisualization: React.FC<WaveformProps> = React.memo(({
     } finally {
       setIsLoading(false);
     }
-  }, [audioContext, width]);
+  }, [audioContext, width, extractPeaks]);
   
   // Extract peaks from AudioBuffer
   const extractPeaks = useCallback((buffer: AudioBuffer, resolution: number): Float32Array => {
@@ -321,7 +321,7 @@ export const WaveformVisualization: React.FC<WaveformProps> = React.memo(({
   }, [
     width, height, barWidth, barGap, barColor, progressColor, backgroundColor,
     currentTime, duration, showGrid, showTimeLabels, showAmplitudeLabels,
-    normalize, samplesPerPixel, offset
+    normalize, samplesPerPixel, offset, drawAmplitudeLabels, drawGrid, drawTimeLabels
   ]);
   
   // Draw overlay elements (regions, markers, selections)
@@ -408,7 +408,7 @@ export const WaveformVisualization: React.FC<WaveformProps> = React.memo(({
       ctx.lineTo(width, y);
       ctx.stroke();
     }
-  }, [width, height, duration]);
+  }, [width, height]);
   
   // Draw time labels
   const drawTimeLabels = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -424,7 +424,7 @@ export const WaveformVisualization: React.FC<WaveformProps> = React.memo(({
       
       ctx.fillText(label, x, height - 4);
     }
-  }, [width, height, duration]);
+  }, [width, height, duration, formatTime]);
   
   // Draw amplitude labels
   const drawAmplitudeLabels = useCallback((ctx: CanvasRenderingContext2D) => {

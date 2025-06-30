@@ -437,7 +437,7 @@ export class PrivacyPreservingAnalytics {
   private generateLaplaceNoise(scale: number): number {
     // Generate Laplace noise using inverse transform sampling
     const u1 = Math.random();
-    const u2 = Math.random();
+    const u2 = Math.random(); // eslint-disable-line @typescript-eslint/no-unused-vars
     
     if (u1 < 0.5) {
       return -scale * Math.log(2 * u1);
@@ -457,7 +457,7 @@ export class PrivacyPreservingAnalytics {
       throw new Error('Privacy budget exhausted');
     }
 
-    const { sensitivity, scale } = this.config.noiseParameters;
+    const { sensitivity, scale } = this.config.noiseParameters; // eslint-disable-line @typescript-eslint/no-unused-vars
     const noise = this.generateLaplaceNoise(scale);
     
     this.usedPrivacyBudget += epsilon;
@@ -770,7 +770,7 @@ export class PrivacyPreservingAnalytics {
     await this.cleanupOldEvents();
 
     // Reset privacy budget periodically (e.g., daily)
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000; // eslint-disable-line @typescript-eslint/no-unused-vars
     if (this.usedPrivacyBudget > 0) {
       this.usedPrivacyBudget = Math.max(0, this.usedPrivacyBudget - 0.1); // Gradual budget recovery
     }

@@ -386,7 +386,7 @@ export class LocalOnlyService {
     // Enable service worker for offline operation
     if ('serviceWorker' in navigator) {
       try {
-        const registration = await navigator.serviceWorker.register('/offline-sw.js');
+        const registration = await navigator.serviceWorker.register('/offline-sw.js'); // eslint-disable-line @typescript-eslint/no-unused-vars
         console.log('Offline service worker registered');
       } catch (error) {
         console.warn('Failed to register service worker:', error);

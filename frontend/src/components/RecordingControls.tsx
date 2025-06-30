@@ -4,7 +4,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useMediaRecorder, RecordingConfig } from '../hooks/useMediaRecorder';
 import { useChunkedUpload, ChunkedUploadConfig } from '../hooks/useChunkedUpload';
-import { getStorageManager, StoragePolicies, UploadPolicy } from '../utils/mediaStorage';
+import { StoragePolicies, UploadPolicy } from '../utils/mediaStorage';
 import { TranscriptionSegment } from '../utils/CacheManager';
 
 interface RecordingSession {
@@ -86,8 +86,6 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
   const mediaRecorder = useMediaRecorder();
   const chunkedUpload = useChunkedUpload();
   
-  // Storage manager
-  const storageManager = useMemo(() => getStorageManager(), []);
   
   // Quality presets
   const qualityPresets = useMemo(() => ({
@@ -246,7 +244,8 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
     recordingConfig,
     enableAutoUpload,
     chunkedUpload,
-    onRecordingComplete
+    onRecordingComplete,
+    startTranscription
   ]);
   
   // Start transcription process

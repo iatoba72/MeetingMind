@@ -3,7 +3,7 @@
 // Provides comprehensive insights into prompt performance, cost, and optimization opportunities
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { claudeService, type PromptDebugInfo, type TokenUsage, type PromptTemplate } from '../services/claudeServiceSimple';
+import { claudeService, type PromptDebugInfo, type TokenUsage } from '../services/claudeServiceSimple';
 
 interface PromptAnalysis {
   id: string;
@@ -82,13 +82,12 @@ interface PromptDebuggerProps {
  */
 export const PromptDebugger: React.FC<PromptDebuggerProps> = ({
   prompt = '',
-  onPromptChange,
-  showAdvancedAnalytics = true
+  onPromptChange
 }) => {
   // Core state
   const [currentPrompt, setCurrentPrompt] = useState(prompt);
   const [analysisHistory, setAnalysisHistory] = useState<PromptAnalysis[]>([]);
-  const [currentAnalysis, setCurrentAnalysis] = useState<PromptAnalysis | null>(null);
+  const [, setCurrentAnalysis] = useState<PromptAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Debug and optimization state
@@ -103,9 +102,8 @@ export const PromptDebugger: React.FC<PromptDebuggerProps> = ({
 
   // UI state
   const [activeTab, setActiveTab] = useState<'analysis' | 'optimization' | 'metrics' | 'history'>('analysis');
-  const [showTokenBreakdown, setShowTokenBreakdown] = useState(true);
-  const [showCostProjection, setShowCostProjection] = useState(true);
-  const [comparisonMode, setComparisonMode] = useState(false);
+  // UI state configuration stored but not currently used in UI
+  // These can be used for future feature implementations
 
   // Sync with parent component
   useEffect(() => {
@@ -121,7 +119,7 @@ export const PromptDebugger: React.FC<PromptDebuggerProps> = ({
       
       return () => clearTimeout(debounceTimer);
     }
-  }, [currentPrompt, selectedModel, maxTokens, temperature]);
+  }, [currentPrompt, selectedModel, maxTokens, temperature, analyzePromptRealTime]);
 
   /**
    * Analyze prompt in real-time without making API calls
@@ -168,7 +166,7 @@ export const PromptDebugger: React.FC<PromptDebuggerProps> = ({
     const suggestions = generateDetailedOptimizations(currentPrompt, tokenCount, estimatedCost, metrics);
     setOptimizationSuggestions(suggestions);
 
-  }, [currentPrompt, selectedModel, maxTokens, temperature, calculatePromptMetrics, generateDetailedOptimizations, generateOptimizationSuggestions]);
+  }, [currentPrompt, selectedModel, maxTokens, calculatePromptMetrics, generateDetailedOptimizations, generateOptimizationSuggestions]);
 
   /**
    * Calculate comprehensive prompt metrics
@@ -496,7 +494,7 @@ export const PromptDebugger: React.FC<PromptDebuggerProps> = ({
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as typeof activeTab)}
             className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               activeTab === tab.id
                 ? 'bg-white text-gray-900 shadow-sm'

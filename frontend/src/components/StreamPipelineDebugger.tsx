@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -134,16 +134,16 @@ export const StreamPipelineDebugger: React.FC<StreamPipelineDebuggerProps> = ({
         wsRef.current.close();
       }
     };
-  }, [processorId]);
+  }, [processorId, connectWebSocket]);
 
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(fetchDebugInfo, 2000);
       return () => clearInterval(interval);
     }
-  }, [autoRefresh, processorId]);
+  }, [autoRefresh, processorId, fetchDebugInfo]);
 
-  const connectWebSocket = () => {
+  const connectWebSocket = useCallback(() => {
     try {
       wsRef.current = new WebSocket(websocketUrl);
       
@@ -175,9 +175,9 @@ export const StreamPipelineDebugger: React.FC<StreamPipelineDebuggerProps> = ({
     } catch (error) {
       console.error('Failed to connect WebSocket:', error);
     }
-  };
+  }, [websocketUrl, processorId]);
 
-  const fetchDebugInfo = async () => {
+  const fetchDebugInfo = useCallback(async () => {
     try {
       const response = await fetch(`/api/stream-processor/${processorId}/debug`);
       if (response.ok) {
@@ -187,7 +187,7 @@ export const StreamPipelineDebugger: React.FC<StreamPipelineDebuggerProps> = ({
     } catch (error) {
       console.error('Failed to fetch debug info:', error);
     }
-  };
+  }, [processorId]);
 
   const exportDebugData = () => {
     if (!debugInfo) return;

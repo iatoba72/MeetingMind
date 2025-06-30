@@ -146,7 +146,7 @@ export const SecurityCenter: React.FC<{
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [collectDataFlows, collectSecurityComponents, collectSecurityThreats, generateRecommendations]);
 
   // Auto-refresh data
   useEffect(() => {

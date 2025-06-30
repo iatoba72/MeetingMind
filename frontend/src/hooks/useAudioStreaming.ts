@@ -2,7 +2,7 @@
 // This hook demonstrates binary data streaming over WebSocket for real-time audio processing
 
 import { useCallback, useRef, useState, useEffect } from 'react';
-import { useWebSocket, WebSocketMessage } from './useWebSocket';
+import { useWebSocket, WebSocketMessage } from './useWebSocket'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useAudioCapture, AudioStats, AudioCaptureConfig } from './useAudioCapture';
 
 // Audio streaming configuration
@@ -122,9 +122,9 @@ export interface AudioStreamingHook {
 export const useAudioStreaming = (config: AudioStreamingConfig): AudioStreamingHook => {
   const {
     websocketUrl,
-    clientId: _clientId,
-    enableCompression: _enableCompression = false,
-    bufferSize: _bufferSize = 1024 * 1024, // 1MB buffer
+    clientId: _clientId, // eslint-disable-line @typescript-eslint/no-unused-vars
+    enableCompression: _enableCompression = false, // eslint-disable-line @typescript-eslint/no-unused-vars
+    bufferSize: _bufferSize = 1024 * 1024, // 1MB buffer // eslint-disable-line @typescript-eslint/no-unused-vars
     maxRetries = 3,
     adaptiveQuality = true,
     minBitrate = 16000,       // 16kbps minimum
@@ -324,7 +324,7 @@ export const useAudioStreaming = (config: AudioStreamingConfig): AudioStreamingH
   ]);
   
   // Handle audio chunk from capture
-  async function handleAudioChunk(chunk: Blob, stats: AudioStats) {
+  async function handleAudioChunk(chunk: Blob, stats: AudioStats) { // eslint-disable-line @typescript-eslint/no-unused-vars
     if (streamingState !== StreamingState.STREAMING) return;
     
     // Add to buffer

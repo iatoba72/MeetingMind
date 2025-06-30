@@ -59,7 +59,7 @@ export const MeetingDashboard: React.FC<MeetingDashboardProps> = ({ clientId }) 
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Fetch meetings from the backend
-  const fetchMeetings = async (page = 1) => {
+  const fetchMeetings = useCallback(async (page = 1) => {
     setLoading(true);
     setError(null);
     
@@ -96,7 +96,7 @@ export const MeetingDashboard: React.FC<MeetingDashboardProps> = ({ clientId }) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [pageSize, sortBy, sortOrder, filters]);
 
   // Create a new meeting
   const createMeeting = async (meetingData: { title: string; description: string; scheduled_start: string; scheduled_end: string; [key: string]: unknown }) => {

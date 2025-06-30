@@ -3,7 +3,7 @@
  * Real-time transcription interface with network stream support
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 interface TranscriptionSegment {
   id: string;
@@ -124,7 +124,7 @@ export const NetworkTranscription: React.FC = () => {
         clearInterval(simulationRef.current);
       }
     };
-  }, [selectedStream]);
+  }, [selectedStream, loadStreamStatistics]);
 
   const loadAvailableModels = async () => {
     try {
@@ -152,7 +152,7 @@ export const NetworkTranscription: React.FC = () => {
     }
   };
 
-  const loadStreamStatistics = async () => {
+  const loadStreamStatistics = useCallback(async () => {
     if (!selectedStream) return;
     
     try {
@@ -166,7 +166,7 @@ export const NetworkTranscription: React.FC = () => {
     } catch (err) {
       console.error('Error loading stream statistics:', err);
     }
-  };
+  }, [selectedStream]);
 
   const createStream = async () => {
     setIsLoading(true);
@@ -240,7 +240,6 @@ export const NetworkTranscription: React.FC = () => {
     
     wsRef.current.onopen = () => {
       setIsConnected(true);
-      console.log(`WebSocket connected for stream ${streamId}`);
     };
     
     wsRef.current.onmessage = (event) => {
@@ -257,7 +256,6 @@ export const NetworkTranscription: React.FC = () => {
     
     wsRef.current.onclose = () => {
       setIsConnected(false);
-      console.log(`WebSocket disconnected for stream ${streamId}`);
     };
     
     wsRef.current.onerror = (error) => {
@@ -343,7 +341,7 @@ export const NetworkTranscription: React.FC = () => {
       const data = await response.json();
       
       if (data.success) {
-        console.log('Stream resynced successfully');
+        // Stream resynced successfully
         loadStreamStatistics();
       }
     } catch (err) {

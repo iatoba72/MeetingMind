@@ -7,12 +7,12 @@ import {
   FileText,
   MessageSquare,
   CheckSquare,
-  Mouse,
+  // Mouse,
   Activity,
   Settings,
-  Play,
-  Pause,
-  RotateCcw,
+  // Play,
+  // Pause,
+  // RotateCcw,
   Zap,
   TestTube
 } from 'lucide-react';
@@ -104,7 +104,7 @@ const DemoContent: React.FC = () => {
   const [actionItems, setActionItems] = useState<Array<{ id: string; task: string; assignee: string; deadline?: string; completed: boolean }>>([]);
   const [cursors, setCursors] = useState<Array<{ userId: string; position: { x: number; y: number }; color: string }>>([]);
   const [currentUser] = useState(DEMO_USERS[0]); // Simulate current user
-  const [users, setUsers] = useState(DEMO_USERS);
+  const [users] = useState(DEMO_USERS);
   const [showSettings, setShowSettings] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [showMetrics, setShowMetrics] = useState(false);

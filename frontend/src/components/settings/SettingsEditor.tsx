@@ -6,28 +6,28 @@ import { useToast } from '../../store/hooks';
 import {
   Settings,
   Search,
-  Filter,
+  // Filter,
   Save,
   RotateCcw,
   Upload,
   Download,
   History,
-  Copy,
+  // Copy,
   Eye,
   EyeOff,
   AlertTriangle,
-  CheckCircle,
+  // CheckCircle,
   Info,
   Lock,
-  Unlock,
-  Folder,
-  FolderOpen,
+  // Unlock,
+  // Folder,
+  // FolderOpen,
   ChevronRight,
   ChevronDown,
-  Plus,
-  Trash2,
-  Edit,
-  GitBranch,
+  // Plus,
+  // Trash2,
+  // Edit,
+  // GitBranch,
   Clock,
   User,
   Globe,
@@ -53,17 +53,17 @@ interface SettingsDefinition {
   validation_rules?: any[];
 }
 
-interface SettingsValue {
-  key: string;
-  value: any;
-  scope: string;
-  scope_id: string;
-  set_by: string;
-  set_at: string;
-  version: number;
-  is_valid: boolean;
-  validation_errors: string[];
-}
+// interface SettingsValue {
+//   key: string;
+//   value: any;
+//   scope: string;
+//   scope_id: string;
+//   set_by: string;
+//   set_at: string;
+//   version: number;
+//   is_valid: boolean;
+//   validation_errors: string[];
+// }
 
 interface SettingsVersion {
   version_id: string;
@@ -436,7 +436,7 @@ export const SettingsEditor: React.FC<SettingsEditorProps> = ({
   const renderSettingInput = (definition: SettingsDefinition) => {
     const value = getEffectiveValue(definition.key);
     const hasError = definition.key in validationErrors;
-    const isModified = definition.key in pendingChanges;
+    // const isModified = definition.key in pendingChanges;
 
     const inputProps = {
       value,
@@ -561,7 +561,7 @@ export const SettingsEditor: React.FC<SettingsEditorProps> = ({
   const renderSettingItem = (definition: SettingsDefinition) => {
     const hasError = definition.key in validationErrors;
     const isModified = definition.key in pendingChanges;
-    const value = getEffectiveValue(definition.key);
+    // const value = getEffectiveValue(definition.key);
 
     return (
       <div key={definition.key} className={`p-4 border rounded-lg ${hasError ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}>

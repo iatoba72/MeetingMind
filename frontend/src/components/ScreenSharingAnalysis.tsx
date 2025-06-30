@@ -90,14 +90,14 @@ const ScreenSharingAnalysis: React.FC = () => {
   });
 
   // Settings
-  const [captureSettings, setCaptureSettings] = useState<CaptureSettings>({
+  const captureSettings: CaptureSettings = {
     frameRate: 1, // 1 FPS for screen analysis
     quality: 0.8,
     maxWidth: 1920,
     maxHeight: 1080,
     enableOptimization: true,
     compressionLevel: 0.7
-  });
+  };
 
   const [enableOCR, setEnableOCR] = useState(true);
   const [enableSlideDetection, setEnableSlideDetection] = useState(true);
@@ -107,111 +107,21 @@ const ScreenSharingAnalysis: React.FC = () => {
   const processingQueue = useRef<CaptureFrame[]>([]);
   const statsInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize services
-  useEffect(() => {
-    initializeServices();
-    return () => {
-      cleanup();
-    };
-  }, []);
-
   // Update real-time stats
-  useEffect(() => {
-    if (isActive) {
-      statsInterval.current = setInterval(updateStats, 1000);
-    } else {
-      if (statsInterval.current) {
-        clearInterval(statsInterval.current);
-        statsInterval.current = null;
-      }
-    }
+  const updateStats = useCallback(() => {
+    const captureMetrics = screenCapture.getPerformanceMetrics();
 
-    return () => {
-      if (statsInterval.current) {
-        clearInterval(statsInterval.current);
-      }
-    };
-  }, [isActive]);
-
-  const initializeServices = async () => {
-    try {
-      setLoading(true);
-      
-      // Initialize OCR service
-      if (enableOCR) {
-        await ocrService.initialize();
-      }
-
-      // Set up event handlers
-      screenCapture.onFrameCapture(handleFrameCapture);
-      screenCapture.onErrorOccurred(handleError);
-      
-      slideDetection.onSlideChangeDetected(handleSlideChange);
-
-      setIsInitialized(true);
-      setSuccessMessage('Screen sharing analysis ready!');
-    } catch (err) {
-      setError('Failed to initialize services');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cleanup = () => {
-    stopAnalysis();
-    screenCapture.destroy();
-    ocrService.terminate();
-  };
-
-  // Event handlers
-  const handleFrameCapture = useCallback(async (frame: CaptureFrame) => {
-    // Add to processing queue
-    processingQueue.current.push(frame);
-    
-    // Process slide detection
-    if (enableSlideDetection) {
-      try {
-        const slideChange = await slideDetection.processFrame(frame);
-        if (slideChange) {
-          handleSlideChange(slideChange);
-        }
-      } catch (err) {
-        console.error('Slide detection error:', err);
-      }
-    }
-
-    // Process OCR (async, don't block frame capture)
-    if (enableOCR && processingQueue.current.length <= 5) { // Limit queue size
-      processFrameOCR(frame);
-    }
-  }, [enableSlideDetection, enableOCR]);
-
-  const handleSlideChange = useCallback((event: SlideChangeEvent) => {
-    console.log('Slide change detected:', event);
-    
-    // Update current session
-    if (currentSession) {
-      setCurrentSession(prev => ({
-        ...prev!,
-        slides: [...prev!.slides, event.currentSlide]
-      }));
-    }
-
-    // Update real-time stats
     setRealtimeStats(prev => ({
       ...prev,
-      currentSlide: event.currentSlide,
-      totalSlides: prev.totalSlides + 1
+      isCapturing: captureMetrics.isCapturing,
+      processingFPS: captureMetrics.frameRate,
+      ocrQueueSize: processingQueue.current.length,
+      memoryUsage: captureMetrics.memoryUsage
     }));
-  }, [currentSession]);
+  }, [screenCapture]);
 
-  const handleError = useCallback((error: Error) => {
-    setError(`Screen capture error: ${error.message}`);
-    console.error(error);
-  }, []);
-
-  const processFrameOCR = async (frame: CaptureFrame) => {
+  // Process OCR frame
+  const processFrameOCR = useCallback(async (frame: CaptureFrame) => {
     try {
       // Process with OCR
       const ocrResult = await ocrService.extractTextFromSlide(frame.canvas);
@@ -235,59 +145,57 @@ const ScreenSharingAnalysis: React.FC = () => {
       // Remove from queue
       processingQueue.current.shift();
     }
-  };
+  }, [currentSession, ocrService]);
 
-  const updateStats = () => {
-    const captureMetrics = screenCapture.getPerformanceMetrics();
-    const slideStats = slideDetection.getDetectionStats();
-    const ocrStats = ocrService.getStats();
+  // Event handlers
+  const handleError = useCallback((error: Error) => {
+    setError(`Screen capture error: ${error.message}`);
+    console.error(error);
+  }, []);
 
+  const handleSlideChange = useCallback((event: SlideChangeEvent) => {
+    // Slide change detected
+    
+    // Update current session
+    if (currentSession) {
+      setCurrentSession(prev => ({
+        ...prev!,
+        slides: [...prev!.slides, event.currentSlide]
+      }));
+    }
+
+    // Update real-time stats
     setRealtimeStats(prev => ({
       ...prev,
-      isCapturing: captureMetrics.isCapturing,
-      processingFPS: captureMetrics.frameRate,
-      ocrQueueSize: processingQueue.current.length,
-      memoryUsage: captureMetrics.memoryUsage
+      currentSlide: event.currentSlide,
+      totalSlides: prev.totalSlides + 1
     }));
-  };
+  }, [currentSession]);
+
+  const handleFrameCapture = useCallback(async (frame: CaptureFrame) => {
+    // Add to processing queue
+    processingQueue.current.push(frame);
+    
+    // Process slide detection
+    if (enableSlideDetection) {
+      try {
+        const slideChange = await slideDetection.processFrame(frame);
+        if (slideChange) {
+          handleSlideChange(slideChange);
+        }
+      } catch (err) {
+        console.error('Slide detection error:', err);
+      }
+    }
+
+    // Process OCR (async, don't block frame capture)
+    if (enableOCR && processingQueue.current.length <= 5) { // Limit queue size
+      processFrameOCR(frame);
+    }
+  }, [enableSlideDetection, enableOCR, handleSlideChange, processFrameOCR, slideDetection]);
 
   // Control methods
-  const startAnalysis = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      // Update capture settings
-      screenCapture.updateSettings(captureSettings);
-
-      // Start screen capture
-      const metadata = await screenCapture.startCapture();
-      
-      // Create new session
-      const session: AnalysisSession = {
-        id: `session_${Date.now()}`,
-        startTime: Date.now(),
-        slides: [],
-        ocrResults: [],
-        totalFrames: 0,
-        totalTextExtracted: 0,
-        averageConfidence: 0
-      };
-
-      setCurrentSession(session);
-      setIsActive(true);
-      setSuccessMessage('Screen sharing analysis started!');
-      
-      console.log('Screen capture started:', metadata);
-    } catch (err) {
-      setError('Failed to start screen capture');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const stopAnalysis = async () => {
+  const stopAnalysis = useCallback(async () => {
     try {
       screenCapture.stopCapture();
       slideDetection.reset();
@@ -321,20 +229,117 @@ const ScreenSharingAnalysis: React.FC = () => {
       setError('Error stopping analysis');
       console.error(err);
     }
-  };
+  }, [autoSaveResults, currentSession, saveSession, screenCapture, slideDetection]);
 
-  const saveSession = async (session: AnalysisSession) => {
+  const cleanup = useCallback(() => {
+    stopAnalysis();
+    screenCapture.destroy();
+    ocrService.terminate();
+  }, [ocrService, screenCapture, stopAnalysis]);
+
+  const initializeServices = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Initialize OCR service
+      if (enableOCR) {
+        await ocrService.initialize();
+      }
+
+      // Set up event handlers
+      screenCapture.onFrameCapture(handleFrameCapture);
+      screenCapture.onErrorOccurred(handleError);
+      
+      slideDetection.onSlideChangeDetected(handleSlideChange);
+
+      setIsInitialized(true);
+      setSuccessMessage('Screen sharing analysis ready!');
+    } catch (err) {
+      setError('Failed to initialize services');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [enableOCR, handleFrameCapture, handleError, handleSlideChange, ocrService, screenCapture, slideDetection]);
+
+  // Initialize services
+  useEffect(() => {
+    initializeServices();
+    return () => {
+      cleanup();
+    };
+  }, [initializeServices, cleanup]);
+
+  // Update real-time stats
+  useEffect(() => {
+    if (isActive) {
+      statsInterval.current = setInterval(updateStats, 1000);
+    } else {
+      if (statsInterval.current) {
+        clearInterval(statsInterval.current);
+        statsInterval.current = null;
+      }
+    }
+
+    return () => {
+      if (statsInterval.current) {
+        clearInterval(statsInterval.current);
+      }
+    };
+  }, [isActive, updateStats]);
+
+
+  // Save session utility
+  const saveSession = useCallback(async (session: AnalysisSession) => {
     try {
       // Save to localStorage (in production, this would be an API call)
       const savedSessions = JSON.parse(localStorage.getItem('screenAnalysisSessions') || '[]');
       savedSessions.push(session);
       localStorage.setItem('screenAnalysisSessions', JSON.stringify(savedSessions));
       
-      console.log('Session saved:', session);
+      // Session saved
     } catch (err) {
       console.error('Failed to save session:', err);
     }
-  };
+  }, []);
+
+  // Control methods
+  const startAnalysis = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Update capture settings
+      screenCapture.updateSettings(captureSettings);
+
+      // Start screen capture
+      await screenCapture.startCapture();
+      
+      // Create new session
+      const session: AnalysisSession = {
+        id: `session_${Date.now()}`,
+        startTime: Date.now(),
+        slides: [],
+        ocrResults: [],
+        totalFrames: 0,
+        totalTextExtracted: 0,
+        averageConfidence: 0
+      };
+
+      setCurrentSession(session);
+      setIsActive(true);
+      setSuccessMessage('Screen sharing analysis started!');
+      
+      // Screen capture started
+    } catch (err) {
+      setError('Failed to start screen capture');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [captureSettings, screenCapture]);
+
+
 
   const downloadResults = () => {
     if (!currentSession) return;

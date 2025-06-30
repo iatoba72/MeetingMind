@@ -5,10 +5,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   PlayIcon, 
   PauseIcon, 
-  SpeakerWaveIcon, 
-  ClockIcon,
-  UserIcon,
-  ChartBarIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon
 } from '@heroicons/react/24/outline';
@@ -39,7 +35,6 @@ interface SpeakerTimelineVisualizationProps {
   currentTime?: number;
   onTimeSeek?: (time: number) => void;
   onSegmentClick?: (segment: SpeakerSegment) => void;
-  height?: number;
   showStats?: boolean;
   showControls?: boolean;
   autoPlay?: boolean;
@@ -52,7 +47,6 @@ export const SpeakerTimelineVisualization: React.FC<SpeakerTimelineVisualization
   currentTime = 0,
   onTimeSeek,
   onSegmentClick,
-  height = 400,
   showStats = true,
   showControls = true,
   autoPlay = false
@@ -60,25 +54,23 @@ export const SpeakerTimelineVisualization: React.FC<SpeakerTimelineVisualization
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [playbackTime, setPlaybackTime] = useState(currentTime);
   const [hoveredSegment, setHoveredSegment] = useState<SpeakerSegment | null>(null);
-  const [selectedTimeRange, setSelectedTimeRange] = useState<{ start: number; end: number } | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [viewportStart, setViewportStart] = useState(0);
   const [showConfidence, setShowConfidence] = useState(false);
 
   const timelineRef = useRef<HTMLDivElement>(null);
   const playbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Define colors for speakers
-  const speakerColors = [
+  const speakerColors = useMemo(() => [
     '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
     '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
-  ];
+  ], []);
 
   // Calculate speaker statistics
   const speakerStats = useMemo(() => {
     const stats: Record<string, SpeakerInfo> = {};
     
-    segments.forEach((segment, index) => {
+    segments.forEach((segment) => {
       const speakerId = segment.speakerId;
       const duration = segment.endTime - segment.startTime;
       
@@ -106,7 +98,7 @@ export const SpeakerTimelineVisualization: React.FC<SpeakerTimelineVisualization
     });
 
     return Object.values(stats).sort((a, b) => b.totalTime - a.totalTime);
-  }, [segments, totalDuration]);
+  }, [segments, totalDuration, speakerColors]);
 
   // Playback control
   useEffect(() => {

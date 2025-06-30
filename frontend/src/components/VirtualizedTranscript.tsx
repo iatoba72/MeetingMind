@@ -327,7 +327,7 @@ export const VirtualizedTranscript: React.FC<VirtualizedTranscriptProps> = ({
   }, [filteredSegments.length, isLive, autoScroll, isScrolledToBottom]);
 
   // Handle scroll to detect if user is at bottom
-  const handleScroll = useCallback(({ scrollOffset, scrollDirection }: any) => {
+  const handleScroll = useCallback(({ scrollOffset }: any) => {
     if (!containerRef.current) return;
     
     const { scrollHeight, clientHeight } = containerRef.current;

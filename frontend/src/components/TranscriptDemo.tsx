@@ -89,7 +89,7 @@ export const TranscriptDemo: React.FC = () => {
   };
 
   const handleJumpToTime = (timestamp: number) => {
-    console.log(`Jumping to time: ${timestamp} seconds`);
+    // Jump to timestamp
     // In a real implementation, this would control audio/video playback
     alert(`Would jump to ${timestamp} seconds`);
   };

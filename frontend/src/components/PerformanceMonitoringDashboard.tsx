@@ -16,7 +16,6 @@ import {
   EyeOff,
   Maximize2,
   Minimize2,
-  Calendar,
   Info
 } from 'lucide-react';
 import { cacheManager } from '../utils/CacheManager';
@@ -93,13 +92,13 @@ export const PerformanceMonitoringDashboard: React.FC<{
 
     // Memory metrics
     if ('memory' in performance) {
-      const memInfo = (performance as any).memory;
+      const memInfo = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
       metrics.push({
         id: 'js_heap_used',
         name: 'JS Heap Used',
-        value: Math.round(memInfo.usedJSHeapSize / 1024 / 1024),
+        value: Math.round((memInfo?.usedJSHeapSize || 0) / 1024 / 1024),
         unit: 'MB',
-        status: memInfo.usedJSHeapSize > 100 * 1024 * 1024 ? 'warning' : 'good',
+        status: (memInfo?.usedJSHeapSize || 0) > 100 * 1024 * 1024 ? 'warning' : 'good',
         trend: 'stable',
         history: [],
         timestamp: now,
@@ -109,9 +108,9 @@ export const PerformanceMonitoringDashboard: React.FC<{
       metrics.push({
         id: 'js_heap_total',
         name: 'JS Heap Total',
-        value: Math.round(memInfo.totalJSHeapSize / 1024 / 1024),
+        value: Math.round((memInfo?.totalJSHeapSize || 0) / 1024 / 1024),
         unit: 'MB',
-        status: memInfo.totalJSHeapSize > 150 * 1024 * 1024 ? 'warning' : 'good',
+        status: (memInfo?.totalJSHeapSize || 0) > 150 * 1024 * 1024 ? 'warning' : 'good',
         trend: 'stable',
         history: [],
         timestamp: now,
@@ -315,7 +314,6 @@ export const PerformanceMonitoringDashboard: React.FC<{
   const calculateSystemHealth = (metrics: PerformanceMetric[]): SystemHealth => {
     const criticalCount = metrics.filter(m => m.status === 'critical').length;
     const warningCount = metrics.filter(m => m.status === 'warning').length;
-    const goodCount = metrics.filter(m => m.status === 'good').length;
 
     let overall: SystemHealth['overall'] = 'healthy';
     let score = 100;

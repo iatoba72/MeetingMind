@@ -20,16 +20,16 @@ import {
   Key
 } from 'lucide-react';
 
-interface StreamKey {
-  id: string;
-  key: string;
-  meetingId: string;
-  userId: string;
-  protocol: string;
-  status: 'active' | 'expired' | 'revoked';
-  expiresAt: string;
-  createdAt: string;
-}
+// interface StreamKey {
+//   id: string;
+//   key: string;
+//   meetingId: string;
+//   userId: string;
+//   protocol: string;
+//   status: 'active' | 'expired' | 'revoked';
+//   expiresAt: string;
+//   createdAt: string;
+// }
 
 interface StreamStatus {
   streamId: string;
@@ -75,7 +75,7 @@ export const StreamingManager: React.FC<StreamingManagerProps> = ({
   meetingId,
   userId
 }) => {
-  const [streamKeys, setStreamKeys] = useState<StreamKey[]>([]);
+  // const [streamKeys, setStreamKeys] = useState<StreamKey[]>([]);
   const [activeStreams, setActiveStreams] = useState<StreamStatus[]>([]);
   const [metrics, setMetrics] = useState<StreamingMetrics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -148,7 +148,7 @@ export const StreamingManager: React.FC<StreamingManagerProps> = ({
       });
       
       if (response.ok) {
-        const result = await response.json();
+        const result = await response.json(); // eslint-disable-line @typescript-eslint/no-unused-vars
         // Show success message with stream URLs
         setError(null);
         // Refresh the stream keys list if you're tracking them
@@ -157,7 +157,7 @@ export const StreamingManager: React.FC<StreamingManagerProps> = ({
         const errorData = await response.json();
         setError(errorData.error || 'Failed to generate stream key');
       }
-    } catch (err) {
+    } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);

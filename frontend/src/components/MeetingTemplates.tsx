@@ -1,7 +1,7 @@
 // Meeting Templates Component
 // Template management for recurring meetings and standardized meeting formats
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { CreateTemplateModal } from './CreateTemplateModal';
 import { TemplateCard } from './TemplateCard';
 
@@ -56,7 +56,7 @@ export const MeetingTemplates: React.FC<MeetingTemplatesProps> = ({
   ];
 
   // Default templates that are created on first load
-  const defaultTemplates = [
+  const defaultTemplates = useMemo(() => [
     {
       name: 'Daily Stand-up',
       description: 'Quick daily team sync to discuss progress and blockers',
@@ -147,10 +147,10 @@ export const MeetingTemplates: React.FC<MeetingTemplatesProps> = ({
 6. Summary and next steps`,
       is_public: true
     }
-  ];
+  ], []);
 
   // Fetch templates from backend
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -175,10 +175,10 @@ export const MeetingTemplates: React.FC<MeetingTemplatesProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [createDefaultTemplates]);
 
   // Create default templates
-  const createDefaultTemplates = async () => {
+  const createDefaultTemplates = useCallback(async () => {
     for (const template of defaultTemplates) {
       try {
         await fetch('http://localhost:8000/meeting-templates', {
@@ -196,9 +196,17 @@ export const MeetingTemplates: React.FC<MeetingTemplatesProps> = ({
       }
     }
     
-    // Refresh templates after creating defaults
-    await fetchTemplates();
-  };
+    // Fetch templates again after creating defaults
+    try {
+      const response = await fetch('http://localhost:8000/meeting-templates');
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data.templates || []);
+      }
+    } catch (err) {
+      console.error('Error fetching templates after creating defaults:', err);
+    }
+  }, [clientId, defaultTemplates]);
 
   // Create a new template
   const createTemplate = async (templateData: { name: string; description: string; category: string; [key: string]: unknown }) => {
@@ -303,7 +311,7 @@ export const MeetingTemplates: React.FC<MeetingTemplatesProps> = ({
   // Load templates on component mount
   useEffect(() => {
     fetchTemplates();
-  }, []);
+  }, [fetchTemplates]);
 
   return (
     <div className="space-y-6">

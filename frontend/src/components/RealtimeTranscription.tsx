@@ -65,7 +65,6 @@ export const RealtimeTranscription: React.FC<RealtimeTranscriptionProps> = ({
   const [segments, setSegments] = useState<TranscriptionSegment[]>([]);
   const [metrics, setMetrics] = useState<TranscriptionMetrics | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   
@@ -90,11 +89,11 @@ export const RealtimeTranscription: React.FC<RealtimeTranscriptionProps> = ({
   };
 
   // Handler for timestamp navigation
-  const handleJumpToTime = (timestamp: number) => {
-    // This would integrate with audio/video player controls
-    console.log('Jump to time:', timestamp);
-    // You can implement actual seeking functionality here
-  };
+  // const handleJumpToTime = (_timestamp: number) => {
+  //   // This would integrate with audio/video player controls
+  //   // Jump to timestamp
+  //   // You can implement actual seeking functionality here
+  // };
   
   // Auto-scroll to bottom when new transcription arrives
   useEffect(() => {
@@ -184,7 +183,7 @@ export const RealtimeTranscription: React.FC<RealtimeTranscriptionProps> = ({
     } catch (err) {
       setError('Failed to access microphone: ' + (err as Error).message);
     }
-  }, [isActive]);
+  }, [isActive, processAudioChunk, updateAudioLevel]);
 
   // Stop recording
   const stopRecording = useCallback(() => {
@@ -200,7 +199,7 @@ export const RealtimeTranscription: React.FC<RealtimeTranscriptionProps> = ({
   }, []);
 
   // Process audio chunk for transcription
-  const processAudioChunk = async (audioBlob: Blob) => {
+  const processAudioChunk = useCallback(async (audioBlob: Blob) => {
     if (!isActive) return;
     
     setIsProcessing(true);
@@ -251,7 +250,7 @@ export const RealtimeTranscription: React.FC<RealtimeTranscriptionProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [isActive, sessionId, modelSize, language, onTranscriptionUpdate]);
 
   // Simple speaker identification (placeholder)
   const identifySpeaker = (segment: TranscriptionSegment): string => {

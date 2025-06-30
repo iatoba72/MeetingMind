@@ -380,7 +380,7 @@ export const StreamRecorderManager: React.FC = () => {
     }
   };
 
-  const selectedRecorderStats = selectedRecorder ? recorders[selectedRecorder] : null;
+  // const selectedRecorderStats = selectedRecorder ? recorders[selectedRecorder] : null;
 
   return (
     <div className="stream-recorder-manager p-6 bg-gray-100 min-h-screen">

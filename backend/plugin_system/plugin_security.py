@@ -18,15 +18,19 @@ from contextlib import contextmanager
 
 from plugin_api import PluginManifest, PluginCapability
 
+
 class SecurityLevel(Enum):
     """Security levels for plugin execution"""
-    STRICT = "strict"        # Maximum restrictions, minimal permissions
-    MODERATE = "moderate"    # Balanced security and functionality
+
+    STRICT = "strict"  # Maximum restrictions, minimal permissions
+    MODERATE = "moderate"  # Balanced security and functionality
     PERMISSIVE = "permissive"  # Minimal restrictions for trusted plugins
-    TRUSTED = "trusted"      # No restrictions for system plugins
+    TRUSTED = "trusted"  # No restrictions for system plugins
+
 
 class SecurityViolationType(Enum):
     """Types of security violations"""
+
     UNAUTHORIZED_IMPORT = "unauthorized_import"
     DANGEROUS_FUNCTION = "dangerous_function"
     FILE_ACCESS_VIOLATION = "file_access_violation"
@@ -36,9 +40,11 @@ class SecurityViolationType(Enum):
     MALICIOUS_CODE = "malicious_code"
     RESOURCE_ABUSE = "resource_abuse"
 
+
 @dataclass
 class SecurityIssue:
     """Security issue found during validation"""
+
     violation_type: SecurityViolationType
     severity: str  # low, medium, high, critical
     description: str
@@ -47,24 +53,28 @@ class SecurityIssue:
     code_snippet: Optional[str] = None
     recommendation: Optional[str] = None
 
+
 @dataclass
 class SecurityValidationResult:
     """Result of security validation"""
+
     safe: bool
     issues: List[SecurityIssue] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
     allowed_capabilities: List[PluginCapability] = field(default_factory=list)
     denied_capabilities: List[PluginCapability] = field(default_factory=list)
-    
+
     def add_issue(self, issue: SecurityIssue):
         """Add security issue"""
         self.issues.append(issue)
-        if issue.severity in ['high', 'critical']:
+        if issue.severity in ["high", "critical"]:
             self.safe = False
+
 
 @dataclass
 class SecurityPolicy:
     """Security policy for plugin execution"""
+
     security_level: SecurityLevel
     allowed_modules: Set[str] = field(default_factory=set)
     forbidden_modules: Set[str] = field(default_factory=set)
@@ -76,230 +86,312 @@ class SecurityPolicy:
     max_memory_mb: int = 100
     max_cpu_time_seconds: int = 30
     max_file_size_mb: int = 10
-    
+
     @classmethod
-    def create_for_level(cls, level: SecurityLevel, capabilities: List[PluginCapability]) -> 'SecurityPolicy':
+    def create_for_level(
+        cls, level: SecurityLevel, capabilities: List[PluginCapability]
+    ) -> "SecurityPolicy":
         """Create security policy for given level and capabilities"""
         policy = cls(security_level=level)
-        
+
         # Base allowed modules for all levels
         base_modules = {
-            'json', 'datetime', 'typing', 'dataclasses', 'enum',
-            'asyncio', 'functools', 'itertools', 'collections',
-            'math', 're', 'uuid', 'hashlib', 'base64'
+            "json",
+            "datetime",
+            "typing",
+            "dataclasses",
+            "enum",
+            "asyncio",
+            "functools",
+            "itertools",
+            "collections",
+            "math",
+            "re",
+            "uuid",
+            "hashlib",
+            "base64",
         }
-        
+
         if level == SecurityLevel.STRICT:
             policy.allowed_modules = base_modules
             policy.forbidden_functions = {
-                'eval', 'exec', 'compile', '__import__', 'open',
-                'input', 'raw_input', 'file', 'execfile', 'reload'
+                "eval",
+                "exec",
+                "compile",
+                "__import__",
+                "open",
+                "input",
+                "raw_input",
+                "file",
+                "execfile",
+                "reload",
             }
             policy.max_memory_mb = 50
             policy.max_cpu_time_seconds = 10
-            
+
         elif level == SecurityLevel.MODERATE:
             policy.allowed_modules = base_modules | {
-                'requests', 'urllib', 'http', 'pathlib', 'os.path',
-                'logging', 'warnings', 'traceback'
+                "requests",
+                "urllib",
+                "http",
+                "pathlib",
+                "os.path",
+                "logging",
+                "warnings",
+                "traceback",
             }
-            policy.forbidden_functions = {
-                'eval', 'exec', 'compile', '__import__'
-            }
+            policy.forbidden_functions = {"eval", "exec", "compile", "__import__"}
             policy.max_memory_mb = 100
             policy.max_cpu_time_seconds = 30
-            
+
         elif level == SecurityLevel.PERMISSIVE:
             policy.allowed_modules = base_modules | {
-                'requests', 'urllib', 'http', 'pathlib', 'os',
-                'subprocess', 'logging', 'warnings', 'traceback',
-                'sqlite3', 'json', 'csv', 'xml'
+                "requests",
+                "urllib",
+                "http",
+                "pathlib",
+                "os",
+                "subprocess",
+                "logging",
+                "warnings",
+                "traceback",
+                "sqlite3",
+                "json",
+                "csv",
+                "xml",
             }
-            policy.forbidden_functions = {'eval', 'exec'}
+            policy.forbidden_functions = {"eval", "exec"}
             policy.max_memory_mb = 200
             policy.max_cpu_time_seconds = 60
-            
+
         elif level == SecurityLevel.TRUSTED:
             # No restrictions for trusted plugins
             policy.allowed_modules = set()  # Empty means all allowed
             policy.forbidden_functions = set()
             policy.max_memory_mb = 500
             policy.max_cpu_time_seconds = 300
-        
+
         # Apply capability-based permissions
         policy._apply_capabilities(capabilities)
-        
+
         return policy
-    
+
     def _apply_capabilities(self, capabilities: List[PluginCapability]):
         """Apply capability-based permissions to policy"""
         for capability in capabilities:
             if capability == PluginCapability.NETWORK_ACCESS:
                 self.network_access = True
-                self.allowed_modules.update(['requests', 'urllib', 'http', 'socket'])
-                
+                self.allowed_modules.update(["requests", "urllib", "http", "socket"])
+
             elif capability == PluginCapability.FILE_SYSTEM:
-                self.allowed_modules.update(['os', 'pathlib', 'shutil', 'tempfile'])
-                
+                self.allowed_modules.update(["os", "pathlib", "shutil", "tempfile"])
+
             elif capability == PluginCapability.DATABASE_ACCESS:
-                self.allowed_modules.update(['sqlite3', 'sqlalchemy'])
-                
+                self.allowed_modules.update(["sqlite3", "sqlalchemy"])
+
             elif capability == PluginCapability.EXTERNAL_APIS:
                 self.network_access = True
-                self.allowed_modules.update(['requests', 'urllib', 'http'])
-                
+                self.allowed_modules.update(["requests", "urllib", "http"])
+
             elif capability == PluginCapability.BACKGROUND_TASKS:
-                self.allowed_modules.update(['threading', 'concurrent.futures'])
-                
+                self.allowed_modules.update(["threading", "concurrent.futures"])
+
             elif capability == PluginCapability.ADMIN_ACCESS:
                 self.system_access = True
-                self.allowed_modules.update(['subprocess', 'os', 'sys'])
+                self.allowed_modules.update(["subprocess", "os", "sys"])
+
 
 class CodeAnalyzer(ast.NodeVisitor):
     """AST-based code analyzer for security validation"""
-    
+
     def __init__(self, policy: SecurityPolicy):
         self.policy = policy
         self.issues = []
         self.current_file = None
-        
+
         # Dangerous patterns
         self.dangerous_functions = {
-            'eval', 'exec', 'compile', '__import__', 'globals', 'locals',
-            'vars', 'dir', 'getattr', 'setattr', 'delattr', 'hasattr'
+            "eval",
+            "exec",
+            "compile",
+            "__import__",
+            "globals",
+            "locals",
+            "vars",
+            "dir",
+            "getattr",
+            "setattr",
+            "delattr",
+            "hasattr",
         }
-        
+
         self.dangerous_modules = {
-            'subprocess', 'os', 'sys', 'importlib', 'types', 'ctypes',
-            'marshal', 'pickle', 'dill', 'shelve'
+            "subprocess",
+            "os",
+            "sys",
+            "importlib",
+            "types",
+            "ctypes",
+            "marshal",
+            "pickle",
+            "dill",
+            "shelve",
         }
-    
+
     def analyze_file(self, file_path: Path) -> List[SecurityIssue]:
         """Analyze Python file for security issues"""
         self.current_file = str(file_path)
         self.issues = []
-        
+
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 source = f.read()
-            
+
             tree = ast.parse(source)
             self.visit(tree)
-            
+
         except SyntaxError as e:
-            self.issues.append(SecurityIssue(
-                violation_type=SecurityViolationType.MALICIOUS_CODE,
-                severity="high",
-                description=f"Syntax error in plugin code: {e}",
-                file_path=self.current_file,
-                line_number=e.lineno
-            ))
+            self.issues.append(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.MALICIOUS_CODE,
+                    severity="high",
+                    description=f"Syntax error in plugin code: {e}",
+                    file_path=self.current_file,
+                    line_number=e.lineno,
+                )
+            )
         except Exception as e:
-            self.issues.append(SecurityIssue(
-                violation_type=SecurityViolationType.MALICIOUS_CODE,
-                severity="medium",
-                description=f"Error analyzing code: {e}",
-                file_path=self.current_file
-            ))
-        
+            self.issues.append(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.MALICIOUS_CODE,
+                    severity="medium",
+                    description=f"Error analyzing code: {e}",
+                    file_path=self.current_file,
+                )
+            )
+
         return self.issues
-    
+
     def visit_Import(self, node: ast.Import):
         """Check import statements"""
         for alias in node.names:
             self._check_import(alias.name, node.lineno)
         self.generic_visit(node)
-    
+
     def visit_ImportFrom(self, node: ast.ImportFrom):
         """Check from-import statements"""
         if node.module:
             self._check_import(node.module, node.lineno)
         self.generic_visit(node)
-    
+
     def visit_Call(self, node: ast.Call):
         """Check function calls"""
         func_name = self._get_function_name(node.func)
-        
+
         if func_name in self.dangerous_functions:
             if func_name in self.policy.forbidden_functions:
-                self.issues.append(SecurityIssue(
-                    violation_type=SecurityViolationType.DANGEROUS_FUNCTION,
+                self.issues.append(
+                    SecurityIssue(
+                        violation_type=SecurityViolationType.DANGEROUS_FUNCTION,
+                        severity="high",
+                        description=f"Use of dangerous function: {func_name}",
+                        file_path=self.current_file,
+                        line_number=node.lineno,
+                        recommendation=f"Remove or replace {func_name} with safer alternative",
+                    )
+                )
+
+        # Check for subprocess calls
+        if func_name in [
+            "subprocess.run",
+            "subprocess.call",
+            "subprocess.Popen",
+            "os.system",
+        ]:
+            if not self.policy.system_access:
+                self.issues.append(
+                    SecurityIssue(
+                        violation_type=SecurityViolationType.SYSTEM_ACCESS_VIOLATION,
+                        severity="critical",
+                        description=f"Unauthorized system access: {func_name}",
+                        file_path=self.current_file,
+                        line_number=node.lineno,
+                    )
+                )
+
+        # Check for file operations
+        if func_name in ["open", "file"] and not self.policy.file_access_paths:
+            self.issues.append(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.FILE_ACCESS_VIOLATION,
                     severity="high",
-                    description=f"Use of dangerous function: {func_name}",
+                    description=f"Unauthorized file access: {func_name}",
                     file_path=self.current_file,
                     line_number=node.lineno,
-                    recommendation=f"Remove or replace {func_name} with safer alternative"
-                ))
-        
-        # Check for subprocess calls
-        if func_name in ['subprocess.run', 'subprocess.call', 'subprocess.Popen', 'os.system']:
-            if not self.policy.system_access:
-                self.issues.append(SecurityIssue(
-                    violation_type=SecurityViolationType.SYSTEM_ACCESS_VIOLATION,
-                    severity="critical",
-                    description=f"Unauthorized system access: {func_name}",
-                    file_path=self.current_file,
-                    line_number=node.lineno
-                ))
-        
-        # Check for file operations
-        if func_name in ['open', 'file'] and not self.policy.file_access_paths:
-            self.issues.append(SecurityIssue(
-                violation_type=SecurityViolationType.FILE_ACCESS_VIOLATION,
-                severity="high",
-                description=f"Unauthorized file access: {func_name}",
-                file_path=self.current_file,
-                line_number=node.lineno
-            ))
-        
+                )
+            )
+
         self.generic_visit(node)
-    
+
     def visit_Attribute(self, node: ast.Attribute):
         """Check attribute access"""
         attr_name = self._get_attribute_name(node)
-        
+
         # Check for dangerous attribute access
-        if any(dangerous in attr_name for dangerous in ['__code__', '__globals__', '__dict__']):
-            self.issues.append(SecurityIssue(
-                violation_type=SecurityViolationType.DANGEROUS_FUNCTION,
-                severity="high",
-                description=f"Access to dangerous attribute: {attr_name}",
-                file_path=self.current_file,
-                line_number=node.lineno
-            ))
-        
+        if any(
+            dangerous in attr_name
+            for dangerous in ["__code__", "__globals__", "__dict__"]
+        ):
+            self.issues.append(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.DANGEROUS_FUNCTION,
+                    severity="high",
+                    description=f"Access to dangerous attribute: {attr_name}",
+                    file_path=self.current_file,
+                    line_number=node.lineno,
+                )
+            )
+
         self.generic_visit(node)
-    
+
     def _check_import(self, module_name: str, line_number: int):
         """Check if import is allowed"""
         if module_name in self.policy.forbidden_modules:
-            self.issues.append(SecurityIssue(
-                violation_type=SecurityViolationType.UNAUTHORIZED_IMPORT,
-                severity="high",
-                description=f"Import of forbidden module: {module_name}",
-                file_path=self.current_file,
-                line_number=line_number
-            ))
-        
+            self.issues.append(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.UNAUTHORIZED_IMPORT,
+                    severity="high",
+                    description=f"Import of forbidden module: {module_name}",
+                    file_path=self.current_file,
+                    line_number=line_number,
+                )
+            )
+
         # If allowed_modules is not empty and module not in it
-        elif (self.policy.allowed_modules and 
-              not any(module_name.startswith(allowed) for allowed in self.policy.allowed_modules)):
-            
+        elif self.policy.allowed_modules and not any(
+            module_name.startswith(allowed) for allowed in self.policy.allowed_modules
+        ):
+
             # Check if it's a dangerous module
-            if any(module_name.startswith(dangerous) for dangerous in self.dangerous_modules):
+            if any(
+                module_name.startswith(dangerous)
+                for dangerous in self.dangerous_modules
+            ):
                 severity = "critical"
             else:
                 severity = "medium"
-            
-            self.issues.append(SecurityIssue(
-                violation_type=SecurityViolationType.UNAUTHORIZED_IMPORT,
-                severity=severity,
-                description=f"Import of unauthorized module: {module_name}",
-                file_path=self.current_file,
-                line_number=line_number,
-                recommendation=f"Request {module_name} capability or use alternative"
-            ))
-    
+
+            self.issues.append(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.UNAUTHORIZED_IMPORT,
+                    severity=severity,
+                    description=f"Import of unauthorized module: {module_name}",
+                    file_path=self.current_file,
+                    line_number=line_number,
+                    recommendation=f"Request {module_name} capability or use alternative",
+                )
+            )
+
     def _get_function_name(self, node: ast.AST) -> str:
         """Extract function name from call node"""
         if isinstance(node, ast.Name):
@@ -307,7 +399,7 @@ class CodeAnalyzer(ast.NodeVisitor):
         elif isinstance(node, ast.Attribute):
             return self._get_attribute_name(node)
         return "unknown"
-    
+
     def _get_attribute_name(self, node: ast.Attribute) -> str:
         """Extract full attribute name"""
         if isinstance(node.value, ast.Name):
@@ -316,207 +408,273 @@ class CodeAnalyzer(ast.NodeVisitor):
             return f"{self._get_attribute_name(node.value)}.{node.attr}"
         return node.attr
 
+
 class PluginSandbox:
     """Execution sandbox for plugins"""
-    
+
     def __init__(self, plugin_path: Path, policy: SecurityPolicy):
         self.plugin_path = plugin_path
         self.policy = policy
         self.original_modules = {}
         self.restricted_builtins = None
-        
+
     def __enter__(self):
         """Enter sandbox context"""
         self._setup_sandbox()
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit sandbox context"""
         self._teardown_sandbox()
-    
+
     def _setup_sandbox(self):
         """Setup execution sandbox"""
         # Restrict builtins
         self.restricted_builtins = self._create_restricted_builtins()
-        
+
         # Store original __import__
-        self.original_import = __builtins__['__import__']
-        
+        self.original_import = __builtins__["__import__"]
+
         # Replace with restricted import
-        __builtins__['__import__'] = self._restricted_import
-    
+        __builtins__["__import__"] = self._restricted_import
+
     def _teardown_sandbox(self):
         """Teardown execution sandbox"""
         # Restore original __import__
         if self.original_import:
-            __builtins__['__import__'] = self.original_import
-    
+            __builtins__["__import__"] = self.original_import
+
     def _create_restricted_builtins(self) -> Dict[str, Any]:
         """Create restricted builtins dictionary"""
         safe_builtins = {
             # Safe built-in functions
-            'abs', 'all', 'any', 'bin', 'bool', 'bytearray', 'bytes',
-            'callable', 'chr', 'classmethod', 'complex', 'dict', 'divmod',
-            'enumerate', 'filter', 'float', 'format', 'frozenset',
-            'getattr', 'hasattr', 'hash', 'hex', 'id', 'int', 'isinstance',
-            'issubclass', 'iter', 'len', 'list', 'map', 'max', 'memoryview',
-            'min', 'next', 'object', 'oct', 'ord', 'pow', 'property',
-            'range', 'repr', 'reversed', 'round', 'set', 'setattr',
-            'slice', 'sorted', 'staticmethod', 'str', 'sum', 'super',
-            'tuple', 'type', 'vars', 'zip'
+            "abs",
+            "all",
+            "any",
+            "bin",
+            "bool",
+            "bytearray",
+            "bytes",
+            "callable",
+            "chr",
+            "classmethod",
+            "complex",
+            "dict",
+            "divmod",
+            "enumerate",
+            "filter",
+            "float",
+            "format",
+            "frozenset",
+            "getattr",
+            "hasattr",
+            "hash",
+            "hex",
+            "id",
+            "int",
+            "isinstance",
+            "issubclass",
+            "iter",
+            "len",
+            "list",
+            "map",
+            "max",
+            "memoryview",
+            "min",
+            "next",
+            "object",
+            "oct",
+            "ord",
+            "pow",
+            "property",
+            "range",
+            "repr",
+            "reversed",
+            "round",
+            "set",
+            "setattr",
+            "slice",
+            "sorted",
+            "staticmethod",
+            "str",
+            "sum",
+            "super",
+            "tuple",
+            "type",
+            "vars",
+            "zip",
         }
-        
+
         # Remove dangerous functions based on policy
         if self.policy.security_level == SecurityLevel.STRICT:
-            safe_builtins -= {'getattr', 'setattr', 'vars'}
-        
+            safe_builtins -= {"getattr", "setattr", "vars"}
+
         return {
             name: getattr(__builtins__, name)
             for name in safe_builtins
             if hasattr(__builtins__, name)
         }
-    
+
     def _restricted_import(self, name, globals=None, locals=None, fromlist=(), level=0):
         """Restricted import function"""
         # Check if module is allowed
         if self.policy.allowed_modules:
-            if not any(name.startswith(allowed) for allowed in self.policy.allowed_modules):
+            if not any(
+                name.startswith(allowed) for allowed in self.policy.allowed_modules
+            ):
                 raise ImportError(f"Import of '{name}' not allowed by security policy")
-        
+
         # Check if module is forbidden
         if name in self.policy.forbidden_modules:
             raise ImportError(f"Import of '{name}' forbidden by security policy")
-        
+
         # Perform the import
         return self.original_import(name, globals, locals, fromlist, level)
 
+
 class PluginSecurityManager:
     """Main security manager for plugins"""
-    
+
     def __init__(self):
         self.known_malware_hashes = set()
         self.load_malware_signatures()
-    
+
     def load_malware_signatures(self):
         """Load known malware signatures"""
         # Initialize with known malicious patterns and hashes
         # In production, this would load from a security database
-        
+
         # Known malicious code patterns (simplified examples)
         malicious_patterns = [
             # Remote code execution attempts
             r"eval\s*\(\s*input\s*\(\s*\)\s*\)",
             r"exec\s*\(\s*input\s*\(\s*\)\s*\)",
             r"__import__\s*\(\s*[\"']os[\"']\s*\)",
-            
             # File system manipulation
             r"open\s*\(\s*[\"']/etc/passwd[\"']",
             r"os\.system\s*\(\s*[\"']rm\s+-rf",
             r"subprocess\.call\s*\(\s*[\"']rm\s+-rf",
-            
             # Network exploitation
             r"socket\.socket\s*\(\s*socket\.AF_INET\s*,\s*socket\.SOCK_RAW",
             r"urllib\.request\.urlopen\s*\(\s*[\"']http://.*malware",
-            
             # Privilege escalation
             r"os\.setuid\s*\(\s*0\s*\)",
             r"os\.setgid\s*\(\s*0\s*\)",
-            
             # Data exfiltration
             r"pickle\.loads\s*\(",
             r"marshal\.loads\s*\(",
         ]
-        
-        self.malicious_patterns = [re.compile(pattern) for pattern in malicious_patterns]
-        
+
+        self.malicious_patterns = [
+            re.compile(pattern) for pattern in malicious_patterns
+        ]
+
         # Known malware file hashes (examples - in production these would be from threat intel)
         self.known_malware_hashes = {
             # Example hashes of known malicious files
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",  # Empty file (placeholder)
-            "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",   # Known bad pattern
+            "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",  # Known bad pattern
         }
-    
+
     def validate_plugin(self, plugin_path: Path) -> SecurityValidationResult:
         """Comprehensive security validation of plugin"""
         result = SecurityValidationResult(safe=True)
-        
+
         # Load manifest for security policy
         manifest_path = plugin_path / "manifest.json"
         if not manifest_path.exists():
-            result.add_issue(SecurityIssue(
-                violation_type=SecurityViolationType.MALICIOUS_CODE,
-                severity="critical",
-                description="Missing manifest.json file"
-            ))
+            result.add_issue(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.MALICIOUS_CODE,
+                    severity="critical",
+                    description="Missing manifest.json file",
+                )
+            )
             return result
-        
+
         try:
-            with open(manifest_path, 'r') as f:
+            with open(manifest_path, "r") as f:
                 manifest_data = json.load(f)
-            
+
             # Create security policy
-            security_level = SecurityLevel(manifest_data.get('sandbox_level', 'strict'))
-            capabilities = [PluginCapability(cap) for cap in manifest_data.get('capabilities', [])]
+            security_level = SecurityLevel(manifest_data.get("sandbox_level", "strict"))
+            capabilities = [
+                PluginCapability(cap) for cap in manifest_data.get("capabilities", [])
+            ]
             policy = SecurityPolicy.create_for_level(security_level, capabilities)
-            
+
             # Validate capabilities
             self._validate_capabilities(manifest_data, result)
-            
+
             # Analyze Python files
             self._analyze_python_files(plugin_path, policy, result)
-            
+
             # Check file integrity
             self._check_file_integrity(plugin_path, result)
-            
+
             # Check for malware signatures
             self._check_malware_signatures(plugin_path, result)
-            
+
         except Exception as e:
-            result.add_issue(SecurityIssue(
-                violation_type=SecurityViolationType.MALICIOUS_CODE,
-                severity="high",
-                description=f"Error during security validation: {e}"
-            ))
-        
+            result.add_issue(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.MALICIOUS_CODE,
+                    severity="high",
+                    description=f"Error during security validation: {e}",
+                )
+            )
+
         return result
-    
-    def _validate_capabilities(self, manifest_data: Dict[str, Any], result: SecurityValidationResult):
+
+    def _validate_capabilities(
+        self, manifest_data: Dict[str, Any], result: SecurityValidationResult
+    ):
         """Validate requested capabilities"""
-        requested_caps = manifest_data.get('capabilities', [])
-        
+        requested_caps = manifest_data.get("capabilities", [])
+
         # Check for dangerous capability combinations
-        if ('admin:access' in requested_caps and 
-            'network:access' in requested_caps):
-            result.add_issue(SecurityIssue(
-                violation_type=SecurityViolationType.CAPABILITY_VIOLATION,
-                severity="critical",
-                description="Dangerous combination: admin access + network access",
-                recommendation="Split functionality or use lower privileges"
-            ))
-        
+        if "admin:access" in requested_caps and "network:access" in requested_caps:
+            result.add_issue(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.CAPABILITY_VIOLATION,
+                    severity="critical",
+                    description="Dangerous combination: admin access + network access",
+                    recommendation="Split functionality or use lower privileges",
+                )
+            )
+
         # Check for excessive capabilities
         if len(requested_caps) > 10:
-            result.add_issue(SecurityIssue(
-                violation_type=SecurityViolationType.CAPABILITY_VIOLATION,
-                severity="medium",
-                description=f"Plugin requests {len(requested_caps)} capabilities (excessive)",
-                recommendation="Review if all capabilities are necessary"
-            ))
-    
-    def _analyze_python_files(self, plugin_path: Path, policy: SecurityPolicy, result: SecurityValidationResult):
+            result.add_issue(
+                SecurityIssue(
+                    violation_type=SecurityViolationType.CAPABILITY_VIOLATION,
+                    severity="medium",
+                    description=f"Plugin requests {len(requested_caps)} capabilities (excessive)",
+                    recommendation="Review if all capabilities are necessary",
+                )
+            )
+
+    def _analyze_python_files(
+        self,
+        plugin_path: Path,
+        policy: SecurityPolicy,
+        result: SecurityValidationResult,
+    ):
         """Analyze all Python files in plugin"""
         analyzer = CodeAnalyzer(policy)
-        
+
         for py_file in plugin_path.rglob("*.py"):
             issues = analyzer.analyze_file(py_file)
             result.issues.extend(issues)
-            
+
             # Update safe status based on critical issues
             for issue in issues:
                 if issue.severity == "critical":
                     result.safe = False
-    
-    def _check_file_integrity(self, plugin_path: Path, result: SecurityValidationResult):
+
+    def _check_file_integrity(
+        self, plugin_path: Path, result: SecurityValidationResult
+    ):
         """Check file integrity and suspicious patterns"""
         for file_path in plugin_path.rglob("*"):
             if file_path.is_file():
@@ -524,162 +682,203 @@ class PluginSecurityManager:
                     # Check file size
                     size_mb = file_path.stat().st_size / (1024 * 1024)
                     if size_mb > 50:  # 50MB limit
-                        result.add_issue(SecurityIssue(
-                            violation_type=SecurityViolationType.RESOURCE_ABUSE,
-                            severity="medium",
-                            description=f"Large file detected: {file_path.name} ({size_mb:.1f}MB)",
-                            file_path=str(file_path)
-                        ))
-                    
+                        result.add_issue(
+                            SecurityIssue(
+                                violation_type=SecurityViolationType.RESOURCE_ABUSE,
+                                severity="medium",
+                                description=f"Large file detected: {file_path.name} ({size_mb:.1f}MB)",
+                                file_path=str(file_path),
+                            )
+                        )
+
                     # Check for binary executables
-                    if file_path.suffix in ['.exe', '.dll', '.so', '.dylib']:
-                        result.add_issue(SecurityIssue(
-                            violation_type=SecurityViolationType.MALICIOUS_CODE,
-                            severity="high",
-                            description=f"Binary executable found: {file_path.name}",
-                            file_path=str(file_path),
-                            recommendation="Remove binary files or justify their necessity"
-                        ))
-                    
+                    if file_path.suffix in [".exe", ".dll", ".so", ".dylib"]:
+                        result.add_issue(
+                            SecurityIssue(
+                                violation_type=SecurityViolationType.MALICIOUS_CODE,
+                                severity="high",
+                                description=f"Binary executable found: {file_path.name}",
+                                file_path=str(file_path),
+                                recommendation="Remove binary files or justify their necessity",
+                            )
+                        )
+
                 except Exception as e:
                     # Log error and continue with other files
-                    result.add_issue(SecurityIssue(
-                        violation_type=SecurityViolationType.RESOURCE_ABUSE,
-                        severity="warning",
-                        description=f"Could not access file {file_path.name}: {str(e)}"
-                    ))
-    
-    def _check_malware_signatures(self, plugin_path: Path, result: SecurityValidationResult):
+                    result.add_issue(
+                        SecurityIssue(
+                            violation_type=SecurityViolationType.RESOURCE_ABUSE,
+                            severity="warning",
+                            description=f"Could not access file {file_path.name}: {str(e)}",
+                        )
+                    )
+
+    def _check_malware_signatures(
+        self, plugin_path: Path, result: SecurityValidationResult
+    ):
         """Check for known malware signatures"""
         for file_path in plugin_path.rglob("*.py"):
             try:
-                with open(file_path, 'rb') as f:
+                with open(file_path, "rb") as f:
                     content = f.read()
-                
+
                 # Calculate file hash
                 file_hash = hashlib.sha256(content).hexdigest()
-                
+
                 if file_hash in self.known_malware_hashes:
-                    result.add_issue(SecurityIssue(
-                        violation_type=SecurityViolationType.MALICIOUS_CODE,
-                        severity="critical",
-                        description=f"Known malware signature detected in {file_path.name}",
-                        file_path=str(file_path)
-                    ))
-                
+                    result.add_issue(
+                        SecurityIssue(
+                            violation_type=SecurityViolationType.MALICIOUS_CODE,
+                            severity="critical",
+                            description=f"Known malware signature detected in {file_path.name}",
+                            file_path=str(file_path),
+                        )
+                    )
+
                 # Check for suspicious patterns in code
-                text_content = content.decode('utf-8', errors='ignore')
+                text_content = content.decode("utf-8", errors="ignore")
                 suspicious_patterns = [
-                    'eval(', 'exec(', '__import__(',
-                    'os.system(', 'subprocess.',
-                    'socket.', 'urllib.request.',
-                    'base64.b64decode('
+                    "eval(",
+                    "exec(",
+                    "__import__(",
+                    "os.system(",
+                    "subprocess.",
+                    "socket.",
+                    "urllib.request.",
+                    "base64.b64decode(",
                 ]
-                
+
                 for pattern in suspicious_patterns:
                     if pattern in text_content:
                         result.warnings.append(
                             f"Suspicious pattern '{pattern}' found in {file_path.name}"
                         )
-                
+
             except Exception as e:
                 # Log error but continue scanning other files
-                result.add_issue(SecurityIssue(
-                    violation_type=SecurityViolationType.RESOURCE_ABUSE,
-                    severity="warning", 
-                    description=f"Could not scan file {file_path.name} for malware: {str(e)}"
-                ))
-    
+                result.add_issue(
+                    SecurityIssue(
+                        violation_type=SecurityViolationType.RESOURCE_ABUSE,
+                        severity="warning",
+                        description=f"Could not scan file {file_path.name} for malware: {str(e)}",
+                    )
+                )
+
     def create_policy(self, manifest: PluginManifest) -> SecurityPolicy:
         """Create security policy from manifest"""
         security_level = SecurityLevel(manifest.sandbox_level)
         return SecurityPolicy.create_for_level(security_level, manifest.capabilities)
-    
-    def validate_runtime_access(self, plugin_id: str, capability: PluginCapability, context: Dict[str, Any] = None) -> bool:
+
+    def validate_runtime_access(
+        self,
+        plugin_id: str,
+        capability: PluginCapability,
+        context: Dict[str, Any] = None,
+    ) -> bool:
         """Validate runtime access request"""
         try:
             # Check if plugin is registered and trusted
             if plugin_id not in self.trusted_plugins:
                 logger.warning(f"Access denied: Plugin {plugin_id} not in trusted list")
                 return False
-            
+
             # Get plugin's security policy
             plugin_policy = self.plugin_policies.get(plugin_id)
             if not plugin_policy:
-                logger.warning(f"Access denied: No security policy found for plugin {plugin_id}")
+                logger.warning(
+                    f"Access denied: No security policy found for plugin {plugin_id}"
+                )
                 return False
-            
+
             # Check if capability is allowed by policy
             if capability not in plugin_policy.allowed_capabilities:
-                logger.warning(f"Access denied: Capability {capability.value} not allowed for plugin {plugin_id}")
+                logger.warning(
+                    f"Access denied: Capability {capability.value} not allowed for plugin {plugin_id}"
+                )
                 return False
-            
+
             # Validate resource limits if specified
             if context:
                 # Check memory usage limit
-                memory_usage = context.get('memory_usage', 0)
+                memory_usage = context.get("memory_usage", 0)
                 if memory_usage > plugin_policy.max_memory_mb * 1024 * 1024:
-                    logger.warning(f"Access denied: Plugin {plugin_id} exceeded memory limit")
+                    logger.warning(
+                        f"Access denied: Plugin {plugin_id} exceeded memory limit"
+                    )
                     return False
-                
+
                 # Check file access permissions
-                file_path = context.get('file_path')
-                if file_path and not self._validate_file_access(plugin_id, file_path, plugin_policy):
-                    logger.warning(f"Access denied: Plugin {plugin_id} not allowed to access {file_path}")
+                file_path = context.get("file_path")
+                if file_path and not self._validate_file_access(
+                    plugin_id, file_path, plugin_policy
+                ):
+                    logger.warning(
+                        f"Access denied: Plugin {plugin_id} not allowed to access {file_path}"
+                    )
                     return False
-                
+
                 # Check network access permissions
-                network_host = context.get('network_host')
-                if network_host and not self._validate_network_access(plugin_id, network_host, plugin_policy):
-                    logger.warning(f"Access denied: Plugin {plugin_id} not allowed to access {network_host}")
+                network_host = context.get("network_host")
+                if network_host and not self._validate_network_access(
+                    plugin_id, network_host, plugin_policy
+                ):
+                    logger.warning(
+                        f"Access denied: Plugin {plugin_id} not allowed to access {network_host}"
+                    )
                     return False
-            
-            logger.debug(f"Access granted: Plugin {plugin_id} for capability {capability.value}")
+
+            logger.debug(
+                f"Access granted: Plugin {plugin_id} for capability {capability.value}"
+            )
             return True
-            
+
         except Exception as e:
             logger.error(f"Error validating runtime access for plugin {plugin_id}: {e}")
             return False
-    
-    def _validate_file_access(self, plugin_id: str, file_path: str, policy: SecurityPolicy) -> bool:
+
+    def _validate_file_access(
+        self, plugin_id: str, file_path: str, policy: SecurityPolicy
+    ) -> bool:
         """Validate file access permissions"""
         from pathlib import Path
-        
+
         # Convert to Path object for easier manipulation
         path = Path(file_path).resolve()
-        
+
         # Check against allowed paths
         for allowed_path in policy.allowed_file_paths:
             if path.is_relative_to(Path(allowed_path).resolve()):
                 return True
-        
+
         # Check against blocked paths
         for blocked_path in policy.blocked_file_paths:
             if path.is_relative_to(Path(blocked_path).resolve()):
                 return False
-        
+
         # Default deny for sensitive system paths
-        sensitive_paths = ['/etc', '/sys', '/proc', '/dev', '/root']
+        sensitive_paths = ["/etc", "/sys", "/proc", "/dev", "/root"]
         for sensitive in sensitive_paths:
             if path.is_relative_to(Path(sensitive)):
                 return False
-        
+
         return True
-    
-    def _validate_network_access(self, plugin_id: str, host: str, policy: SecurityPolicy) -> bool:
+
+    def _validate_network_access(
+        self, plugin_id: str, host: str, policy: SecurityPolicy
+    ) -> bool:
         """Validate network access permissions"""
         import ipaddress
-        
+
         # Check against allowed hosts/domains
         for allowed_host in policy.allowed_network_hosts:
             if host == allowed_host or host.endswith(f".{allowed_host}"):
                 return True
-        
+
         # Check against blocked hosts
         for blocked_host in policy.blocked_network_hosts:
             if host == blocked_host or host.endswith(f".{blocked_host}"):
                 return False
-        
+
         # Block access to local network by default
         try:
             ip = ipaddress.ip_address(host)
@@ -688,17 +887,20 @@ class PluginSecurityManager:
         except ValueError:
             # Not an IP address, continue with hostname checks
             pass
-        
+
         # Block localhost variants
-        localhost_variants = ['localhost', '127.0.0.1', '::1', '0.0.0.0']
+        localhost_variants = ["localhost", "127.0.0.1", "::1", "0.0.0.0"]
         if host.lower() in localhost_variants:
             return False
-        
+
         return True
+
 
 class SecurityError(Exception):
     """Custom exception for security violations"""
+
     pass
+
 
 # Security utilities
 def scan_plugin_for_vulnerabilities(plugin_path: str) -> SecurityValidationResult:
@@ -706,25 +908,26 @@ def scan_plugin_for_vulnerabilities(plugin_path: str) -> SecurityValidationResul
     manager = PluginSecurityManager()
     return manager.validate_plugin(Path(plugin_path))
 
+
 def create_security_report(result: SecurityValidationResult) -> Dict[str, Any]:
     """Create security report from validation result"""
     return {
-        'safe': result.safe,
-        'total_issues': len(result.issues),
-        'critical_issues': len([i for i in result.issues if i.severity == 'critical']),
-        'high_issues': len([i for i in result.issues if i.severity == 'high']),
-        'medium_issues': len([i for i in result.issues if i.severity == 'medium']),
-        'low_issues': len([i for i in result.issues if i.severity == 'low']),
-        'issues': [
+        "safe": result.safe,
+        "total_issues": len(result.issues),
+        "critical_issues": len([i for i in result.issues if i.severity == "critical"]),
+        "high_issues": len([i for i in result.issues if i.severity == "high"]),
+        "medium_issues": len([i for i in result.issues if i.severity == "medium"]),
+        "low_issues": len([i for i in result.issues if i.severity == "low"]),
+        "issues": [
             {
-                'type': issue.violation_type.value,
-                'severity': issue.severity,
-                'description': issue.description,
-                'file': issue.file_path,
-                'line': issue.line_number,
-                'recommendation': issue.recommendation
+                "type": issue.violation_type.value,
+                "severity": issue.severity,
+                "description": issue.description,
+                "file": issue.file_path,
+                "line": issue.line_number,
+                "recommendation": issue.recommendation,
             }
             for issue in result.issues
         ],
-        'warnings': result.warnings
+        "warnings": result.warnings,
     }

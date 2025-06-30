@@ -1,7 +1,7 @@
 // Speaker Labeling Interface Component
 // UI for labeling unknown speakers in meetings
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   UserIcon, 
   MagnifyingGlassIcon, 
@@ -37,12 +37,6 @@ interface KnownSpeaker {
   lastSeen?: string;
 }
 
-interface SpeakerLabel {
-  speakerId: string;
-  labeledAs: string;
-  confidence: number;
-  method: 'manual' | 'suggested' | 'confirmed';
-}
 
 interface SpeakerLabelingInterfaceProps {
   sessionId: string;
@@ -87,9 +81,9 @@ export const SpeakerLabelingInterface: React.FC<SpeakerLabelingInterfaceProps> =
     if (selectedSpeaker) {
       getSpeakerSuggestions(selectedSpeaker.speakerId);
     }
-  }, [selectedSpeaker]);
+  }, [selectedSpeaker, getSpeakerSuggestions]);
 
-  const getSpeakerSuggestions = async (speakerId: string) => {
+  const getSpeakerSuggestions = useCallback(async (speakerId: string) => {
     setIsAnalyzing(true);
     try {
       const response = await fetch(`http://localhost:8000/speaker-detection/${sessionId}/suggestions/${speakerId}`);
@@ -102,7 +96,7 @@ export const SpeakerLabelingInterface: React.FC<SpeakerLabelingInterfaceProps> =
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [sessionId]);
 
   const filteredKnownSpeakers = knownSpeakers.filter(speaker =>
     speaker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

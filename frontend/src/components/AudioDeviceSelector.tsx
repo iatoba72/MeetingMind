@@ -65,8 +65,8 @@ export const AudioDeviceSelector: React.FC<AudioDeviceSelectorProps> = ({
             setDevicePermissionStatus(permission.state as 'granted' | 'denied');
           };
         }
-      } catch (error) {
-        console.log('Permission check not supported:', error);
+      } catch {
+        // Permission check not supported in this browser
       }
     };
     

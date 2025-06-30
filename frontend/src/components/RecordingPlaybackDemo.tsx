@@ -272,14 +272,14 @@ export const RecordingPlaybackDemo: React.FC<RecordingPlaybackDemoProps> = ({
                 enableSpeedControl={true}
                 enableSkipSilence={true}
                 showWaveform={true}
-                onBookmarkAdd={(bookmark) => {
-                  console.log('Bookmark added:', bookmark);
+                onBookmarkAdd={() => {
+                  // Bookmark added
                 }}
-                onAnnotationAdd={(annotation) => {
-                  console.log('Annotation added:', annotation);
+                onAnnotationAdd={() => {
+                  // Annotation added
                 }}
-                onSegmentClick={(segment) => {
-                  console.log('Segment clicked:', segment);
+                onSegmentClick={() => {
+                  // Segment clicked
                 }}
                 className="max-w-6xl mx-auto"
               />
@@ -376,11 +376,11 @@ export const RecordingPlaybackDemo: React.FC<RecordingPlaybackDemoProps> = ({
                         type: 'annotation',
                       },
                     ]}
-                    onSeek={(time) => {
-                      console.log('Seek to:', time);
+                    onSeek={() => {
+                      // Seek to time
                     }}
-                    onRegionSelect={(start, end) => {
-                      console.log('Region selected:', start, end);
+                    onRegionSelect={() => {
+                      // Region selected
                     }}
                     className="mx-auto"
                   />

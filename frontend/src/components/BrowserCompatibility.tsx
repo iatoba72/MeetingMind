@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserSupport } from '../utils/mediaUtils';
+export { useBrowserCompatibility } from '../hooks/useBrowserCompatibility';
 
 interface BrowserCompatibilityProps {
   children: React.ReactNode;
@@ -265,57 +266,3 @@ export const BrowserCompatibility: React.FC<BrowserCompatibilityProps> = ({
   return <>{children}</>;
 };
 
-// Hook for getting browser compatibility info
-export const useBrowserCompatibility = () => {
-  const [status, setStatus] = useState<CompatibilityStatus | null>(null);
-
-  useEffect(() => {
-    const checkCompatibility = () => {
-      const missingFeatures: string[] = [];
-      const warnings: string[] = [];
-
-      // Check all features
-      if (!BrowserSupport.mediaRecorder()) {
-        missingFeatures.push('MediaRecorder API');
-      }
-      if (!BrowserSupport.getUserMedia()) {
-        missingFeatures.push('getUserMedia API');
-      }
-      if (!BrowserSupport.webAudio()) {
-        warnings.push('Web Audio API not available');
-      }
-      if (!BrowserSupport.webRTC()) {
-        warnings.push('WebRTC not available');
-      }
-      if (!BrowserSupport.fileAPI()) {
-        warnings.push('File API limited');
-      }
-      if (!BrowserSupport.webWorkers()) {
-        warnings.push('Web Workers not available');
-      }
-
-      const browserInfo = {
-        name: 'Unknown',
-        version: 'Unknown',
-        isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-      };
-
-      setStatus({
-        isSupported: missingFeatures.length === 0,
-        missingFeatures,
-        warnings,
-        browserInfo,
-      });
-    };
-
-    checkCompatibility();
-  }, []);
-
-  return {
-    status,
-    isSupported: status?.isSupported ?? false,
-    missingFeatures: status?.missingFeatures ?? [],
-    warnings: status?.warnings ?? [],
-    getSupportedMimeTypes: BrowserSupport.getSupportedMimeTypes,
-  };
-};

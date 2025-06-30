@@ -3,7 +3,7 @@
  * Specialized component for visualizing multiple audio sources simultaneously
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { AudioSource } from '../utils/AudioPipeline';
 
 interface MultiSourceAudioVisualizerProps {
@@ -55,9 +55,9 @@ export const MultiSourceAudioVisualizer: React.FC<MultiSourceAudioVisualizerProp
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [activeSources, viewMode, selectedSources]);
+  }, [activeSources, viewMode, selectedSources, draw]);
 
-  const draw = () => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -86,16 +86,16 @@ export const MultiSourceAudioVisualizer: React.FC<MultiSourceAudioVisualizerProp
         drawOverlayView(ctx, visibleSources);
         break;
     }
-  };
+  }, [activeSources, selectedSources, viewMode, width, height, drawNoSources, drawGridView, drawStackedView, drawOverlayView]);
 
-  const drawNoSources = (ctx: CanvasRenderingContext2D) => {
+  const drawNoSources = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.fillStyle = '#9ca3af';
     ctx.font = '24px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('No Sources Selected', width / 2, height / 2);
-  };
+  }, [width, height]);
 
-  const drawGridView = (ctx: CanvasRenderingContext2D, visibleSources: AudioSource[]) => {
+  const drawGridView = useCallback((ctx: CanvasRenderingContext2D, visibleSources: AudioSource[]) => {
     const cols = Math.ceil(Math.sqrt(visibleSources.length));
     const rows = Math.ceil(visibleSources.length / cols);
     const cellWidth = width / cols;
@@ -109,26 +109,26 @@ export const MultiSourceAudioVisualizer: React.FC<MultiSourceAudioVisualizerProp
 
       drawSourceVisualization(ctx, source, x, y, cellWidth, cellHeight, index);
     });
-  };
+  }, [width, height, drawSourceVisualization]);
 
-  const drawStackedView = (ctx: CanvasRenderingContext2D, visibleSources: AudioSource[]) => {
+  const drawStackedView = useCallback((ctx: CanvasRenderingContext2D, visibleSources: AudioSource[]) => {
     const sourceHeight = height / visibleSources.length;
 
     visibleSources.forEach((source, index) => {
       const y = index * sourceHeight;
       drawSourceVisualization(ctx, source, 0, y, width, sourceHeight, index);
     });
-  };
+  }, [width, height, drawSourceVisualization]);
 
-  const drawOverlayView = (ctx: CanvasRenderingContext2D, visibleSources: AudioSource[]) => {
+  const drawOverlayView = useCallback((ctx: CanvasRenderingContext2D, visibleSources: AudioSource[]) => {
     visibleSources.forEach((source, index) => {
       ctx.globalAlpha = 0.7 / visibleSources.length + 0.3; // Ensure visibility
       drawSourceVisualization(ctx, source, 0, 0, width, height, index);
     });
     ctx.globalAlpha = 1;
-  };
+  }, [width, height, drawSourceVisualization]);
 
-  const drawSourceVisualization = (
+  const drawSourceVisualization = useCallback((
     ctx: CanvasRenderingContext2D,
     source: AudioSource,
     x: number,
@@ -183,7 +183,7 @@ export const MultiSourceAudioVisualizer: React.FC<MultiSourceAudioVisualizerProp
 
     // Draw source info
     drawSourceInfo(ctx, source, x, y, w, color);
-  };
+  }, [getVisualizationData, viewMode]);
 
   const drawSpectrum = (
     ctx: CanvasRenderingContext2D,

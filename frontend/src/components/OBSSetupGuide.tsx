@@ -3,7 +3,7 @@
  * Comprehensive guide for setting up OBS Studio with MeetingMind
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface OBSGuide {
   protocol: string;
@@ -81,7 +81,7 @@ export const OBSSetupGuide: React.FC = () => {
     fetchProtocols();
     fetchQualityPresets();
     generateGuide();
-  }, [selectedProtocol, selectedQuality]);
+  }, [selectedProtocol, selectedQuality, generateGuide]);
 
   const fetchProtocols = async () => {
     try {
@@ -109,7 +109,7 @@ export const OBSSetupGuide: React.FC = () => {
     }
   };
 
-  const generateGuide = async () => {
+  const generateGuide = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -139,7 +139,7 @@ export const OBSSetupGuide: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedProtocol, selectedQuality, customSettings]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {

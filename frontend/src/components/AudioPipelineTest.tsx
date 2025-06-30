@@ -52,7 +52,6 @@ const AudioPipelineTest: React.FC<AudioPipelineTestProps> = ({ className }) => {
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev.slice(-9), `[${timestamp}] ${message}`]);
-    console.log(`AudioPipeline: ${message}`);
   };
 
   useEffect(() => {
@@ -70,7 +69,7 @@ const AudioPipelineTest: React.FC<AudioPipelineTestProps> = ({ className }) => {
     try {
       addLog('Initializing AudioPipeline...');
       
-      const newPipeline = new AudioPipeline(config);
+      const newPipeline = new AudioPipeline({});
       
       // Set up event handlers
       newPipeline.onChunk((chunk: ProcessedAudioChunk) => {

@@ -1,7 +1,7 @@
 // Recurring Meeting Detection and Management Component
 // Automatically detects meeting patterns and suggests template application
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -22,9 +22,6 @@ import {
   Divider,
   Alert,
   LinearProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   FormControl,
   InputLabel,
   Select,
@@ -40,17 +37,9 @@ import {
 } from '@mui/material';
 import {
   Repeat as RepeatIcon,
-  TrendingUp as TrendingUpIcon,
-  Schedule as ScheduleIcon,
-  Assignment as AssignmentIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
   Settings as SettingsIcon,
   Visibility as ViewIcon,
   PlayArrow as PlayIcon,
-  ExpandMore as ExpandMoreIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
   AutoAwesome as AutoAwesomeIcon,
   EventRepeat as EventRepeatIcon,
   SmartToy as SmartToyIcon
@@ -63,7 +52,7 @@ interface PatternDetectionResult {
   interval: number;
   start_date: string;
   suggested_template?: string;
-  pattern_data?: any;
+  pattern_data?: Record<string, unknown>;
   meetings_analyzed: number;
 }
 
@@ -129,9 +118,9 @@ const RecurringMeetingDetector: React.FC<RecurringMeetingDetectorProps> = ({
 
   useEffect(() => {
     loadData();
-  }, [clientId]);
+  }, [clientId, loadData]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -149,9 +138,9 @@ const RecurringMeetingDetector: React.FC<RecurringMeetingDetectorProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadDetectedPatterns, loadExistingSeries, loadTemplates]);
 
-  const loadDetectedPatterns = async () => {
+  const loadDetectedPatterns = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:8000/recurring-meetings/detect-patterns?user_id=${clientId}&days_back=90`);
       
@@ -162,7 +151,7 @@ const RecurringMeetingDetector: React.FC<RecurringMeetingDetectorProps> = ({
     } catch (err) {
       console.error('Error loading detected patterns:', err);
     }
-  };
+  }, [clientId]);
 
   const loadExistingSeries = async () => {
     try {

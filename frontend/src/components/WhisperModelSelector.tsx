@@ -89,7 +89,7 @@ export const WhisperModelSelector: React.FC<WhisperModelSelectorProps> = ({
         throw new Error(errorData.detail || 'Failed to load model');
       }
 
-      const result = await response.json();
+      await response.json();
       setSelectedModel(modelSize);
       
       // Refresh system info
@@ -98,7 +98,7 @@ export const WhisperModelSelector: React.FC<WhisperModelSelectorProps> = ({
       // Notify parent component
       onModelChange?.(modelSize);
 
-      console.log(`Model ${modelSize} loaded successfully`);
+      // Model loaded successfully
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load model');

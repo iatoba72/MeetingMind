@@ -1,22 +1,18 @@
 // Presence System with User Avatars and Activity Indicators
 // Real-time user presence and activity visualization
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users,
   Circle,
-  Wifi,
   WifiOff,
   Edit,
   Eye,
   MessageCircle,
-  Mouse,
   Clock,
   User,
   Crown,
-  Shield,
-  Settings,
-  Palette
+  Shield
 } from 'lucide-react';
 
 interface UserPresence {
@@ -233,8 +229,8 @@ export const PresenceSystem: React.FC<PresenceSystemProps> = ({
       lg: 'w-12 h-12'
     };
 
-    const StatusIcon = statusConfig[user.status].icon;
-    const RoleIcon = user.role ? roleConfig[user.role].icon : null;
+    // const StatusIcon = statusConfig[user.status].icon;
+    // const RoleIcon = user.role ? roleConfig[user.role].icon : null;
     const ActivityIcon = user.currentActivity ? activityConfig[user.currentActivity.type].icon : null;
 
     return (
@@ -288,7 +284,7 @@ export const PresenceSystem: React.FC<PresenceSystemProps> = ({
   // User list item component
   const UserListItem: React.FC<{ user: UserPresence }> = ({ user }) => {
     const StatusIcon = statusConfig[user.status].icon;
-    const RoleIcon = user.role ? roleConfig[user.role].icon : User;
+    const RoleIcon = user.role ? roleConfig[user.role].icon : User; // eslint-disable-line @typescript-eslint/no-unused-vars
 
     return (
       <div 

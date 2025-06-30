@@ -27,9 +27,7 @@ const ObservabilityDemo: React.FC<ObservabilityDemoProps> = ({ meetingId }) => {
   const {
     log,
     logError,
-    logUserAction: _logUserAction,
     recordPerformance,
-    trace: _trace,
     componentName,
     isInitialized,
   } = useObservability('ObservabilityDemo');
@@ -54,7 +52,6 @@ const ObservabilityDemo: React.FC<ObservabilityDemoProps> = ({ meetingId }) => {
   // Business events
   const {
     trackMeetingEvent,
-    trackAudioEvent: _trackAudioEvent,
     trackAIEvent,
     trackUserEvent,
   } = useBusinessEvents();

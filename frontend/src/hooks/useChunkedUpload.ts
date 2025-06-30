@@ -344,7 +344,7 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
       if (uploadPromises.length >= maxConcurrency || i === pendingChunks.length - 1) {
         try {
           await Promise.allSettled(uploadPromises);
-        } catch (err) {
+        } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
           // Individual chunk errors are handled in uploadChunk
         }
         uploadPromises.length = 0; // Clear completed promises
@@ -615,7 +615,7 @@ export const useChunkedUpload = (): UseChunkedUploadReturn => {
             createdAt: new Date(sessionData.createdAt),
             lastActivity: new Date(sessionData.lastActivity),
           });
-        } catch (e) {
+        } catch (e) { // eslint-disable-line @typescript-eslint/no-unused-vars
           // Invalid session data, remove it
           localStorage.removeItem(key);
         }

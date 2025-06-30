@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Server, 
-  Globe, 
+  // Globe, 
   Check, 
   AlertCircle, 
   ChevronRight, 

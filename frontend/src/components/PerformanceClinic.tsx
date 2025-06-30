@@ -83,8 +83,8 @@ export const PerformanceClinic: React.FC<{
   onOptimizationSelect?: (optimization: OptimizationImpact) => void;
 }> = ({
   className = '',
-  onOptimizationSelect,
-) => {
+  onOptimizationSelect
+}) => {
   // State
   const [activeTab, setActiveTab] = useState<'overview' | 'impacts' | 'scenarios' | 'tests'>('overview');
   const [optimizations, setOptimizations] = useState<OptimizationImpact[]>([]);

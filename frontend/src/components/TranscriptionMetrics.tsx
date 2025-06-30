@@ -113,7 +113,7 @@ export const TranscriptionMetrics: React.FC<TranscriptionMetricsProps> = ({
     
     const interval = setInterval(fetchAllMetrics, refreshInterval);
     return () => clearInterval(interval);
-  }, [sessionId, refreshInterval, showSystemInfo, showQueueStats]);
+  }, [sessionId, refreshInterval, showSystemInfo, showQueueStats, fetchAllMetrics]);
 
   // Format duration
   const formatDuration = (ms: number): string => {

@@ -472,11 +472,11 @@ export const VectorSearchDashboard: React.FC<VectorSearchDashboardProps> = ({
           <VectorExplorer
             meetingIds={filters.meetingIds}
             searchQuery={searchQuery}
-            onPointSelect={(pointId, point) => {
-              console.log('Vector point selected:', pointId, point);
+            onPointSelect={() => {
+              // Vector point selected
             }}
-            onSimilaritySearch={(query, results) => {
-              console.log('Similarity search:', query, results);
+            onSimilaritySearch={() => {
+              // Similarity search performed
             }}
             height={height - 100}
             width={1200}
@@ -489,14 +489,14 @@ export const VectorSearchDashboard: React.FC<VectorSearchDashboardProps> = ({
           <KnowledgeGraphVisualization
             meetingIds={filters.meetingIds}
             selectedNode={selectedResult?.baseResult.document.id}
-            onNodeSelect={(nodeId, nodeData) => {
-              console.log('Graph node selected:', nodeId, nodeData);
+            onNodeSelect={() => {
+              // Graph node selected
             }}
-            onEdgeSelect={(edgeId, edgeData) => {
-              console.log('Graph edge selected:', edgeId, edgeData);
+            onEdgeSelect={() => {
+              // Graph edge selected
             }}
-            onClusterSelect={(clusterId) => {
-              console.log('Graph cluster selected:', clusterId);
+            onClusterSelect={() => {
+              // Graph cluster selected
             }}
             height={height - 100}
             width={1200}

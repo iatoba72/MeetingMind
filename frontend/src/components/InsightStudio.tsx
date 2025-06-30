@@ -196,9 +196,9 @@ Provide clear risk assessment with actionable recommendations.`,
 
     setRules(sampleRules);
     organizRulesIntoCategories(sampleRules);
-  }, []);
+  }, [organizRulesIntoCategories]);
 
-  const organizRulesIntoCategories = (ruleList: CustomRule[]) => {
+  const organizRulesIntoCategories = useCallback((ruleList: CustomRule[]) => {
     const categoryMap = new Map<string, CustomRule[]>();
     
     ruleList.forEach(rule => {
@@ -218,7 +218,7 @@ Provide clear risk assessment with actionable recommendations.`,
     }));
 
     setCategories(categoriesList);
-  };
+  }, []);
 
   const getCategoryIcon = (category: string): string => {
     const iconMap: Record<string, string> = {

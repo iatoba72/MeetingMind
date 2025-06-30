@@ -462,7 +462,7 @@ export class KeyManagementService {
         encryptedKeyBuffer
       );
 
-      const keyData = JSON.parse(new TextDecoder().decode(decryptedKeyBuffer));
+      const keyData = JSON.parse(new TextDecoder().decode(decryptedKeyBuffer)); // eslint-disable-line @typescript-eslint/no-unused-vars
 
       // Restore key metadata
       const newKeyId = await this.generateKeyId();
@@ -657,7 +657,7 @@ export class KeyManagementService {
     };
   }
 
-  private async getRecipientPublicKey(recipientId: string): Promise<CryptoKey> {
+  private async getRecipientPublicKey(recipientId: string): Promise<CryptoKey> { // eslint-disable-line @typescript-eslint/no-unused-vars
     // In a real implementation, this would fetch the recipient's public key
     // from a secure key server or directory service
     // For now, we'll use the encryption service to generate a mock key

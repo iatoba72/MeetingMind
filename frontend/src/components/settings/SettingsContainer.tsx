@@ -5,8 +5,8 @@ import React, { useState } from 'react';
 import {
   Settings,
   Flask,
-  History,
-  FileText,
+  // History,
+  // FileText,
   Cog
 } from 'lucide-react';
 

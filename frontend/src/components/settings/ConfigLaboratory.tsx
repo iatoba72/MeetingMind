@@ -6,26 +6,26 @@ import {
   Flask,
   Play,
   Square,
-  RotateCcw,
+  // RotateCcw,
   Save,
   Download,
-  Upload,
-  Copy,
+  // Upload,
+  // Copy,
   Beaker,
-  Zap,
+  // Zap,
   CheckCircle,
   XCircle,
   AlertTriangle,
   Clock,
-  User,
-  Globe,
-  Users,
-  Building,
-  Eye,
-  EyeOff,
-  Settings,
-  Code,
-  Terminal,
+  // User,
+  // Globe,
+  // Users,
+  // Building,
+  // Eye,
+  // EyeOff,
+  // Settings,
+  // Code,
+  // Terminal,
   Monitor,
   Smartphone,
   Tablet,
@@ -209,15 +209,15 @@ export const ConfigLaboratory: React.FC = () => {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [currentExperiment, setCurrentExperiment] = useState<Experiment | null>(null);
   const [experimentSettings, setExperimentSettings] = useState<Record<string, any>>({});
-  const [testSuites, setTestSuites] = useState<TestSuite[]>(DEFAULT_TEST_SUITES);
-  const [environments, setEnvironments] = useState<Environment[]>(DEFAULT_ENVIRONMENTS);
+  const [testSuites] = useState<TestSuite[]>(DEFAULT_TEST_SUITES);
+  const [environments] = useState<Environment[]>(DEFAULT_ENVIRONMENTS);
   const [selectedTestSuites, setSelectedTestSuites] = useState<string[]>(['ui-responsiveness']);
   const [selectedEnvironments, setSelectedEnvironments] = useState<string[]>(['desktop-1080p']);
   const [isRunning, setIsRunning] = useState(false);
   const [currentTest, setCurrentTest] = useState<string | null>(null);
   const [results, setResults] = useState<ExperimentResult[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  // const [previewMode] = useState(false);
 
   // Load saved experiments
   useEffect(() => {

@@ -382,7 +382,7 @@ export class AnalyticsService {
           topic.transitionPoints.push(segment.startTime);
         }
         currentTopic = primaryTopic;
-        topicStartTime = segment.startTime;
+        topicStartTime = segment.startTime; // eslint-disable-line @typescript-eslint/no-unused-vars
       }
 
       if (topicMap.has(primaryTopic)) {

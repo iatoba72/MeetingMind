@@ -1,7 +1,7 @@
 // Workflow State Machine Designer Component
 // Visual workflow designer for meeting automation and state management
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -169,9 +169,9 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
       // Create new workflow with default states
       createDefaultWorkflow();
     }
-  }, [workflowId]);
+  }, [workflowId, loadWorkflow, loadExecutions, createDefaultWorkflow]);
 
-  const loadWorkflow = async () => {
+  const loadWorkflow = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`http://localhost:8000/workflows/${workflowId}`);
@@ -186,9 +186,9 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [workflowId]);
 
-  const loadExecutions = async () => {
+  const loadExecutions = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:8000/workflows/${workflowId}/executions`);
       
@@ -199,9 +199,9 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
     } catch (err) {
       console.error('Error loading executions:', err);
     }
-  };
+  }, [workflowId]);
 
-  const createDefaultWorkflow = () => {
+  const createDefaultWorkflow = useCallback(() => {
     const states: WorkflowState[] = defaultStates.map((state, index) => ({
       ...state,
       type: state.type as 'start' | 'process' | 'decision' | 'end',
@@ -232,7 +232,7 @@ const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
-  };
+  }, [defaultStates]);
 
   const handleSaveWorkflow = async () => {
     if (!workflow) return;

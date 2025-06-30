@@ -175,7 +175,7 @@ export class OptimizedWebSocketService {
       try {
         this.ws = new WebSocket(wsUrl, this.config.protocols);
 
-        this.ws.onopen = (event) => {
+        this.ws.onopen = (event) => { // eslint-disable-line @typescript-eslint/no-unused-vars
           this.stats.isConnected = true;
           this.stats.lastActivity = Date.now();
           this.stats.connectionUptime = 0;

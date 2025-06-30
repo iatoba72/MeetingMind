@@ -8,7 +8,7 @@ import {
   Users, 
   History, 
   MoreVertical, 
-  Type, 
+  // Type, 
   Bold, 
   Italic, 
   Underline,
@@ -83,7 +83,7 @@ interface SharedNoteTakingProps {
 }
 
 export const SharedNoteTaking: React.FC<SharedNoteTakingProps> = ({
-  documentId,
+  // documentId: _documentId,
   initialContent = '',
   users,
   currentUser,
@@ -227,7 +227,7 @@ export const SharedNoteTaking: React.FC<SharedNoteTakingProps> = ({
     } else {
       // Replace operation (delete + insert)
       const deletedLength = oldContent.length - position;
-      const insertedText = newContent.slice(position);
+      // const insertedText = newContent.slice(position);
       
       // For simplicity, we'll use delete operation
       return {

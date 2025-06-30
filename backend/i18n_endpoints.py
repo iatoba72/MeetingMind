@@ -12,30 +12,47 @@ from i18n_models import LanguageCode, TranslationQuality, CulturalContext
 from multi_language_transcription_service import MultiLanguageTranscriptionService
 from real_time_translation_service import RealTimeTranslationService, TranslationStream
 from language_specific_insights_service import LanguageSpecificInsightsService
-from translation_memory_system import TranslationMemorySystem, MemorySearchRequest, MemoryUpdateRequest
+from translation_memory_system import (
+    TranslationMemorySystem,
+    MemorySearchRequest,
+    MemoryUpdateRequest,
+)
 from cultural_adaptation_service import CulturalAdaptationService
 from language_lab_service import LanguageLabService
 
 router = APIRouter(prefix="/i18n", tags=["internationalization"])
 
+
 # Dependency functions
-def get_transcription_service(db: Session = Depends(get_db)) -> MultiLanguageTranscriptionService:
+def get_transcription_service(
+    db: Session = Depends(get_db),
+) -> MultiLanguageTranscriptionService:
     return MultiLanguageTranscriptionService(db)
 
-def get_translation_service(db: Session = Depends(get_db)) -> RealTimeTranslationService:
+
+def get_translation_service(
+    db: Session = Depends(get_db),
+) -> RealTimeTranslationService:
     return RealTimeTranslationService(db)
 
-def get_insights_service(db: Session = Depends(get_db)) -> LanguageSpecificInsightsService:
+
+def get_insights_service(
+    db: Session = Depends(get_db),
+) -> LanguageSpecificInsightsService:
     return LanguageSpecificInsightsService(db)
+
 
 def get_memory_service(db: Session = Depends(get_db)) -> TranslationMemorySystem:
     return TranslationMemorySystem(db)
 
+
 def get_cultural_service(db: Session = Depends(get_db)) -> CulturalAdaptationService:
     return CulturalAdaptationService(db)
 
+
 def get_language_lab_service(db: Session = Depends(get_db)) -> LanguageLabService:
     return LanguageLabService(db)
+
 
 # Multi-Language Transcription Endpoints
 @router.post("/transcription/analyze")
@@ -44,7 +61,7 @@ async def analyze_multilingual_audio(
     meeting_id: str,
     participant_id: Optional[str] = None,
     expected_languages: Optional[List[str]] = None,
-    service: MultiLanguageTranscriptionService = Depends(get_transcription_service)
+    service: MultiLanguageTranscriptionService = Depends(get_transcription_service),
 ):
     """Analyze audio for multi-language transcription"""
     try:
@@ -56,17 +73,17 @@ async def analyze_multilingual_audio(
                     lang_codes.append(LanguageCode(lang))
                 except ValueError:
                     continue
-        
+
         # Simulate audio data (in production would handle actual audio bytes)
         simulated_audio = b"audio_data_placeholder"
-        
+
         result = await service.transcribe_multilingual_audio(
             simulated_audio,
             meeting_id,
             participant_id,
-            lang_codes if lang_codes else None
+            lang_codes if lang_codes else None,
         )
-        
+
         return {
             "segments": [
                 {
@@ -75,7 +92,7 @@ async def analyze_multilingual_audio(
                     "end_time": seg.end_time,
                     "language": seg.language.value,
                     "confidence": seg.confidence,
-                    "is_code_switched": seg.is_code_switched
+                    "is_code_switched": seg.is_code_switched,
                 }
                 for seg in result.segments
             ],
@@ -83,15 +100,16 @@ async def analyze_multilingual_audio(
             "languages_detected": [lang.value for lang in result.languages_detected],
             "code_switching_points": result.code_switching_points,
             "overall_confidence": result.overall_confidence,
-            "processing_metadata": result.processing_metadata
+            "processing_metadata": result.processing_metadata,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/transcription/language-stats/{meeting_id}")
 async def get_language_statistics(
     meeting_id: str,
-    service: MultiLanguageTranscriptionService = Depends(get_transcription_service)
+    service: MultiLanguageTranscriptionService = Depends(get_transcription_service),
 ):
     """Get language usage statistics for a meeting"""
     try:
@@ -100,13 +118,14 @@ async def get_language_statistics(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/transcription/validate")
 async def validate_language_detection(
     transcript_id: str,
     correct_language: str,
     user_id: str,
     correction_reason: Optional[str] = None,
-    service: MultiLanguageTranscriptionService = Depends(get_transcription_service)
+    service: MultiLanguageTranscriptionService = Depends(get_transcription_service),
 ):
     """Validate/correct language detection"""
     try:
@@ -120,6 +139,7 @@ async def validate_language_detection(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # Real-Time Translation Endpoints
 @router.post("/translation/translate")
 async def translate_text(
@@ -130,19 +150,24 @@ async def translate_text(
     meeting_id: Optional[str] = None,
     participant_id: Optional[str] = None,
     context: Optional[Dict[str, Any]] = None,
-    service: RealTimeTranslationService = Depends(get_translation_service)
+    service: RealTimeTranslationService = Depends(get_translation_service),
 ):
     """Translate text with optimal performance and quality"""
     try:
         source_lang = LanguageCode(source_language)
         target_lang = LanguageCode(target_language)
         quality = TranslationQuality(quality_level)
-        
+
         result = await service.translate_text(
-            source_text, source_lang, target_lang, quality,
-            context, meeting_id, participant_id
+            source_text,
+            source_lang,
+            target_lang,
+            quality,
+            context,
+            meeting_id,
+            participant_id,
         )
-        
+
         return {
             "translated_text": result.translated_text,
             "confidence_score": result.confidence_score,
@@ -151,12 +176,13 @@ async def translate_text(
             "quality_score": result.quality_score,
             "cached": result.cached,
             "alternative_translations": result.alternative_translations,
-            "cultural_adaptations": result.cultural_adaptations
+            "cultural_adaptations": result.cultural_adaptations,
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/translation/stream/start")
 async def start_translation_stream(
@@ -167,14 +193,14 @@ async def start_translation_stream(
     buffer_size: int = 100,
     max_delay_ms: int = 500,
     enable_cultural_adaptation: bool = True,
-    service: RealTimeTranslationService = Depends(get_translation_service)
+    service: RealTimeTranslationService = Depends(get_translation_service),
 ):
     """Start a real-time translation stream"""
     try:
         source_lang = LanguageCode(source_language)
         target_langs = [LanguageCode(lang) for lang in target_languages]
         quality = TranslationQuality(quality_level)
-        
+
         stream_config = TranslationStream(
             meeting_id=meeting_id,
             source_language=source_lang,
@@ -182,9 +208,9 @@ async def start_translation_stream(
             quality_level=quality,
             enable_cultural_adaptation=enable_cultural_adaptation,
             buffer_size=buffer_size,
-            max_delay_ms=max_delay_ms
+            max_delay_ms=max_delay_ms,
         )
-        
+
         stream_id = await service.start_translation_stream(stream_config)
         return {"stream_id": stream_id}
     except ValueError as e:
@@ -192,22 +218,23 @@ async def start_translation_stream(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/translation/stream/{stream_id}/add")
 async def add_to_translation_stream(
     stream_id: str,
     text_chunk: str,
     source_language: str,
     speaker_id: Optional[str] = None,
-    service: RealTimeTranslationService = Depends(get_translation_service)
+    service: RealTimeTranslationService = Depends(get_translation_service),
 ):
     """Add text to translation stream"""
     try:
         source_lang = LanguageCode(source_language)
-        
+
         results = await service.add_to_translation_stream(
             stream_id, text_chunk, source_lang, speaker_id
         )
-        
+
         return {
             "translations": [
                 {
@@ -215,7 +242,7 @@ async def add_to_translation_stream(
                     "translated_text": result.translated_text,
                     "confidence": result.confidence_score,
                     "provider": result.provider.value,
-                    "processing_time_ms": result.processing_time_ms
+                    "processing_time_ms": result.processing_time_ms,
                 }
                 for result in results
             ]
@@ -225,10 +252,11 @@ async def add_to_translation_stream(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.delete("/translation/stream/{stream_id}")
 async def stop_translation_stream(
     stream_id: str,
-    service: RealTimeTranslationService = Depends(get_translation_service)
+    service: RealTimeTranslationService = Depends(get_translation_service),
 ):
     """Stop a translation stream"""
     try:
@@ -237,12 +265,13 @@ async def stop_translation_stream(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/translation/stats/{meeting_id}")
 async def get_translation_statistics(
     meeting_id: str,
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
-    service: RealTimeTranslationService = Depends(get_translation_service)
+    service: RealTimeTranslationService = Depends(get_translation_service),
 ):
     """Get translation statistics for a meeting"""
     try:
@@ -250,24 +279,25 @@ async def get_translation_statistics(
         if start_time and end_time:
             time_range = (
                 datetime.fromisoformat(start_time),
-                datetime.fromisoformat(end_time)
+                datetime.fromisoformat(end_time),
             )
-        
+
         stats = await service.get_translation_statistics(meeting_id, time_range)
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # Language-Specific Insights Endpoints
 @router.post("/insights/generate/{meeting_id}")
 async def generate_multilingual_insights(
     meeting_id: str,
-    service: LanguageSpecificInsightsService = Depends(get_insights_service)
+    service: LanguageSpecificInsightsService = Depends(get_insights_service),
 ):
     """Generate comprehensive multilingual insights for a meeting"""
     try:
         insights = await service.generate_multilingual_insights(meeting_id)
-        
+
         return {
             "meeting_id": insights.meeting_id,
             "languages_analyzed": [lang.value for lang in insights.languages_analyzed],
@@ -277,11 +307,15 @@ async def generate_multilingual_insights(
                     "title": insight.title,
                     "description": insight.description,
                     "language": insight.language.value,
-                    "cultural_context": insight.cultural_context.value if insight.cultural_context else None,
+                    "cultural_context": (
+                        insight.cultural_context.value
+                        if insight.cultural_context
+                        else None
+                    ),
                     "confidence": insight.confidence,
                     "evidence": insight.evidence,
                     "recommendations": insight.recommendations,
-                    "cultural_notes": insight.cultural_notes
+                    "cultural_notes": insight.cultural_notes,
                 }
                 for insight in insights.cultural_insights
             ],
@@ -293,16 +327,17 @@ async def generate_multilingual_insights(
                     "key_phrases": patterns.key_phrases,
                     "technical_terms": patterns.technical_terms,
                     "emotional_markers": patterns.emotional_markers,
-                    "cultural_references": patterns.cultural_references
+                    "cultural_references": patterns.cultural_references,
                 }
                 for lang, patterns in insights.language_patterns.items()
             },
             "cross_cultural_observations": insights.cross_cultural_observations,
             "communication_effectiveness": insights.communication_effectiveness,
-            "recommendations": insights.recommendations
+            "recommendations": insights.recommendations,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Translation Memory Endpoints
 @router.post("/memory/search")
@@ -315,13 +350,13 @@ async def search_translation_memory(
     min_similarity: float = 0.7,
     max_results: int = 10,
     organization_id: Optional[str] = None,
-    service: TranslationMemorySystem = Depends(get_memory_service)
+    service: TranslationMemorySystem = Depends(get_memory_service),
 ):
     """Search translation memory for matching entries"""
     try:
         source_lang = LanguageCode(source_language)
         target_lang = LanguageCode(target_language)
-        
+
         request = MemorySearchRequest(
             source_text=source_text,
             source_language=source_lang,
@@ -330,11 +365,11 @@ async def search_translation_memory(
             context_tags=context_tags,
             min_similarity=min_similarity,
             max_results=max_results,
-            organization_id=organization_id
+            organization_id=organization_id,
         )
-        
+
         matches = await service.search_memory(request)
-        
+
         return {
             "matches": [
                 {
@@ -345,7 +380,7 @@ async def search_translation_memory(
                     "usage_frequency": match.usage_frequency,
                     "last_used": match.last_used.isoformat(),
                     "context_match": match.context_match,
-                    "domain_match": match.domain_match
+                    "domain_match": match.domain_match,
                 }
                 for match in matches
             ]
@@ -354,6 +389,7 @@ async def search_translation_memory(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/memory/add")
 async def add_to_translation_memory(
@@ -367,13 +403,13 @@ async def add_to_translation_memory(
     created_by: str = "system",
     organization_id: Optional[str] = None,
     force_update: bool = False,
-    service: TranslationMemorySystem = Depends(get_memory_service)
+    service: TranslationMemorySystem = Depends(get_memory_service),
 ):
     """Add translation to memory"""
     try:
         source_lang = LanguageCode(source_language)
         target_lang = LanguageCode(target_language)
-        
+
         request = MemoryUpdateRequest(
             source_text=source_text,
             target_text=target_text,
@@ -384,9 +420,9 @@ async def add_to_translation_memory(
             context_tags=context_tags,
             created_by=created_by,
             organization_id=organization_id,
-            force_update=force_update
+            force_update=force_update,
         )
-        
+
         memory_id = await service.add_to_memory(request)
         return {"memory_id": memory_id}
     except ValueError as e:
@@ -394,32 +430,38 @@ async def add_to_translation_memory(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/memory/stats")
 async def get_memory_statistics(
     source_language: Optional[str] = None,
     target_language: Optional[str] = None,
     domain: Optional[str] = None,
     organization_id: Optional[str] = None,
-    service: TranslationMemorySystem = Depends(get_memory_service)
+    service: TranslationMemorySystem = Depends(get_memory_service),
 ):
     """Get translation memory statistics"""
     try:
         language_pair = None
         if source_language and target_language:
-            language_pair = (LanguageCode(source_language), LanguageCode(target_language))
-        
-        stats = await service.get_memory_statistics(language_pair, domain, organization_id)
+            language_pair = (
+                LanguageCode(source_language),
+                LanguageCode(target_language),
+            )
+
+        stats = await service.get_memory_statistics(
+            language_pair, domain, organization_id
+        )
         return stats
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # Cultural Adaptation Endpoints
 @router.post("/cultural/analyze/{meeting_id}")
 async def analyze_cultural_context(
-    meeting_id: str,
-    service: CulturalAdaptationService = Depends(get_cultural_service)
+    meeting_id: str, service: CulturalAdaptationService = Depends(get_cultural_service)
 ):
     """Analyze cultural context for a meeting"""
     try:
@@ -427,6 +469,7 @@ async def analyze_cultural_context(
         return analysis
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Language Lab Endpoints
 @router.post("/lab/test/comprehensive")
@@ -436,7 +479,7 @@ async def run_comprehensive_test(
     include_memory_effectiveness: bool = True,
     language_pairs: Optional[List[str]] = None,
     providers: Optional[List[str]] = None,
-    service: LanguageLabService = Depends(get_language_lab_service)
+    service: LanguageLabService = Depends(get_language_lab_service),
 ):
     """Run comprehensive language lab test"""
     try:
@@ -444,12 +487,13 @@ async def run_comprehensive_test(
         parsed_pairs = []
         if language_pairs:
             for pair in language_pairs:
-                if '->' in pair:
-                    source, target = pair.split('->')
+                if "->" in pair:
+                    source, target = pair.split("->")
                     parsed_pairs.append((LanguageCode(source), LanguageCode(target)))
-        
+
         # Parse providers
         from i18n_models import TranslationProvider
+
         parsed_providers = []
         if providers:
             for provider in providers:
@@ -457,54 +501,56 @@ async def run_comprehensive_test(
                     parsed_providers.append(TranslationProvider(provider))
                 except ValueError:
                     continue
-        
+
         results = await service.run_comprehensive_test(
             include_translation_quality=include_translation_quality,
             include_cultural_adaptation=include_cultural_adaptation,
             include_memory_effectiveness=include_memory_effectiveness,
             language_pairs=parsed_pairs if parsed_pairs else None,
-            providers=parsed_providers if parsed_providers else None
+            providers=parsed_providers if parsed_providers else None,
         )
-        
+
         return results
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/lab/test/history")
 async def get_test_history(
     limit: int = 10,
     test_type: Optional[str] = None,
-    service: LanguageLabService = Depends(get_language_lab_service)
+    service: LanguageLabService = Depends(get_language_lab_service),
 ):
     """Get test execution history"""
     try:
         from language_lab_service import TestType
-        
+
         test_type_enum = None
         if test_type:
             try:
                 test_type_enum = TestType(test_type)
             except ValueError:
                 pass
-        
+
         history = await service.get_test_history(limit, test_type_enum)
         return {"test_history": history}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/lab/test/{test_id}/export")
 async def export_test_results(
     test_id: str,
     format_type: str = "json",
-    service: LanguageLabService = Depends(get_language_lab_service)
+    service: LanguageLabService = Depends(get_language_lab_service),
 ):
     """Export test results"""
     try:
         exported_data = await service.export_test_results(test_id, format_type)
-        
-        if format_type.lower() == 'json':
+
+        if format_type.lower() == "json":
             return {"data": exported_data}
         else:
             return {"data": exported_data, "format": format_type}
@@ -513,54 +559,56 @@ async def export_test_results(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # Language Detection Test Endpoint
 @router.post("/lab/test/language-detection")
 async def test_language_detection(
     test_texts: List[str],
     expected_languages: Optional[List[str]] = None,
-    service: MultiLanguageTranscriptionService = Depends(get_transcription_service)
+    service: MultiLanguageTranscriptionService = Depends(get_transcription_service),
 ):
     """Test language detection accuracy"""
     try:
         results = []
-        
+
         for i, text in enumerate(test_texts):
             detection_result = await service.language_detector.detect_language(text)
-            
+
             expected = None
             if expected_languages and i < len(expected_languages):
                 try:
                     expected = LanguageCode(expected_languages[i])
                 except ValueError:
                     pass
-            
-            is_correct = expected == detection_result.detected_language if expected else None
-            
-            results.append({
-                "text": text,
-                "detected_language": detection_result.detected_language.value,
-                "confidence": detection_result.confidence,
-                "alternative_languages": detection_result.alternative_languages,
-                "algorithm_used": detection_result.algorithm_used,
-                "processing_time_ms": detection_result.processing_time_ms,
-                "expected_language": expected.value if expected else None,
-                "is_correct": is_correct,
-                "text_features": detection_result.text_features
-            })
-        
+
+            is_correct = (
+                expected == detection_result.detected_language if expected else None
+            )
+
+            results.append(
+                {
+                    "text": text,
+                    "detected_language": detection_result.detected_language.value,
+                    "confidence": detection_result.confidence,
+                    "alternative_languages": detection_result.alternative_languages,
+                    "algorithm_used": detection_result.algorithm_used,
+                    "processing_time_ms": detection_result.processing_time_ms,
+                    "expected_language": expected.value if expected else None,
+                    "is_correct": is_correct,
+                    "text_features": detection_result.text_features,
+                }
+            )
+
         # Calculate accuracy if expected languages provided
         accuracy = None
         if expected_languages:
-            correct_predictions = sum(1 for r in results if r.get('is_correct') is True)
+            correct_predictions = sum(1 for r in results if r.get("is_correct") is True)
             accuracy = correct_predictions / len(results) if results else 0.0
-        
-        return {
-            "results": results,
-            "accuracy": accuracy,
-            "total_tests": len(results)
-        }
+
+        return {"results": results, "accuracy": accuracy, "total_tests": len(results)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Health check endpoint
 @router.get("/health")
@@ -574,7 +622,7 @@ async def health_check():
             "insights": "available",
             "memory": "available",
             "cultural": "available",
-            "language_lab": "available"
+            "language_lab": "available",
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }

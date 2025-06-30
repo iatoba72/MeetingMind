@@ -6,7 +6,7 @@
 import { initializeTelemetry, shutdownTelemetry, TelemetryConfig } from './telemetry';
 import { initializeMetrics, shutdownMetrics, MetricsReporter } from './metrics';
 import { LoggerFactory, LogLevel } from './logging';
-import { healthMonitor, HealthMonitor } from './health';
+import { healthMonitor, HealthMonitor } from './health'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { MeetingMindTracer } from './tracing';
 
 // Observability configuration

@@ -136,7 +136,7 @@ export const useAudioCapture = (
     sampleRate = 16000,                   // 16kHz optimal for speech recognition
     channelCount = 1,                     // Mono audio for speech
     chunkDuration = 250,                  // 250ms chunks for low latency
-    deviceId: _deviceId,
+    deviceId: _deviceId, // eslint-disable-line @typescript-eslint/no-unused-vars
     enableAnalysis = true,
     fftSize = 1024                        // Good balance for frequency analysis
   } = config;

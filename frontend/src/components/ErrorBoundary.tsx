@@ -256,36 +256,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-// Higher-order component for easier usage
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<ErrorBoundaryProps, 'children'>
-) {
-  const WrappedComponent = (props: P) => (
-    <ErrorBoundary {...errorBoundaryProps}>
-      <Component {...props} />
-    </ErrorBoundary>
-  );
-
-  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
-
-  return WrappedComponent;
-}
-
-// Hook for error boundary context
-export function useErrorHandler() {
-  return {
-    captureError: (error: Error, errorInfo?: Record<string, unknown>) => {
-      console.error('Manual error capture:', error, errorInfo);
-      // In a real app, send to error reporting service
-    },
-    
-    reportIssue: (description: string, metadata?: Record<string, unknown>) => {
-      console.log('Issue reported:', description, metadata);
-      // In a real app, send to issue tracking service
-    },
-  };
-}
+// Re-export utilities from separate files
+export { withErrorBoundary } from '../utils/errorBoundaryUtils';
+export { useErrorHandler } from '../hooks/useErrorHandler';
 
 // Specific error boundaries for different components
 export const RecordingErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) => (

@@ -3,7 +3,7 @@
  * Provides easy-to-use hooks for React components
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { MeetingMindTracer, TracedOperation } from './tracing';
 import { LoggerFactory, LogLevel } from './logging';
@@ -69,7 +69,7 @@ export function useObservability(componentName: string) {
     }, [recordPerformanceEvent, componentName]),
 
     // Tracing
-    trace: useCallback(<T>(operation: string, fn: () => Promise<T>, context?: Record<string, any>) => {
+    trace: useCallback(<T,>(operation: string, fn: () => Promise<T>, context?: Record<string, any>) => {
       return traceOperation(`${componentName}.${operation}`, fn, context);
     }, [traceOperation, componentName]),
 
@@ -400,7 +400,7 @@ export function useAsyncOperation() {
     traceOperation: state.traceOperation,
   }));
 
-  return useCallback(async <T>(
+  return useCallback(async <T,>(
     name: string,
     operation: () => Promise<T>,
     context?: Record<string, any>

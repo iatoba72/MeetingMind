@@ -77,7 +77,7 @@ interface TranscriptionBattleModeProps {
 export const TranscriptionBattleMode: React.FC<TranscriptionBattleModeProps> = ({
   sessionId,
   onBattleComplete,
-  enabledProviders = ['local_whisper', 'openai_whisper', 'assemblyai'],
+  // _enabledProviders = ['local_whisper', 'openai_whisper', 'assemblyai'],
   referenceText,
   autoStart = false
 }) => {
@@ -122,10 +122,10 @@ export const TranscriptionBattleMode: React.FC<TranscriptionBattleModeProps> = (
 
   const [isRecording, setIsRecording] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
-  const [results, setResults] = useState<Record<string, BattleResult>>({});
+  // const [results, setResults] = useState<Record<string, BattleResult>>({});
   const [comparison, setComparison] = useState<BattleComparison | null>(null);
   const [battlePhase, setBattlePhase] = useState<'setup' | 'recording' | 'processing' | 'results'>('setup');
-  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  // const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
 
@@ -173,7 +173,7 @@ export const TranscriptionBattleMode: React.FC<TranscriptionBattleModeProps> = (
     if (autoStart && battlePhase === 'setup') {
       startBattle();
     }
-  }, [autoStart]);
+  }, [autoStart, battlePhase, startBattle]);
 
   const toggleProvider = (providerId: string) => {
     setProviders(prev => prev.map(p => 
@@ -181,7 +181,7 @@ export const TranscriptionBattleMode: React.FC<TranscriptionBattleModeProps> = (
     ));
   };
 
-  const startBattle = async () => {
+  const startBattle = useCallback(async () => {
     try {
       setError(null);
       setBattlePhase('recording');
@@ -245,7 +245,7 @@ export const TranscriptionBattleMode: React.FC<TranscriptionBattleModeProps> = (
       setError('Failed to start recording: ' + (err as Error).message);
       setBattlePhase('setup');
     }
-  };
+  }, []);
 
   const stopBattle = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {

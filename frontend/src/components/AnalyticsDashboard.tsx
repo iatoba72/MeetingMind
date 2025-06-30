@@ -214,7 +214,36 @@ const AnalyticsDashboard: React.FC = () => {
     return [analytics];
   }, [analyticsService]);
 
-  const aggregateMetrics = (analytics: MeetingAnalytics[]) => {
+  const aggregateTopics = useCallback((analytics: MeetingAnalytics[]) => {
+    const topicMap = new Map<string, number>();
+    
+    analytics.forEach(meeting => {
+      meeting.topics.forEach(topic => {
+        topicMap.set(topic.topic, (topicMap.get(topic.topic) || 0) + topic.duration);
+      });
+    });
+
+    return Array.from(topicMap.entries())
+      .map(([topic, duration]) => ({ topic, duration }))
+      .sort((a, b) => b.duration - a.duration)
+      .slice(0, 10);
+  }, []);
+
+  const aggregateCollaboration = useCallback((analytics: MeetingAnalytics[]) => {
+    const patternMap = new Map<string, number>();
+    
+    analytics.forEach(meeting => {
+      meeting.collaborationPatterns.forEach(pattern => {
+        patternMap.set(pattern.type, (patternMap.get(pattern.type) || 0) + 1);
+      });
+    });
+
+    return Array.from(patternMap.entries())
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+  }, []);
+
+  const aggregateMetrics = useCallback((analytics: MeetingAnalytics[]) => {
     const totalMeetings = analytics.length;
     const avgEfficiency = analytics.reduce((sum, a) => sum + a.efficiency.overallEfficiency, 0) / totalMeetings;
     const totalParticipants = analytics.reduce((sum, a) => sum + a.participants.length, 0);
@@ -228,36 +257,7 @@ const AnalyticsDashboard: React.FC = () => {
       topTopics: aggregateTopics(analytics),
       collaborationTrends: aggregateCollaboration(analytics)
     };
-  };
-
-  const aggregateTopics = (analytics: MeetingAnalytics[]) => {
-    const topicMap = new Map<string, number>();
-    
-    analytics.forEach(meeting => {
-      meeting.topics.forEach(topic => {
-        topicMap.set(topic.topic, (topicMap.get(topic.topic) || 0) + topic.duration);
-      });
-    });
-
-    return Array.from(topicMap.entries())
-      .map(([topic, duration]) => ({ topic, duration }))
-      .sort((a, b) => b.duration - a.duration)
-      .slice(0, 10);
-  };
-
-  const aggregateCollaboration = (analytics: MeetingAnalytics[]) => {
-    const patternMap = new Map<string, number>();
-    
-    analytics.forEach(meeting => {
-      meeting.collaborationPatterns.forEach(pattern => {
-        patternMap.set(pattern.type, (patternMap.get(pattern.type) || 0) + 1);
-      });
-    });
-
-    return Array.from(patternMap.entries())
-      .map(([type, count]) => ({ type, count }))
-      .sort((a, b) => b.count - a.count);
-  };
+  }, [aggregateTopics, aggregateCollaboration]);
 
   const loadAnalyticsData = useCallback(async () => {
     try {

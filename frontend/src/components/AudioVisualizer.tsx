@@ -84,37 +84,9 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     };
   }, [isActive, audioData, frequencyData, showWaveform, showSpectrum, draw]);
   
-  // Main drawing function
-  const draw = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Clear canvas with background
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(0, 0, width, height);
-    
-    // Calculate layout for dual visualization
-    const halfHeight = height / 2;
-    
-    if (showWaveform && audioData) {
-      drawWaveform(ctx, audioData, 0, 0, width, showSpectrum ? halfHeight : height);
-    }
-    
-    if (showSpectrum && frequencyData) {
-      const yOffset = showWaveform ? halfHeight : 0;
-      const vizHeight = showWaveform ? halfHeight : height;
-      drawSpectrum(ctx, frequencyData, 0, yOffset, width, vizHeight);
-    }
-    
-    // Update statistics
-    updateVisualizerStats();
-  };
   
   // Draw waveform visualization (time domain)
-  const drawWaveform = (
+  const drawWaveform = useCallback((
     ctx: CanvasRenderingContext2D,
     data: Float32Array,
     x: number,
@@ -164,10 +136,10 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
     ctx.fillText('Waveform (Time Domain)', x + 5, y + 15);
-  };
+  }, []);
   
   // Draw frequency spectrum visualization
-  const drawSpectrum = (
+  const drawSpectrum = useCallback((
     ctx: CanvasRenderingContext2D,
     data: Uint8Array,
     x: number,
@@ -208,7 +180,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
     ctx.fillText('Frequency Spectrum (Frequency Domain)', x + 5, y + 15);
-  };
+  }, []);
   
   // Draw grid lines for better readability
   const drawGrid = (
@@ -293,7 +265,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   };
   
   // Calculate visualization statistics
-  const updateVisualizerStats = () => {
+  const updateVisualizerStats = useCallback(() => {
     if (!audioData && !frequencyData) return;
     
     let peakAmplitude = 0;
@@ -344,7 +316,36 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       dominantFrequency: Math.round(dominantFrequency),
       spectralCentroid: Math.round(spectralCentroid)
     });
-  };
+  }, [audioData, frequencyData]);
+
+  // Main drawing function
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Clear canvas with background
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Calculate layout for dual visualization
+    const halfHeight = height / 2;
+    
+    if (showWaveform && audioData) {
+      drawWaveform(ctx, audioData, 0, 0, width, showSpectrum ? halfHeight : height);
+    }
+    
+    if (showSpectrum && frequencyData) {
+      const yOffset = showWaveform ? halfHeight : 0;
+      const vizHeight = showWaveform ? halfHeight : height;
+      drawSpectrum(ctx, frequencyData, 0, yOffset, width, vizHeight);
+    }
+    
+    // Update statistics
+    updateVisualizerStats();
+  }, [audioData, frequencyData, showWaveform, showSpectrum, width, height, drawWaveform, drawSpectrum, updateVisualizerStats]);
   
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -375,9 +376,8 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
           <input
             type="checkbox"
             checked={showWaveform}
-            onChange={(e) => {
+            onChange={() => {
               // In a real implementation, you'd lift this state up
-              console.log('Toggle waveform:', e.target.checked);
             }}
             className="rounded border-gray-300"
           />
@@ -388,9 +388,8 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
           <input
             type="checkbox"
             checked={showSpectrum}
-            onChange={(e) => {
+            onChange={() => {
               // In a real implementation, you'd lift this state up
-              console.log('Toggle spectrum:', e.target.checked);
             }}
             className="rounded border-gray-300"
           />

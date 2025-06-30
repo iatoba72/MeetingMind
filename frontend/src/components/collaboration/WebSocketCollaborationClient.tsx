@@ -6,12 +6,12 @@ import {
   Wifi, 
   WifiOff, 
   AlertCircle, 
-  CheckCircle, 
-  Clock, 
+  // CheckCircle, 
+  // Clock, 
   RefreshCw,
-  Activity,
-  Users,
-  MessageSquare
+  // Activity,
+  // Users,
+  // MessageSquare
 } from 'lucide-react';
 
 interface CollaborationMessage {
@@ -273,10 +273,10 @@ export const WebSocketCollaborationProvider: React.FC<WebSocketCollaborationProv
         reconnect();
       }, reconnectInterval);
     }
-  }, [connectionState.reconnectAttempts, maxReconnectAttempts, reconnectInterval, log]);
+  }, [connectionState.reconnectAttempts, maxReconnectAttempts, reconnectInterval, log, reconnect]);
   
   // Handle WebSocket error
-  const handleError = useCallback((event: Event) => {
+  const handleError = useCallback(() => {
     log('WebSocket error occurred', 'error');
     setConnectionState(prev => ({ 
       ...prev, 

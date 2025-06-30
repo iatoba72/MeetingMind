@@ -234,15 +234,15 @@ export const ActionItemsBoard: React.FC<ActionItemsBoardProps> = ({
   };
 
   // Handle status change via drag and drop or direct update
-  const handleStatusChange = (itemId: string, newStatus: ActionItem['status']) => {
-    const updates: Partial<ActionItem> = { status: newStatus };
-    
-    if (newStatus === 'completed') {
-      updates.completedAt = new Date().toISOString();
-    }
-    
-    onUpdateItem(itemId, updates);
-  };
+  // const handleStatusChange = (itemId: string, newStatus: ActionItem['status']) => {
+  //   const updates: Partial<ActionItem> = { status: newStatus };
+  //   
+  //   if (newStatus === 'completed') {
+  //     updates.completedAt = new Date().toISOString();
+  //   }
+  //   
+  //   onUpdateItem(itemId, updates);
+  // };
 
   // Add comment to item
   const addComment = (itemId: string) => {
@@ -296,7 +296,7 @@ export const ActionItemsBoard: React.FC<ActionItemsBoardProps> = ({
   // Action item card component
   const ActionItemCard: React.FC<{ item: ActionItem }> = ({ item }) => {
     const assignee = item.assignee ? getUserById(item.assignee) : null;
-    const StatusIcon = statusConfig[item.status].icon;
+    // const StatusIcon = statusConfig[item.status].icon;
     const isItemOverdue = item.dueDate && isOverdue(item.dueDate, item.status);
 
     return (

@@ -2,7 +2,7 @@
 // Displays cursors and selections of multiple users in real-time
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { User, Mouse, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface CursorData {
   userId: string;

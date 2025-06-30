@@ -177,7 +177,7 @@ const CommunityTemplateGallery: React.FC<CommunityTemplateGalleryProps> = ({
     }
   }, [filters, page, loadMyTemplates, loadTemplates, showMyTemplates]);
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -206,9 +206,9 @@ const CommunityTemplateGallery: React.FC<CommunityTemplateGalleryProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, page]);
 
-  const loadMyTemplates = async () => {
+  const loadMyTemplates = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:8000/community-templates/my?user_id=${clientId}`);
       
@@ -219,7 +219,7 @@ const CommunityTemplateGallery: React.FC<CommunityTemplateGalleryProps> = ({
     } catch (err) {
       console.error('Error loading my templates:', err);
     }
-  };
+  }, [clientId]);
 
   const handleTemplateAction = async (action: string, templateId: string) => {
     try {

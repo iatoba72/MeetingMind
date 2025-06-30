@@ -17,8 +17,8 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
-  Avatar,
+  // ListItemAvatar,
+  // Avatar,
   Tooltip,
   Drawer,
   Timeline,
@@ -28,7 +28,7 @@ import {
   TimelineContent,
   TimelineDot,
   TimelineOppositeContent,
-  Zoom,
+  // Zoom,
   Fab,
   Accordion,
   AccordionSummary,
@@ -46,15 +46,15 @@ import {
   ZoomOut as ZoomOutIcon,
   Fullscreen as FullscreenIcon,
   FilterList as FilterIcon,
-  Search as SearchIcon,
+  // Search as SearchIcon,
   Download as DownloadIcon,
   Share as ShareIcon,
   PresentToAll as SlideIcon,
   TextFields as TextIcon,
   Image as ImageIcon,
   BarChart as ChartIcon,
-  Schedule as TimeIcon,
-  Visibility as ViewIcon,
+  // Schedule as TimeIcon,
+  // Visibility as ViewIcon,
   ExpandMore as ExpandMoreIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
@@ -121,7 +121,7 @@ const VisualTimeline: React.FC = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [fullscreenSlide, setFullscreenSlide] = useState<TimelineSlide | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
 
   // Refs
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -380,7 +380,7 @@ const VisualTimeline: React.FC = () => {
   const renderTimelineItem = (slide: TimelineSlide, index: number) => {
     const isActive = currentSlide?.id === slide.id;
     const relativeTime = slide.timestamp - (slides[0]?.timestamp || 0);
-    const progress = slides.length > 0 ? relativeTime / playbackState.totalDuration : 0;
+    // const progress = slides.length > 0 ? relativeTime / playbackState.totalDuration : 0;
 
     return (
       <TimelineItem key={slide.id}>
